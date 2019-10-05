@@ -19,11 +19,11 @@ Tnode Tree
 ----------
 
 Tnode Tree是Yaffs文件系统用来存储某个文件与其所在Nand Flash位置关系的一个树状结构。其定义如下：
-
+<pre><code>
 struct yaffs_tnode {
 	struct yaffs\_tnode *internal\[YAFFS\_NTNODES_INTERNAL\];
 };
-
+</code></pre>
 可以看出，tnode存储为简单的指针数组，内部存储为指向下一级tnodes的指针。其结构如下：
 
 ![](https://l2h.site/wp-content/uploads/2019/05/tnode.png)
