@@ -48,15 +48,15 @@ date: 2019-02-27 21:09:39
 ### 编辑主题function.php
 
 编辑主题function.php，加入如下代码：
-
+```PHP
 //评论微信推送  
-function sc\_send($comment\_id)  
+function sc_send($comment_id)  
 {  
 $text = '博客上有一条新的评论';  
-$comment = get\_comment($comment\_id);  
+$comment = get_comment($comment_id);  
 $desp = $comment->comment_content;  
 $key = 'SCUxxxxxx';  //你的SCKey，从之前Server酱网站得到
-$postdata = http\_build\_query(  
+$postdata = http_build_query(  
 array(  
 'text' => $text,  
 'desp' => $desp  
@@ -70,11 +70,11 @@ array(
 'content' => $postdata  
 )  
 );  
-$context = stream\_context\_create($opts);  
-return $result = file\_get\_contents('http://sc.ftqq.com/'.$key.'.send', false, $context);  
+$context = stream_context_create($opts);  
+return $result = file_get_contents('http://sc.ftqq.com/'.$key.'.send', false, $context);  
 }  
-add\_action('comment\_post', 'sc_send', 19, 2);  
-
+add_action('comment_post', 'sc_send', 19, 2);  
+```
 完成后保存。之后留言推送，效果如前一幅图。
 
 评论回复邮件通知
@@ -97,33 +97,33 @@ add\_action('comment\_post', 'sc_send', 19, 2);
 ### 修改主题funtion.php
 
 若要评论触发邮件通知，则需要修改function.php增加如下代码：
-
-function comment\_mail\_notify($comment_id) {
-  $comment = get\_comment($comment\_id);
-  $parent\_id = $comment->comment\_parent ? $comment->comment_parent : '';
-  $spam\_confirmed = $comment->comment\_approved;
-  if (($parent\_id != '') && ($spam\_confirmed != 'spam')) {
-    $wp\_email = 'no-reply@' . preg\_replace('#^www.#', '', strtolower($\_SERVER\['SERVER\_NAME'\])); //e-mail 发出点, no-reply 可改为可用的 e-mail.
-    $to = trim(get\_comment($parent\_id)->comment\_author\_email);
-    $subject = '您在 \[' . get_option("blogname") . '\] 的留言有了回复';
+```PHP
+function comment_mail_notify($comment_id) {
+  $comment = get_comment($comment_id);
+  $parent_id = $comment->comment_parent ? $comment->comment_parent : '';
+  $spam_confirmed = $comment->comment_approved;
+  if (($parent_id != '') && ($spam_confirmed != 'spam')) {
+    $wp_email = 'no-reply@' . preg_replace('#^www.#', '', strtolower($_SERVER['SERVER_NAME'])); //e-mail 发出点, no-reply 可改为可用的 e-mail.
+    $to = trim(get_comment($parent_id)->comment_author_email);
+    $subject = '您在 [' . get_option("blogname") . '] 的留言有了回复';
     $message = '
     <div style="background-color:#eef2fa; border:1px solid #d8e3e8; color:#111; padding:0 15px; -moz-border-radius:5px; -webkit-border-radius:5px; -khtml-border-radius:5px;">
-      <p>' . trim(get\_comment($parent\_id)->comment_author) . ', 您好!</p>
-      <p>您曾在《' . get\_the\_title($comment->comment\_post\_ID) . '》的留言:<br />'
-       . trim(get\_comment($parent\_id)->comment_content) . '</p>
+      <p>' . trim(get_comment($parent_id)->comment_author) . ', 您好!</p>
+      <p>您曾在《' . get_the_title($comment->comment_post_ID) . '》的留言:<br />'
+       . trim(get_comment($parent_id)->comment_content) . '</p>
       <p>' . trim($comment->comment_author) . ' 给您的回复:<br />'
        . trim($comment->comment_content) . '<br /></p>
-      <p>您可以点击<a href="' . htmlspecialchars(get\_comment\_link($parent_id, array('type' => 'comment'))) . '">查看回应完整内容</a></p>
-      <p>欢迎再度光临<a href="' . get\_option('home') . '">' . get\_option('blogname') . '</a></p>
+      <p>您可以点击<a href="' . htmlspecialchars(get_comment_link($parent_id, array('type' => 'comment'))) . '">查看回应完整内容</a></p>
+      <p>欢迎再度光临<a href="' . get_option('home') . '">' . get_option('blogname') . '</a></p>
       <p>(此邮件由系统自动发送，请勿回复.)</p>
     </div>';
-      $from = "From: \\"" . get\_option('blogname') . "\\" <$wp\_email>";
-      $headers = "$from\\nContent-Type: text/html; charset=" . get\_option('blog\_charset') . "\\n";
+      $from = "From: \\"" . get_option('blogname') . "\\" <$wp_email>";
+      $headers = "$from\\nContent-Type: text/html; charset=" . get_option('blog_charset') . "\\n";
       wp_mail( $to, $subject, $message, $headers );
   }
 }
-add\_action('comment\_post', 'comment\_mail\_notify');
-
+add_action('comment_post', 'comment_mail_notify');
+```
 ### 效果
 
 配置成功后，试试效果吧。如下图：

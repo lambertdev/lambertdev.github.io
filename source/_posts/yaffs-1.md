@@ -26,23 +26,23 @@ date: 2019-04-30 22:12:19
   +---------------------------+
   |   用 户 空 间 态           |
   +---------------------------+
-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+--------------------------------------------
   +---------------------------+
   |     VFS 虚 拟 文 件 系 统  |
-  \+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\+ 内
-  \+\-\-\-\-\-\-\+ \+\-\-\-\-\-\-\+ +---------+
+  +---------------------------+ 内
+  +------+ +------+ +---------+
   |File  | |File  | | YAFFS   | 核
   |Sys-1 | |Sys-2 | |         |
-  \+\-\-\-\-\-\-\+ \+\-\-\-\-\-\-\+ \+\-\-\-\-\-\-\-\-\-\+ 态
-  \+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\+ +---------+
+  +------+ +------+ +---------+ 态
+  +---------------+ +---------+
   |               | | MTD     |
   |               | | Sub SYS |
   | ............  | +---------+
   |               | +---------+
   |               | | Nand or |
   |               | | NOR DrV |
-  \+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\+ +---------+
-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+  +---------------+ +---------+
+--------------------------------------------
   +---------------------------+
   |      硬   件              |
   +---------------------------+
@@ -94,9 +94,9 @@ YAFFS文件系统格式
 
 *   YAFFS将文件头部信息（包括文件类型，文件名，父目录的obj_id等）  
     单独 存放在page的起始位置。
-*   文件的唯一标示id(也叫obj\_id)位于OOB区域，紧跟chunk\_id标示这个是文件的第几块数据，Chunk_id 0表示该page为文件头信息，不含文件内容
+*   文件的唯一标示id(也叫obj_id)位于OOB区域，紧跟chunk_id标示这个是文件的第几块数据，Chunk_id 0表示该page为文件头信息，不含文件内容
 *   真正的文件内容根据文件大小散落在的size/page_size+1个页内。若文件大小正好不是页大小的整数倍，那么最后一段文件内容后会填充全0xFF放在一个页内，Page对应的OOB区域
-*   因为文件可能会被YAFFS管理（例如，上层应用对文件改写）的关系，同一个文件的内容不一定会摆放在相邻的Flash 页内（刚刚使用mkyaffs创建的文件系统除外）。同时，对同一个文件，可能会存在多个相同obj\_id肯chunk\_id的文件页，此时有另外的标示seq number来决定选择哪个page
+*   因为文件可能会被YAFFS管理（例如，上层应用对文件改写）的关系，同一个文件的内容不一定会摆放在相邻的Flash 页内（刚刚使用mkyaffs创建的文件系统除外）。同时，对同一个文件，可能会存在多个相同obj_id肯chunk_id的文件页，此时有另外的标示seq number来决定选择哪个page
 
 +----------------------------+
 |类型 父目录id 文件名          |
@@ -213,20 +213,20 @@ Yaffs使用的一些排序函数
 ---
 
 YAFFS的初始化很简单，源代码如下：
-
-module\_init(init\_yaffs_fs)
-static int \_\_init init\_yaffs_fs(void)
+```C
+module_init(init_yaffs_fs)
+static int __init init_yaffs_fs(void)
 {
 	int error = 0;
-	struct file\_system\_to_install *fsinst;
+	struct file_system_to_install *fsinst;
 
-	mutex\_init(&yaffs\_context_lock);        
+	mutex_init(&yaffs_context_lock);        
 
-	error = yaffs\_procfs\_init();                        ----1
+	error = yaffs_procfs_init();                        ----1
 	if (error)
 		return error;
 
-	fsinst = fs\_to\_install;
+	fsinst = fs_to_install;
 
 	while (fsinst->fst && !error) {
 		error = register_filesystem(fsinst->fst);   ----2
@@ -234,9 +234,9 @@ static int \_\_init init\_yaffs_fs(void)
 			fsinst->installed = 1;
 		fsinst++;
 	}
-	/\* Any errors? uninstall  */                        ----3
+	/* Any errors? uninstall  */                        ----3
 	if (error) {
-		fsinst = fs\_to\_install;
+		fsinst = fs_to_install;
 		while (fsinst->fst) {
 			if (fsinst->installed) {
 				unregister_filesystem(fsinst->fst);
@@ -246,19 +246,19 @@ static int \_\_init init\_yaffs_fs(void)
 	}}
 	return error;
 }
-static struct file\_system\_to\_install fs\_to_install\[\] = {
-	{&yaffs\_fs\_type, 0},
-	{&yaffs2\_fs\_type, 0},
+static struct file_system_to_install fs_to_install\[\] = {
+	{&yaffs_fs_type, 0},
+	{&yaffs2_fs_type, 0},
 	{NULL, 0}
 };
-static struct file\_system\_type yaffs2\_fs\_type = {
+static struct file_system_type yaffs2_fs_type = {
 	.owner = THIS_MODULE,
 	.name = "yaffs2",
 	.mount = yaffs2_mount,
-	.kill\_sb = kill\_block_super,
-	.fs\_flags = FS\_REQUIRES_DEV,
+	.kill_sb = kill_block_super,
+	.fs_flags = FS_REQUIRES_DEV,
 };
-
+```
 *   第1段初始化系统的procfs
 *   第2段向Kernel注册yaffs文件系统，这里不光注册yaffs2也会注册yaffs1，所以可以看到是一个while循环
 *   第3段：如果注册文件系统发生问题，解注册文件系统，此处不做过多分析
@@ -269,30 +269,30 @@ static struct file\_system\_type yaffs2\_fs\_type = {
 被成功注册到内核后，YAFFS利用内存中如下重要的数据结构来对文件系统进行管理：
 
 *   _**yaffs_dev：**_YAFFS Partition或者挂载点的相关信息
-*   _**yaffs\_block\_info**：_Nand Flash 块的信息，一个yaffs partition会有多个block info
+*   _**yaffs_block_info**：_Nand Flash 块的信息，一个yaffs partition会有多个block info
 *   _**yaffs_obj：**_记录文件系统中的文件或者目录相关信息
 *   _**yaffs_tnode：**_记录文件系统的目录结构，以及文件chunk位置相关信息
 
 此外，YAFFS会使用少量的内存缓存（Cache）来提升访问性能。
 
 yaffs_dev定义如下：
-
+```C
 struct yaffs_dev {
 	struct yaffs_param param;          //Yaffs相关参数
 	struct yaffs_driver drv;           //驱动处理相关函数
-	struct yaffs\_tags\_handler tagger;  //Yaffs标签处理相关函数
+	struct yaffs_tags_handler tagger;  //Yaffs标签处理相关函数
         //操作系统相关参数
 	void *os_context;
 	void *driver_context;
 
-	struct list\_head dev\_list;
+	struct list_head dev_list;
 	int ll_init;
-	u32 data\_bytes\_per_chunk;
+	u32 data_bytes_per_chunk;
 
-	u16 chunk\_grp\_bits;
-	u16 chunk\_grp\_size;
+	u16 chunk_grp_bits;
+	u16 chunk_grp_size;
         //TNode相关参数
-	struct yaffs\_tnode *tn\_swap_buffer;
+	struct yaffs_tnode *tn_swap_buffer;
 	u32 tnode_width;
 	u32 tnode_mask;
 	u32 tnode_size;
@@ -306,290 +306,290 @@ struct yaffs_dev {
 	int is_checkpointed;
 	int swap_endian;	
         //块管理相关参数
-	u32 internal\_start\_block;
-	u32 internal\_end\_block;
+	u32 internal_start_block;
+	u32 internal_end_block;
 	int block_offset;
 	int chunk_offset;
         //检查点相关参数
-	int checkpt\_page\_seq;
+	int checkpt_page_seq;
         ..............
 	//块管理相关参数
-	struct yaffs\_block\_info *block_info;
-	u8 \*chunk_bits;		/\* bitmap of chunks in use */
-	u8 block\_info\_alt:1;	/* allocated using alternative alloc */
-	u8 chunk\_bits\_alt:1;	/* allocated using alternative alloc */
-	int chunk\_bit\_stride;	
-	int n\_erased\_blocks;
+	struct yaffs_block_info *block_info;
+	u8 *chunk_bits;		/* bitmap of chunks in use */
+	u8 block_info_alt:1;	/* allocated using alternative alloc */
+	u8 chunk_bits_alt:1;	/* allocated using alternative alloc */
+	int chunk_bit_stride;	
+	int n_erased_blocks;
 	int alloc_block;	
 	u32 alloc_page;
-	int alloc\_block\_finder;	
+	int alloc_block_finder;	
 
-	/\* Tnode或者Object内存分配相关参数 */
+	/* Tnode或者Object内存分配相关参数 */
 	void *allocator;
 	int n_obj;
 	int n_tnodes;
 	int n_hardlinks;
 
-	struct yaffs\_obj\_bucket obj\_bucket\[YAFFS\_NOBJECT_BUCKETS\];
+	struct yaffs_obj_bucket obj_bucket\[YAFFS_NOBJECT_BUCKETS\];
 	u32 bucket_finder;
-	int n\_free\_chunks; 
+	int n_free_chunks; 
         //垃圾回收相关参数
-	u32 *gc\_cleanup\_list;
+	u32 *gc_cleanup_list;
        ................
 	//根目录及lost and found目录
-	struct yaffs\_obj *root\_dir;
-	struct yaffs\_obj *lost\_n_found;
+	struct yaffs_obj *root_dir;
+	struct yaffs_obj *lost_n_found;
 
 	int buffered_block;	/* Which block is buffered here? */
-	int doing\_buffered\_block_rewrite;
+	int doing_buffered_block_rewrite;
         //Yaffs缓存相关
 	struct yaffs_cache *cache;
-	int cache\_last\_use;
+	int cache_last_use;
 
-	/\* 后台删除或者unlink文件相关参数 */
-	struct yaffs\_obj *unlinked\_dir;	
-	struct yaffs\_obj *del\_dir;	
-	struct yaffs\_obj *unlinked\_deletion;
-	int n\_deleted\_files;	
-	int n\_unlinked\_files;	/* Count of unlinked files. */
-	int n\_bg\_deletions;	/* Count of background deletions. */
-	/\* 临时缓存相关 */
-	struct yaffs\_buffer temp\_buffer\[YAFFS\_N\_TEMP_BUFFERS\];
+	/* 后台删除或者unlink文件相关参数 */
+	struct yaffs_obj *unlinked_dir;	
+	struct yaffs_obj *del_dir;	
+	struct yaffs_obj *unlinked_deletion;
+	int n_deleted_files;	
+	int n_unlinked_files;	/* Count of unlinked files. */
+	int n_bg_deletions;	/* Count of background deletions. */
+	/* 临时缓存相关 */
+	struct yaffs_buffer temp_buffer\[YAFFS_N_TEMP_BUFFERS\];
 	int max_temp;
-	int temp\_in\_use;
-	int unmanaged\_buffer\_allocs;
-	int unmanaged\_buffer\_deallocs;
+	int temp_in_use;
+	int unmanaged_buffer_allocs;
+	int unmanaged_buffer_deallocs;
 
 	unsigned seq_number;	
-	unsigned oldest\_dirty\_seq;
-	unsigned oldest\_dirty\_block;
+	unsigned oldest_dirty_seq;
+	unsigned oldest_dirty_block;
 
 	int refresh_skip;	
-	struct list\_head dirty\_dirs;	
-	int chunks\_per\_summary;
-	struct yaffs\_summary\_tags *sum_tags;
+	struct list_head dirty_dirs;	
+	int chunks_per_summary;
+	struct yaffs_summary_tags *sum_tags;
 
-	/\* 统计数据*/
-	u32 n\_page\_writes;
+	/* 统计数据*/
+	u32 n_page_writes;
         .......
 };
-
+```
 yaffs_param 主要包含文件系统相关参数。
-
+```C
 struct yaffs_param {
 	const YCHAR *name;      //文件系统对应的MTD设备名称
 	int inband_tags;	/* Use unband tags */
-	u32 total\_bytes\_per_chunk;//每个chunk的大小（字节为单位）
-	u32 chunks\_per\_block; //每个Flash块的chunk数量
-	u32 spare\_bytes\_per_chunk;//每个chunk后的spare区域大小（字节为单位）
+	u32 total_bytes_per_chunk;//每个chunk的大小（字节为单位）
+	u32 chunks_per_block; //每个Flash块的chunk数量
+	u32 spare_bytes_per_chunk;//每个chunk后的spare区域大小（字节为单位）
 	u32 start_block; //第一个可以使用的块	
         u32 end_block;	//最后一个可使用的块
-	u32 n\_reserved\_blocks; //保留的块数量，主要为垃圾回收机制使用	
+	u32 n_reserved_blocks; //保留的块数量，主要为垃圾回收机制使用	
 	u32 n_caches;//Yaffs高速缓存的数量。Flash颗粒的写擦除是有次数上限的，为了避免读写端数据时Flash的频繁访问影响flash寿命，且避免访问Flash的性能下降，Yaffs定义了一些磁盘高速缓存在内存中
-	int cache\_bypass\_aligned; //若值为1：当读写是从chunk align的位置开始，便不使用cache
-	int use\_nand\_ecc;	//使用Nand Driver的ECC方法
+	int cache_bypass_aligned; //若值为1：当读写是从chunk align的位置开始，便不使用cache
+	int use_nand_ecc;	//使用Nand Driver的ECC方法
 	int tags_9bytes;	/* Use 9 byte tags */
-	int no\_tags\_ecc;	//是否对Tag使用ECC
+	int no_tags_ecc;	//是否对Tag使用ECC
 	int is_yaffs2;		//是否是Yaffs2
-	int empty\_lost\_n_found;	
+	int empty_lost_n_found;	
 	int refresh_period;	//检查Block的时间间隔
-	u8 skip\_checkpt\_rd;     //是否跳过checkpoint检查
-	u8 skip\_checkpt\_wr;
+	u8 skip_checkpt_rd;     //是否跳过checkpoint检查
+	u8 skip_checkpt_wr;
 	int enable_xattr;	/* Enable xattribs */
 	int max_objects;	//最大的yaffs object数量
-	int hide\_lost\_n_found;  //是否隐藏lost and found目录
+	int hide_lost_n_found;  //是否隐藏lost and found目录
 	int stored_endian;      //大小端
-	void (\*remove\_obj\_fn) (struct yaffs_obj \*obj); //移除object的函数回调
-	void (\*sb\_dirty\_fn) (struct yaffs_dev \*dev);//超级块标记脏函数
-	unsigned (\*gc\_control\_fn) (struct yaffs_dev \*dev);//垃圾回收管理的回调函数
+	void (*remove_obj_fn) (struct yaffs_obj *obj); //移除object的函数回调
+	void (*sb_dirty_fn) (struct yaffs_dev *dev);//超级块标记脏函数
+	unsigned (*gc_control_fn) (struct yaffs_dev *dev);//垃圾回收管理的回调函数
         //以下为debug相关标记
-	int use\_header\_file_size;	
-	int disable\_lazy\_load;	
-	int wide\_tnodes\_disabled;	
-	int disable\_soft\_del;	
-	int defered\_dir\_update;	
+	int use_header_file_size;	
+	int disable_lazy_load;	
+	int wide_tnodes_disabled;	
+	int disable_soft_del;	
+	int defered_dir_update;	
 
 	int auto_unicode;
-	int always\_check\_erased;
+	int always_check_erased;
 	int disable_summary;
-	int disable\_bad\_block_marking;
+	int disable_bad_block_marking;
 };
-
-以下为yaffs标签相关处理函数，在yaffs\_tags\_marshall_install函数初始化。源码如下：
-
-struct yaffs\_tags\_handler {
-	int (\*write\_chunk\_tags\_fn) (struct yaffs\_dev \*dev,int nand\_chunk, const u8 \*data,const struct yaffs\_ext_tags \*tags);
-	int (\*read\_chunk\_tags\_fn) (struct yaffs\_dev \*dev, int nand\_chunk, u8 \*data,struct yaffs\_ext_tags \*tags);
-	int (\*query\_block\_fn) (struct yaffs\_dev \*dev, int block\_no,enum yaffs\_block\_state \*state, u32 \*seq_number);
-	int (\*mark\_bad\_fn) (struct yaffs\_dev \*dev, int block\_no);
+```
+以下为yaffs标签相关处理函数，在yaffs_tags_marshall_install函数初始化。源码如下：
+```C
+struct yaffs_tags_handler {
+	int (*write_chunk_tags_fn) (struct yaffs_dev *dev,int nand_chunk, const u8 *data,const struct yaffs_ext_tags *tags);
+	int (*read_chunk_tags_fn) (struct yaffs_dev *dev, int nand_chunk, u8 *data,struct yaffs_ext_tags *tags);
+	int (*query_block_fn) (struct yaffs_dev *dev, int block_no,enum yaffs_block_state *state, u32 *seq_number);
+	int (*mark_bad_fn) (struct yaffs_dev *dev, int block_no);
 };
-void yaffs\_tags\_marshall\_install(struct yaffs\_dev *dev)
+void yaffs_tags_marshall_install(struct yaffs_dev *dev)
 {
 	if (!dev->param.is_yaffs2)
 		return;
-	if (!dev->tagger.write\_chunk\_tags_fn)
-		dev->tagger.write\_chunk\_tags\_fn = yaffs\_tags\_marshall\_write;
-	if (!dev->tagger.read\_chunk\_tags_fn)
-		dev->tagger.read\_chunk\_tags\_fn = yaffs\_tags\_marshall\_read;
-	if (!dev->tagger.query\_block\_fn)
-		dev->tagger.query\_block\_fn = yaffs\_tags\_marshall\_query\_block;
-	if (!dev->tagger.mark\_bad\_fn)
-		dev->tagger.mark\_bad\_fn = yaffs\_tags\_marshall\_mark\_bad;
+	if (!dev->tagger.write_chunk_tags_fn)
+		dev->tagger.write_chunk_tags_fn = yaffs_tags_marshall_write;
+	if (!dev->tagger.read_chunk_tags_fn)
+		dev->tagger.read_chunk_tags_fn = yaffs_tags_marshall_read;
+	if (!dev->tagger.query_block_fn)
+		dev->tagger.query_block_fn = yaffs_tags_marshall_query_block;
+	if (!dev->tagger.mark_bad_fn)
+		dev->tagger.mark_bad_fn = yaffs_tags_marshall_mark_bad;
 }
-
-yaffs\_driver定义了Yaffs驱动相关，读写擦除，坏块检查等操作MTD设备的接口函数，其初始化位于yaffs\_mtd\_drv\_install函数。代码如下：
-
+```
+yaffs_driver定义了Yaffs驱动相关，读写擦除，坏块检查等操作MTD设备的接口函数，其初始化位于yaffs_mtd_drv_install函数。代码如下：
+```C
 struct yaffs_driver {
-	int (\*drv\_write\_chunk\_fn) (struct yaffs\_dev \*dev, int nand\_chunk, const u8 \*data, int data\_len, const u8 \*oob, int oob_len);
-	int (\*drv\_read\_chunk\_fn) (struct yaffs\_dev \*dev, int nand\_chunk, u8 \*data, int data\_len,u8 \*oob, int oob\_len,enum yaffs\_ecc\_result *ecc\_result);
-	int (\*drv\_erase\_fn) (struct yaffs\_dev \*dev, int block\_no);
-	int (\*drv\_mark\_bad\_fn) (struct yaffs\_dev \*dev, int block_no);
-	int (\*drv\_check\_bad\_fn) (struct yaffs\_dev \*dev, int block_no);
-	int (\*drv\_initialise\_fn) (struct yaffs_dev \*dev);
-	int (\*drv\_deinitialise\_fn) (struct yaffs_dev \*dev);
+	int (*drv_write_chunk_fn) (struct yaffs_dev *dev, int nand_chunk, const u8 *data, int data_len, const u8 *oob, int oob_len);
+	int (*drv_read_chunk_fn) (struct yaffs_dev *dev, int nand_chunk, u8 *data, int data_len,u8 *oob, int oob_len,enum yaffs_ecc_result *ecc_result);
+	int (*drv_erase_fn) (struct yaffs_dev *dev, int block_no);
+	int (*drv_mark_bad_fn) (struct yaffs_dev *dev, int block_no);
+	int (*drv_check_bad_fn) (struct yaffs_dev *dev, int block_no);
+	int (*drv_initialise_fn) (struct yaffs_dev *dev);
+	int (*drv_deinitialise_fn) (struct yaffs_dev *dev);
 };
-void yaffs\_mtd\_drv\_install(struct yaffs\_dev *dev)
+void yaffs_mtd_drv_install(struct yaffs_dev *dev)
 {
 	struct yaffs_driver *drv = &dev->drv;
 
-	drv->drv\_write\_chunk\_fn = yaffs\_mtd_write;
-	drv->drv\_read\_chunk\_fn = yaffs\_mtd_read;
-	drv->drv\_erase\_fn = yaffs\_mtd\_erase;
-	drv->drv\_mark\_bad\_fn = yaffs\_mtd\_mark\_bad;
-	drv->drv\_check\_bad\_fn = yaffs\_mtd\_check\_bad;
-	drv->drv\_initialise\_fn = yaffs\_mtd\_initialise;
-	drv->drv\_deinitialise\_fn = yaffs\_mtd\_deinitialise;
+	drv->drv_write_chunk_fn = yaffs_mtd_write;
+	drv->drv_read_chunk_fn = yaffs_mtd_read;
+	drv->drv_erase_fn = yaffs_mtd_erase;
+	drv->drv_mark_bad_fn = yaffs_mtd_mark_bad;
+	drv->drv_check_bad_fn = yaffs_mtd_check_bad;
+	drv->drv_initialise_fn = yaffs_mtd_initialise;
+	drv->drv_deinitialise_fn = yaffs_mtd_deinitialise;
 }
-
+```
 以下为Yaffs选项，为yaffs系统挂载（Mount）时配置，最后被传给yaffs_dev对应栏位。
-
+```C
 struct yaffs_options {
 	int inband_tags;         
-	int skip\_checkpoint\_read;
-	int skip\_checkpoint\_write;
+	int skip_checkpoint_read;
+	int skip_checkpoint_write;
 	int no_cache;
-	int tags\_ecc\_on;
-	int tags\_ecc\_overridden;
-	int lazy\_loading\_enabled;
-	int lazy\_loading\_overridden;
-	int empty\_lost\_and_found;
-	int empty\_lost\_and\_found\_overridden;
+	int tags_ecc_on;
+	int tags_ecc_overridden;
+	int lazy_loading_enabled;
+	int lazy_loading_overridden;
+	int empty_lost_and_found;
+	int empty_lost_and_found_overridden;
 };
-
+```
 yaffs对应Linux对应上下文：
-
-struct yaffs\_linux\_context {
-	struct list\_head context\_list;	
+```C
+struct yaffs_linux_context {
+	struct list_head context_list;	
 	struct yaffs_dev *dev; //指向Yaffs Dev的回调
 	struct super_block *super; //指向超级块指针
-	struct task\_struct *bg\_thread;	//做GC的后台线程
+	struct task_struct *bg_thread;	//做GC的后台线程
 	int bg_running; //后台线程启动标记
 	struct mutex gross_lock; //大粒度锁，用来保护文件系统关键字段
 	u8 *spare_buffer;	//Spare缓冲区
-	struct list\_head search\_contexts; //目录查找上下文链表
-	struct task\_struct *readdir\_process; //标记当前目录读取的task
+	struct list_head search_contexts; //目录查找上下文链表
+	struct task_struct *readdir_process; //标记当前目录读取的task
 	unsigned mount_id; //yaffs2挂载的id号，对每个yaffs文件系统来讲标号唯一
 	int dirty;
 };
-
+```
 文件系统挂载
 ------
 
 挂载后，整个文件系统才会为操作系统所用。YAFFS文件系统的挂载过程如下：
-
-//其实yaffs2挂载就是执行内核的mount\_bdev函数，最后当然也会执行到传入的回调函数yaffs\_internal\_read\_super
-static struct dentry \*yaffs2\_mount(struct file\_system\_type \*fs\_type, int flags,const char \*dev_name, void \*data)
+```C
+//其实yaffs2挂载就是执行内核的mount_bdev函数，最后当然也会执行到传入的回调函数yaffs_internal_read_super
+static struct dentry *yaffs2_mount(struct file_system_type *fs_type, int flags,const char *dev_name, void *data)
 {
-        return mount\_bdev(fs\_type, flags, dev\_name, data, yaffs2\_internal\_read\_super_mtd);   
+        return mount_bdev(fs_type, flags, dev_name, data, yaffs2_internal_read_super_mtd);   
 }
-static int yaffs2\_internal\_read\_super\_mtd(struct super_block \*sb, void \*data, int silent)
+static int yaffs2_internal_read_super_mtd(struct super_block *sb, void *data, int silent)
 {
-	return yaffs\_internal\_read_super(2, sb, data, silent) ? 0 : -EINVAL;
+	return yaffs_internal_read_super(2, sb, data, silent) ? 0 : -EINVAL;
 }
 
-static struct super\_block \*yaffs\_internal\_read\_super(int yaffs\_version, struct super\_block \*sb,  void *data, int silent)
+static struct super_block *yaffs_internal_read_super(int yaffs_version, struct super_block *sb,  void *data, int silent)
 {
         .......
         //超级块的一些初使设置
-	sb->s\_magic = YAFFS\_MAGIC;
-	sb->s\_op = &yaffs\_super_ops;
-	sb->s\_flags |= MS\_NOATIME;
-	read\_only = ((sb->s\_flags & MS_RDONLY) != 0);
-	sb->s\_export\_op = &yaffs\_export\_ops;
+	sb->s_magic = YAFFS_MAGIC;
+	sb->s_op = &yaffs_super_ops;
+	sb->s_flags |= MS_NOATIME;
+	read_only = ((sb->s_flags & MS_RDONLY) != 0);
+	sb->s_export_op = &yaffs_export_ops;
         .......
-	if (yaffs\_parse\_options(&options, data_str))
-		/\* Option parsing failed */
+	if (yaffs_parse_options(&options, data_str))
+		/* Option parsing failed */
 		return NULL;
         .......
-	sb->s\_blocksize = PAGE\_CACHE_SIZE;
-	sb->s\_blocksize\_bits = PAGE\_CACHE\_SHIFT;
+	sb->s_blocksize = PAGE_CACHE_SIZE;
+	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
         .......
-	mtd = get\_mtd\_device(NULL, MINOR(sb->s_dev));
+	mtd = get_mtd_device(NULL, MINOR(sb->s_dev));
         .......
         //若文件分区是MTD device类型的Nand Flash，开始着手建立整个yaffs_dev
-	if (!read\_only && !(mtd->flags & MTD\_WRITEABLE)) {
+	if (!read_only && !(mtd->flags & MTD_WRITEABLE)) {
 		read_only = 1;
-		sb->s\_flags |= MS\_RDONLY;
+		sb->s_flags |= MS_RDONLY;
 	}
-	dev = kmalloc(sizeof(struct yaffs\_dev), GFP\_KERNEL);
-	context = kmalloc(sizeof(struct yaffs\_linux\_context), GFP_KERNEL);
+	dev = kmalloc(sizeof(struct yaffs_dev), GFP_KERNEL);
+	context = kmalloc(sizeof(struct yaffs_linux_context), GFP_KERNEL);
         .......
 	memset(dev, 0, sizeof(struct yaffs_dev));
 	param = &(dev->param);
 
-	memset(context, 0, sizeof(struct yaffs\_linux\_context));
+	memset(context, 0, sizeof(struct yaffs_linux_context));
 	dev->os_context = context;
-	INIT\_LIST\_HEAD(&(context->context_list));
+	INIT_LIST_HEAD(&(context->context_list));
 	context->dev = dev;
 	context->super = sb;
 
-	dev->read\_only = read\_only;
-	sb->s\_fs\_info = dev;
+	dev->read_only = read_only;
+	sb->s_fs_info = dev;
 	dev->driver_context = mtd;
         
         // 设定yaffs_param相关参数
         ...............
 
-	mutex\_lock(&yaffs\_context_lock);
+	mutex_lock(&yaffs_context_lock);
 
-	for (mount\_id = 0, found = 0; !found; mount\_id++) {
+	for (mount_id = 0, found = 0; !found; mount_id++) {
 		found = 1;
-		list\_for\_each(l, &yaffs\_context\_list) {
-			context\_iterator =list\_entry(l, struct yaffs\_linux\_context,context_list);
-			if (context\_iterator->mount\_id == mount_id)
+		list_for_each(l, &yaffs_context_list) {
+			context_iterator =list_entry(l, struct yaffs_linux_context,context_list);
+			if (context_iterator->mount_id == mount_id)
 				found = 0;
 		}
 	}
-	context->mount\_id = mount\_id;
+	context->mount_id = mount_id;
 
-	list\_add\_tail(&(yaffs\_dev\_to\_lc(dev)->context\_list),
-		      &yaffs\_context\_list);
-	mutex\_unlock(&yaffs\_context_lock);
+	list_add_tail(&(yaffs_dev_to_lc(dev)->context_list),
+		      &yaffs_context_list);
+	mutex_unlock(&yaffs_context_lock);
 
-	mutex\_init(&(yaffs\_dev\_to\_lc(dev)->gross_lock));
-	yaffs\_gross\_lock(dev);
+	mutex_init(&(yaffs_dev_to_lc(dev)->gross_lock));
+	yaffs_gross_lock(dev);
         //建立yaffs_dev参数，以及初始化Tnode
-	err = yaffs\_guts\_initialise(dev);
+	err = yaffs_guts_initialise(dev);
         //执行yaffs的后台线程
-	if (err == YAFFS\_OK) yaffs\_bg_start(dev);
+	if (err == YAFFS_OK) yaffs_bg_start(dev);
 	if (!context->bg_thread)
-		param->defered\_dir\_update = 0;
-	sb->s\_maxbytes = yaffs\_max\_file\_size(dev);
-	yaffs\_gross\_unlock(dev);
+		param->defered_dir_update = 0;
+	sb->s_maxbytes = yaffs_max_file_size(dev);
+	yaffs_gross_unlock(dev);
 
 	//创建文件系统根节点
 	if (err == YAFFS_OK)
-		inode = yaffs\_get\_inode(sb, S\_IFDIR | 0755, 0, yaffs\_root(dev));
+		inode = yaffs_get_inode(sb, S_IFDIR | 0755, 0, yaffs_root(dev));
         .......
-	inode->i\_op = &yaffs\_dir\_inode\_operations;
-	inode->i\_fop = &yaffs\_dir_operations;
-	root = d\_alloc\_root(inode);
+	inode->i_op = &yaffs_dir_inode_operations;
+	inode->i_fop = &yaffs_dir_operations;
+	root = d_alloc_root(inode);
         .......
 	sb->s_root = root;
-	sb->s\_dirt = !dev->is\_checkpointed;
+	sb->s_dirt = !dev->is_checkpointed;
 	return sb;
 }
-
+```
 小结
 --
 

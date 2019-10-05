@@ -34,7 +34,7 @@ date: 2019-02-09 11:36:38
 
 ### 上传目录到服务器
 
-> **_scp_** _-r_ local\_dir username@servername:remote\_dir  
+> **_scp_** _-r_ local_dir username@servername:remote_dir  
 
 与上传文件的差异在于_**-r**_参数
 
@@ -47,7 +47,7 @@ date: 2019-02-09 11:36:38
 
 ### 从服务器下载目录
 
-> **_scp_** -r username@servername:remote\_dir local\_dir  
+> **_scp_** -r username@servername:remote_dir local_dir  
 
 同样，与下载普通文件的差异只在于_**-r**_参数
 

@@ -15,5 +15,5 @@ date: 2018-09-28 00:24:21
     2.  博客后台新建页面
     3.  登录到数据库管理页(比较常见的是phpmyadmin)
     4.  打开wordpress的post表，找到新建页面的id并记下，注意：wordpress会为revision增加表项，所以请选择post_status为publish的表项![Wordpress--无法修改scandir如何按照模板添加模板页面](http://pic.l2h.site/l2hsitelink-page-2.PNG "Wordpress--无法修改scandir如何按照模板添加模板页面") ![Wordpress--无法修改scandir如何按照模板添加模板页面](http://pic.l2h.site/l2hsitelink-page-3.PNG "Wordpress--无法修改scandir如何按照模板添加模板页面")
-    5.  打开post\_meta表，新增一项（注意meta\_id不要重复，且是往后顺延添加），post\_id为新增页面的ID（即Post表中的ID）, meta\_key填入\_wp\_page\_template，meta\_value填入你第一步新增的模板页名字“fr-links.php”![Wordpress--无法修改scandir如何按照模板添加模板页面](http://pic.l2h.site/l2hsitelink-page-1.PNG "Wordpress--无法修改scandir如何按照模板添加模板页面")
+    5.  打开post_meta表，新增一项（注意meta_id不要重复，且是往后顺延添加），post_id为新增页面的ID（即Post表中的ID）, meta_key填入_wp_page_template，meta_value填入你第一步新增的模板页名字“fr-links.php”![Wordpress--无法修改scandir如何按照模板添加模板页面](http://pic.l2h.site/l2hsitelink-page-1.PNG "Wordpress--无法修改scandir如何按照模板添加模板页面")
     6.  修改成功，效果如下。注意如果以后要在后台修改新增的页面，还要到数据库中对publish那个表项做个修改。![Wordpress--无法修改scandir如何按照模板添加模板页面](http://pic.l2h.site/l2hsitelink-page-4.PNG "Wordpress--无法修改scandir如何按照模板添加模板页面")

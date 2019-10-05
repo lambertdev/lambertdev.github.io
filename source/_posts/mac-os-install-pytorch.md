@@ -62,19 +62,20 @@ Anaconda包管理器的安装
 -----------
 
 可将如下代码保存为test.py文件，执行python test.py进行验证
-
+```python
     from __future__ import print_function
     import torch
     x = torch.rand(5, 3)
-    print(x)
-    
+    print(x)  
+```
 
 执行后输出类似于:
+```python
 
     tensor([[0.3380, 0.3845, 0.3217],
             [0.8337, 0.9050, 0.2650],
             [0.2979, 0.7141, 0.9069],
             [0.1449, 0.1132, 0.1375],
             [0.4675, 0.3947, 0.1426]]
-
+```
 至此，安装结束。

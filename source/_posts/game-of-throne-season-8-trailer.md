@@ -20,4 +20,4 @@ date: 2019-03-09 07:20:29
 
 我写不完了，这么多坑，能填的完不？放上预告片（下载自Youtube，上传到Youku）：
 
-\[embed\]https://v.youku.com/v\_show/id\_XNDA5MDcyMTQ0OA==.html?spm=a2hzp.8244740.0.0\[/embed\]
+[embed]https://v.youku.com/v_show/id_XNDA5MDcyMTQ0OA==.html?spm=a2hzp.8244740.0.0[/embed]

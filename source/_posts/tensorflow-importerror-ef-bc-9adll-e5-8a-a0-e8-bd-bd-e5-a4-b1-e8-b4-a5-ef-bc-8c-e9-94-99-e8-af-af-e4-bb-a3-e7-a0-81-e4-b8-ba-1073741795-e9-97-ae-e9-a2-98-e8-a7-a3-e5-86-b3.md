@@ -13,7 +13,7 @@ date: 2019-06-28 12:59:01
 --
 
 赛扬J3160 CPU，使用pip install tensorflow安装好tensorflow，运行如下代码，
-
+```python
 import tensorflow as tf
 import math
 import pandas as pd
@@ -21,9 +21,9 @@ import numpy as np
 from tensorflow.python.data import Dataset
 from matplotlib import pyplot as plt
 import seaborn as sns
-
+```
 得到错误如下：
-
+```
 ImportError: Traceback (most recent call last):
   File "C:\\Users\\Administrator.USER-20190627CO\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\tensorflow\\python\\pywrap_tensorflow.py", line 58, in <module>
     from tensorflow.python.pywrap\_tensorflow\_internal import *
@@ -36,7 +36,7 @@ ImportError: Traceback (most recent call last):
   File "C:\\Users\\Administrator.USER-20190627CO\\AppData\\Local\\Programs\\Python\\Python37\\lib\\imp.py", line 342, in load_dynamic
     return _load(spec)
 ImportError: DLL load failed with error code -1073741795
-
+```
 找到[github上](https://github.com/tensorflow/tensorflow/issues/17386)有人碰到类似错误，原因是CPU缺少 AVX 指令集支持（看来是赛扬处理器稍低端了）。
 
 解决

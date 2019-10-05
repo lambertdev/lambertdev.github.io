@@ -24,20 +24,20 @@ date: 2019-01-06 22:38:44
 LD命令是GNU链接程序，它可以接受 _ld -T_ 输入链接脚本，根据链接脚本的定义来决定链接方式。在 **[Linux中断(2)](https://l2h.site/2019/01/05/linux-interrupt-4/)** 一文中，有简单提到过Linux里用到了很多链接技巧。因此，学习Linux内核，多少需要对链接脚本基本语法格式有初步了解。 本文即对GNU链接脚本的基本格式进行一些介绍。
 
 先看一个基本的链接脚本。在执行_ld_链接时，如果不传入链接脚本，会使用默认的链接脚本。_ld --verbose_可以显示默认的链接脚本，如下：
-
-\[lambert ~\]$ ld --verbose
+```
+[lambert ~]$ ld --verbose
 GNU ld version 2.25.1-32.base.el7_4.1
   Supported emulations:
-   elf\_x86\_64
-   elf32\_x86\_64
+   elf_x86_64
+   elf32_x86_64
    elf_i386
    i386linux
    elf_l1om
    elf_k1om
 using internal linker script:
 ==================================================
-/\* Script for -z combreloc: combine and sort reloc sections */
-/\* Copyright (C) 2014 Free Software Foundation, Inc.
+/* Script for -z combreloc: combine and sort reloc sections */
+/* Copyright (C) 2014 Free Software Foundation, Inc.
    Copying and distribution of this script, with or without modification,
    are permitted in any medium without royalty provided the copyright
    notice and this notice are preserved.  */
@@ -45,11 +45,11 @@ OUTPUT_FORMAT("elf64-x86-64", "elf64-x86-64",
               "elf64-x86-64")
 OUTPUT_ARCH(i386:x86-64)
 ENTRY(_start)
-SEARCH\_DIR("/usr/x86\_64-redhat-linux/lib64"); SEARCH\_DIR("/usr/lib64"); SEARCH\_D                                                                                                                                                             IR("/usr/local/lib64"); SEARCH\_DIR("/lib64"); SEARCH\_DIR("/usr/x86\_64-redhat-lin                                                                                                                                                             ux/lib"); SEARCH\_DIR("/usr/local/lib"); SEARCH\_DIR("/lib"); SEARCH\_DIR("/usr/lib                                                                                                                                                             ");
+SEARCH_DIR("/usr/x86_64-redhat-linux/lib64"); SEARCH_DIR("/usr/lib64"); SEARCH_D                                                                                                                                                             IR("/usr/local/lib64"); SEARCH_DIR("/lib64"); SEARCH_DIR("/usr/x86_64-redhat-lin                                                                                                                                                             ux/lib"); SEARCH_DIR("/usr/local/lib"); SEARCH_DIR("/lib"); SEARCH_DIR("/usr/lib                                                                                                                                                             ");
 SECTIONS
 {
-  /\* Read-only sections, merged into text segment: */
-  PROVIDE (\_\_executable\_start = SEGMENT\_START("text-segment", 0x400000)); . = SE                                                                                                                                                             GMENT\_START("text-segment", 0x400000) + SIZEOF_HEADERS;
+  /* Read-only sections, merged into text segment: */
+  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x400000)); . = SE                                                                                                                                                             GMENT_START("text-segment", 0x400000) + SIZEOF_HEADERS;
   .interp         : { *(.interp) }
   .note.gnu.build-id : { *(.note.gnu.build-id) }
   .hash           : { *(.hash) }
@@ -57,10 +57,10 @@ SECTIONS
   .dynsym         : { *(.dynsym) }
   .dynstr         : { *(.dynstr) }
   .gnu.version    : { *(.gnu.version) }
-  .gnu.version\_d  : { *(.gnu.version\_d) }
-  .gnu.version\_r  : { *(.gnu.version\_r) }
-/\* 以下部分省略 */
-
+  .gnu.version_d  : { *(.gnu.version_d) }
+  .gnu.version_r  : { *(.gnu.version_r) }
+/* 以下部分省略 */
+```
 基本概念
 ----
 
@@ -101,11 +101,11 @@ Link Script可以基本总结如下：
     *   设定symbol
     *   …
 *   command 可以用`;`分開，空白會被忽略
-*   使用/_\* * _/注释
+*   使用/_* * _/注释
 *   字串直接打，如果有用到script保留的字元如`.`可以用`"`包住
 
 ### 简单链接脚本范例
-
+```
 SECTIONS
 {
   . = 0x10000;
@@ -114,7 +114,7 @@ SECTIONS
   .data : { *(.data) }
   .bss : { *(.bss) }
 }
-
+```
 **_._**表示内存位置，起始值为0。结束值则由链接器计算把所有input section的数据整合到output section的长度。而.如果没有指定明确的内存地址的话，就会被设定为上一个地址的结束地址。
 
 第三行：设定内存位置为0x10000
@@ -163,9 +163,9 @@ _**TARGET(bfdname)
 
 **_ASSERT(exp, message)_** 条件不成立打印message并结束链接过程  
 _**EXTERN(symbol1 symbol2 ...)**_ 强迫让指定的symbol设成undefined，手册说一般用在刻意要使用非标准的API。  
-_**FORCE\_COMMON\_ALLOCATION**_ 手册和男人说和兼容性有关，手册上是说强迫分配空间给common symbols，即使是link relocate档案。(common symbols不知道是什么)  
+_**FORCE_COMMON_ALLOCATION**_ 手册和男人说和兼容性有关，手册上是说强迫分配空间给common symbols，即使是link relocate档案。(common symbols不知道是什么)  
 _**OUTPUT_ARCH(bfdarch)**_ 指定输出的平台，可以透过objdump -i查询支持平台  
-_**INSERT \[ AFTER | BEFORE \] output_section**_ 指定在预设linker script命令被执行之前或是之后加上或加入特定的输入section到输出section
+_**INSERT [ AFTER | BEFORE ] output_section**_ 指定在预设linker script命令被执行之前或是之后加上或加入特定的输入section到输出section
 
 符号赋值
 ----
@@ -173,7 +173,7 @@ _**INSERT \[ AFTER | BEFORE \] output_section**_ 指定在预设linker script命
 ### 简单赋值命令范例
 
 可以在脚本中使用类C语言语法对符号进行赋值，例：
-
+```
  symbol = expression ;
  symbol += expression ;
  symbol -= expression ;
@@ -196,17 +196,17 @@ SECTIONS
   _bdata = (. + 3) & ~ 3;
   .data : { *(.data) }
 }
-
+```
 第一行：设定floating_point变量的链接地址为0
 
 第七行：设置_etext的地址为.text之后
 
-第九行：设置\_bdata地址为\_etext之后4字节alignment的位置。实则是对.data段的起始位置进行字节对齐
+第九行：设置_bdata地址为_etext之后4字节alignment的位置。实则是对.data段的起始位置进行字节对齐
 
 ### HIDDEN
 
 对输出ELF，把其中某个符号定义为目标文件内可见。对上文范例的symbol改写后：
-
+```
 HIDDEN(floating_point = 0);
 SECTIONS
 {
@@ -218,13 +218,13 @@ SECTIONS
   HIDDEN(_bdata = (. + 3) & ~ 3);
   .data : { *(.data) }
 }
-
-floating\_point/\_etext/_bdata 为ELF内可见，但是无法导出。即假设目标文件是库文件，其他文件也无法引用使用。
+```
+floating_point/_etext/_bdata 为ELF内可见，但是无法导出。即假设目标文件是库文件，其他文件也无法引用使用。
 
 #### PROVIDE
 
 链接器直接定义一个symbol，如果它没有在任何输入目标文件中定义，则链接时使用PROVIDE定义的符号。如果目标文件中有定义，则使用目标文件中的定义。例如：
-
+```
 SECTIONS
 {
   .text :
@@ -234,7 +234,7 @@ SECTIONS
       PROVIDE(etext = .);
     }
 }
-
+```
 *   _**_etext**_不能在程序中定义，否则链接时有重复定义
 *   _**etext**_则可定义在程序中定义，这样链接器会使用程序中的定义。
 
@@ -245,28 +245,28 @@ SECTIONS
 #### 源代码引用
 
 C语言内可以引用链接器脚本中定义的变量。例如：
-
- start\_of\_ROM   = .ROM;
- end\_of\_ROM     = .ROM + sizeof (.ROM);
- start\_of\_FLASH = .FLASH;
-
+```C
+ start_of_ROM   = .ROM;
+ end_of_ROM     = .ROM + sizeof (.ROM);
+ start_of_FLASH = .FLASH;
+```
 则C语言中可以如下引用：
-
- extern char start\_of\_ROM, end\_of\_ROM, start\_of\_FLASH;
- memcpy (& start\_of\_FLASH, & start\_of\_ROM, & end\_of\_ROM - & start\_of\_ROM);
-
+```C
+ extern char start_of_ROM, end_of_ROM, start_of_FLASH;
+ memcpy (& start_of_FLASH, & start_of_ROM, & end_of_ROM - & start_of_ROM);
+```
 SECTION
 -------
 
 SECTION命令告诉链接器如何映射输入的段到输出段，且摆到内存的哪个位置。基本语法如下：
-
+```
 SECTIONS
 {
   sections-command
   sections-command
   …
 }
-
+```
 SECTION命令可能是以下命令的一种
 
 *   ENTRY命令

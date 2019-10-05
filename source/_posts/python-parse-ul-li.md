@@ -9,7 +9,7 @@ tags:
 ---
 
 最近有需要按层级解析如下格式的内容：
-
+```
 <ul>
    <li>A</li>
    <ul>
@@ -30,10 +30,11 @@ tags:
        <li>C.2</li>
       </ul>
 </ul>
-
+```
 做了下搜索，有人建议是使用BeautifulSoup库，但是并没有显示出层级关系。这里写了简单示例，采用嵌套函数解决上述问题。直接看代码：
 
 #导入Beautiful库，如果没有安装就使用pip install bs4安装吧
+```python
 from bs4 import BeautifulSoup
 
 myxml = """
@@ -58,7 +59,9 @@ myxml = """
       </ul>
 </ul>
 """
+```
 #ul为Soup要解析的UL，level为列表层级
+```python
 def findSoup(ul, level):
     print("level:"+str(level))
     for i in ul.contents:
@@ -69,11 +72,11 @@ def findSoup(ul, level):
             else:
                 print(str(i.get_text()))
 
-#打印soup变量看看，调用BeautifulSoup后会给加上<html>和<body>标签
+#打印soup变量看看，调用BeautifulSoup后会给加上***html***和***body***标签
 soup = BeautifulSoup(myxml,'lxml')
 #soup.ul，也可以用soup.find('ul')
 findSoup(soup.ul, 0)
-
+```
 以上执行结果如下：
 
 level:0

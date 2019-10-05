@@ -18,19 +18,19 @@ date: 2018-12-08 12:10:22
 
 [Bing搜索](http://www.bing.com)，Autoptimize支持特定脚本或者CSS不压缩。可通过以下方式解决：
 
-1\. 打开后台，Autoptimize设定
+1. 打开后台，Autoptimize设定
 
-2\. 选择右上方高级设定
+2. 选择右上方高级设定
 
 ![Wordpress:解决Autoptimize+Enlighter插件冲突](https://l2h.site/wp-content/uploads/2018/12/autoptimize-enlighter-conflict-2.png)
 
-3\. 找到“JavaScript 选项-->从 Autoptimize 排除脚本”（注：后台英文的就查找exclude关键字），添加如下脚本到排除脚本：
+3. 找到“JavaScript 选项-->从 Autoptimize 排除脚本”（注：后台英文的就查找exclude关键字），添加如下脚本到排除脚本：
 
 > mootools-core-yc.js, EnlighterJS.min.js
 
 ![Wordpress:解决Autoptimize+Enlighter插件冲突](https://l2h.site/wp-content/uploads/2018/12/autoptimize-enlighter-conflict-3.png)
 
-4\. 保存，并删除页面缓存后，问题解决：
+4. 保存，并删除页面缓存后，问题解决：
 
 ![Wordpress:解决Autoptimize+Enlighter插件冲突](https://l2h.site/wp-content/uploads/2018/12/autoptimize-enlighter-conflict-4.png)
 

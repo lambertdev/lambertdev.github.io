@@ -23,11 +23,9 @@ Wordpress关联熊掌号
 
 通过摸索，得到建立熊掌号的流程如下：
 
-*   *   建立熊掌号
-
-*   *   Wordpress页面改造
-
-*   提交页面
+* 建立熊掌号
+* Wordpress页面改造
+* 提交页面
 
 建立熊掌号
 -----
@@ -56,50 +54,48 @@ Wordpress关联熊掌号
 
 这里到“熊掌号后台-->熊掌号成长-->熊掌号指数”里可以看到您的熊掌号指数成长。点击“去优化指数”，可以根据后台提示来提升指数。一些提升指数的方法：
 
-*   *   绑定微信公众号、微博、今日头条等
+* 绑定微信公众号、微博、今日头条等
+* 装饰主页
+* 用百度APP发表动态（类似发微信朋友圈）
+* 开放平台接口调用（用API等方式提交资源）
+* **最直接方法**：提交资源并成功收录
 
-*   *   装饰主页
-
-*   *   用百度APP发表动态（类似发微信朋友圈）
-
-*   *   开放平台接口调用（用API等方式提交资源）
-
-*   **最直接方法**：提交资源并成功收录
-
-![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-1.png)![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-2.png)![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-3.png)
+![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-1.png)
+![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-2.png)
+![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-3.png)
 
 指数在100分以下时，许多后台操作是无法进行的。而超过100分后，后台操作权限相应就会放开。
 
 Wordpress熊掌号H5页面改造
 ------------------
 
-若要Wordpress页面能够被正常收录，需要改造您的Wordpress文章页面。Wordpress后台-->外观-->编辑-->修改主题的header.php。在<header>标签前增加如下熊掌号ID声明：
-
-> <script src="https://xiongzhang.baidu.com/sdk/c.js?appid=xxxxxx"></script>
-
+若要Wordpress页面能够被正常收录，需要改造您的Wordpress文章页面。Wordpress后台-->外观-->编辑-->修改主题的header.php。在header标签前增加如下熊掌号ID声明：
+```Javascript
+  <script src="https://xiongzhang.baidu.com/sdk/c.js?appid=xxxxxx"></script>
+```
 同时增加如下页面改造代码：
-
-<?php if( is\_single() || is\_page() ): ?>
+```PHP
+<?php if( is_single() || is_page() ): ?>
 <script type="application/ld+json">
     {
         "@context": "https://ziyuan.baidu.com/contexts/cambrian.jsonld",
         "@id": "<?php the_permalink(); ?>",
         "appid": "您的熊掌号APP ID",
         "title": "<?php the_title(); ?>",
-        "images": \[
-            "<?php echo zillah\_catch\_that_image(); ?>"
-            \],
+        "images": [
+            "<?php echo zillah_catch_that_image(); ?>"
+            ],
         "description": "<?php if ($post->post_excerpt) 
         {$printDescription = $post->post_excerpt;} 
               else{
-      $printDescription = preg\_replace('/\\s+/','',mb\_strimwidth(strip\_tags($post->post\_content),0,145,''));
+      $printDescription = preg_replace('/\s+/','',mb_strimwidth(strip_tags($post->post_content),0,145,''));
                 }
             echo $printDescription;?>",
-        "pubDate": "<?php echo get\_the\_time('Y-m-d\\TG:i:s'); ?>"
+        "pubDate": "<?php echo get_the_time('Y-m-d\TG:i:s'); ?>"
     }
 </script>	
 <?php endif; ?>
-
+```
 提交页面
 ----
 

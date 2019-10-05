@@ -28,32 +28,32 @@ date: 2018-12-09 13:25:37
 ----
 
 1.修改qiniu-cloudtuchuang.php代码如下,注意代码加亮部分:
-
+```PHP
 //上传窗口
-add\_action('do\_meta\_boxes', 'qiniu\_cloudtuchuang_script');
-function qiniu\_cloudtuchuang\_script(){
-    wp\_enqueue\_script( 'qiniu-jquery', plugins\_url('js/qiniujq.min.js', \_\_FILE__));
-    //wp\_enqueue\_script( 'plupload-all',plugins\_url('js/plupload/js/plupload.full.min.js', \_\_FILE__) );
-	wp\_enqueue\_script( 'plupload-all');
-    wp\_enqueue\_script( 'qiniu', plugins\_url('js/qiniu.js', \_\_FILE__));
-    wp\_enqueue\_script( 'qiniu-main', plugins\_url('js/main.js', \_\_FILE__ ),array( 'jquery' ));
-    wp\_enqueue\_script( 'qiniu-ui', plugins\_url('js/ui.js', \_\_FILE__));
+add_action('do_meta_boxes', 'qiniu_cloudtuchuang_script');
+function qiniu_cloudtuchuang_script(){
+    wp_enqueue_script( 'qiniu-jquery', plugins_url('js/qiniujq.min.js', __FILE__));
+    //wp_enqueue_script( 'plupload-all',plugins_url('js/plupload/js/plupload.full.min.js', __FILE__) );
+	wp_enqueue_script( 'plupload-all');
+    wp_enqueue_script( 'qiniu', plugins_url('js/qiniu.js', __FILE__));
+    wp_enqueue_script( 'qiniu-main', plugins_url('js/main.js', __FILE__ ),array( 'jquery' ));
+    wp_enqueue_script( 'qiniu-ui', plugins_url('js/ui.js', __FILE__));
 }    
  
-add\_action('do\_meta\_boxes', 'qiniu\_cloudtuchuang\_post\_box');
-function qiniu\_cloudtuchuang\_post_box(){
-    $options = get\_option('qiniu\_options');
-    if($options\['accesskey'\] && $options\['secretkey'\]) add\_meta\_box('qiniu\_cloudtuchuang\_div', __('七牛云图床'), 'qiniu\_cloudtuchuang\_post_html', 'post', 'side');
+add_action('do_meta_boxes', 'qiniu_cloudtuchuang_post_box');
+function qiniu_cloudtuchuang_post_box(){
+    $options = get_option('qiniu_options');
+    if($options\['accesskey'\] && $options\['secretkey'\]) add_meta_box('qiniu_cloudtuchuang_div', __('七牛云图床'), 'qiniu_cloudtuchuang_post_html', 'post', 'side');
 }
 
-add\_action('do\_meta\_boxes', 'qiniu\_cloudtuchuang_style');
+add_action('do_meta_boxes', 'qiniu_cloudtuchuang_style');
 
-function qiniu\_cloudtuchuang\_style(){
-	wp\_enqueue\_style('qiniu\_cloudtuchuang\_style', plugins\_url('css/qiniu\_cloudtuchuang.css', \_\_FILE\_\_));
+function qiniu_cloudtuchuang_style(){
+	wp_enqueue_style('qiniu_cloudtuchuang_style', plugins_url('css/qiniu_cloudtuchuang.css', __FILE__));
 }
 
-function qiniu\_cloudtuchuang\_post_html(){
-	$options = get\_option('qiniu\_options');
+function qiniu_cloudtuchuang_post_html(){
+	$options = get_option('qiniu_options');
     $host = $options\['host'\];
     $bucket = $options\['bucket'\];
     $prefix = $options\['prefix'\];
@@ -68,20 +68,20 @@ function qiniu\_cloudtuchuang\_post_html(){
         echo 'var imgurl = true;';
     }else echo 'var imgurl = false;';
     echo 'var host =\\''.  $host . '\\';';
-	//$nonce = wp\_create\_nonce('cloudtuchuang');
-    //echo 'var uptokenurl=\\''. plugins\_url('token.php', \_\_FILE__) . '?\_ajax\_nonce='. $nonce .'&secretKey='. $secretkey . '&accessKey=' . $accesskey . '&bucket=' . $bucket . '&prefix=' . $prefix .'\\'</script>';
-	echo 'var uptokenurl=\\''. plugins\_url('token.php', \_\_FILE__) . '?secretKey='. $secretkey . '&accessKey=' . $accesskey . '&bucket=' . $bucket . '&prefix=' . $prefix .'\\'</script>';
-    //echo '<div id="qiniu\_cloudtuchuang\_post"><div id="pickfiles" href="#" ><span id="spantxt">拖拽上传图片</span></div></div>';
-    echo '<div id="qiniu\_cloudtuchuang\_post\_btn"><a id="qiniu-insert-media-button" class="button insert-qiniuyun " title="添加图片" data-editor="content" href="javascript:;">^\_^ <span id="spandesc">添加图片</span></a></div>';
-     echo 'File(Image) URL:<input type="text" id="qiniu\_image\_addr" readonly />';;
+	//$nonce = wp_create_nonce('cloudtuchuang');
+    //echo 'var uptokenurl=\\''. plugins_url('token.php', __FILE__) . '?_ajax_nonce='. $nonce .'&secretKey='. $secretkey . '&accessKey=' . $accesskey . '&bucket=' . $bucket . '&prefix=' . $prefix .'\\'</script>';
+	echo 'var uptokenurl=\\''. plugins_url('token.php', __FILE__) . '?secretKey='. $secretkey . '&accessKey=' . $accesskey . '&bucket=' . $bucket . '&prefix=' . $prefix .'\\'</script>';
+    //echo '<div id="qiniu_cloudtuchuang_post"><div id="pickfiles" href="#" ><span id="spantxt">拖拽上传图片</span></div></div>';
+    echo '<div id="qiniu_cloudtuchuang_post_btn"><a id="qiniu-insert-media-button" class="button insert-qiniuyun " title="添加图片" data-editor="content" href="javascript:;">^_^ <span id="spandesc">添加图片</span></a></div>';
+     echo 'File(Image) URL:<input type="text" id="qiniu_image_addr" readonly />';;
 }
-
-2\. 修改js/main.js，找到“console.log(img);”，增加如下第二行代码：
+```
+2. 修改js/main.js，找到“console.log(img);”，增加如下第二行代码：
 
 console.log(img);
-$('#qiniu\_image\_addr').val(qiniuurl);
+$('#qiniu_image_addr').val(qiniuurl);
 
-3\. 执行以上修改后保存退出即完成。
+3. 执行以上修改后保存退出即完成。
 
 总结
 --

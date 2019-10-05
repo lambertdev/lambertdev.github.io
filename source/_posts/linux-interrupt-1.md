@@ -39,32 +39,32 @@ Linux的中断处理
 当中断上半部执行结束后，操作系统会调度执行软中断。具体实现以linux-4.x为例：
 
 ./kernel/softirq.c
-
-void arch\_do\_IRQ(unsigned int irq, struct pt_regs *regs)                //中断向量表调用相应的IRQ处理函数
+```C
+void arch_do_IRQ(unsigned int irq, struct pt_regs *regs)                //中断向量表调用相应的IRQ处理函数
 {
-    struct pt\_regs *old\_regs = set\_irq\_regs(regs);                      //保留中断现场
+    struct pt_regs *old_regs = set_irq_regs(regs);                      //保留中断现场
 
     irq_enter();                                                        //进入中断处理前的必要处理，如关闭硬件中断,关闭抢占（preempt），禁止ksoftirqd启动处理（softirq）-- 因为稍后会看到，中断结束后会做处理
-    generic\_handle\_irq(irq);                                            //执行外设驱动注册的irq handler
-    irq\_exit();                                                         //进入到irq\_exit
-    set\_irq\_regs(old_regs);
+    generic_handle_irq(irq);                                            //执行外设驱动注册的irq handler
+    irq_exit();                                                         //进入到irq_exit
+    set_irq_regs(old_regs);
 }
 void irq_exit(void)
 {
-#ifndef \_\_ARCH\_IRQ\_EXIT\_IRQS_DISABLED
-    local\_irq\_disable();
+#ifndef __ARCH_IRQ_EXIT_IRQS_DISABLED
+    local_irq_disable();
 #else
-    WARN\_ON\_ONCE(!irqs_disabled());
+    WARN_ON_ONCE(!irqs_disabled());
 #endif
-    account\_irq\_exit_time(current);
-    preempt\_count\_sub(HARDIRQ_OFFSET);                                 //打开抢占
-    if (!in\_interrupt() && local\_softirq_pending())                    //如果有软中断pending，执行softirq
+    account_irq_exit_time(current);
+    preempt_count_sub(HARDIRQ_OFFSET);                                 //打开抢占
+    if (!in_interrupt() && local_softirq_pending())                    //如果有软中断pending，执行softirq
         invoke_softirq();
-    tick\_irq\_exit();
-    rcu\_irq\_exit();
-    trace\_hardirq\_exit(); 
+    tick_irq_exit();
+    rcu_irq_exit();
+    trace_hardirq_exit(); 
 }
-
+```
 可以看到，软中断是在中断处理进程退出后，立即执行。软中断处理函数，会检查当前系统中有哪些软中断，然后循环执行。因为系统仍有很多任务要处理，包括之前被抢占的任务，因此kernel不会无限度的将时间片都留给软中断。它设置了一个软中断循环执行的最大次数。当超过这个次数后，就退出软中断执行，并将内核线程ksoftirqd叫起。 ksoftirqd是内核线程，他与系统中其他线程包括用户态进程一起接受系统调度。因此保证了未完成的软中断也可再后来继续执行完毕。 Tasklet是一种特殊的软中断。Workqueue是一种特殊的内核线程。它们都是实现中断下半部的方式。具体用法可在有使用需求时查看。
 
 irq 在多处理器系统的分发
@@ -72,4 +72,4 @@ irq 在多处理器系统的分发
 
 *   中断亲和力：多处理系统中，操作系统会按照一定策略把中断分配到各CPU Core来处理。中断亲和力高的CPU Core，操作系统会倾向于把中断交给其处理
 *   通过修改/proc/irq/smp_affinity 可以改变Linux的中断亲和力
-*   内核线程kirqd：周期性执行do\_irq\_balance()。Track最近时间间隔每个Core的接收中断次数，动态做Balance
+*   内核线程kirqd：周期性执行do_irq_balance()。Track最近时间间隔每个Core的接收中断次数，动态做Balance
