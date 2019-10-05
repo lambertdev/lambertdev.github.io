@@ -18,6 +18,6 @@ date: 2018-09-27 22:10:57
 
 **请您申请前先做好与本站链接**:
 
-> 网站名称：L&H Site 网站介绍：[http://l2h.site/about-us](http://l2h.site/about-us) 网址：http://l2h.site 邮箱：lambertdev@gmail.com
+> 网站名称：L&H Site 网站介绍：[http://l2h.site/about](http://l2h.site/abouts) 网址：http://l2h.site 邮箱：lambertdev@gmail.com
 
 无特别原因，本站两日内增加与贵站链接

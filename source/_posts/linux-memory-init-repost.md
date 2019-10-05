@@ -27,7 +27,7 @@ date: 2019-01-29 22:43:58
 
 bootloader有自己的方法来了解系统中memory的布局，然后，它会将绿色的kernel image和蓝色dtb image copy到了指定的内存位置上。
 
-kernel image最好是位于main memory起始地址偏移TEXT\_OFFSET的位置，当然，TEXT\_OFFSET需要和kernel协商好。
+kernel image最好是位于main memory起始地址偏移TEXT_OFFSET的位置，当然，TEXT_OFFSET需要和kernel协商好。
 
 kernel image是否一定位于起始的main memory（memory address最低）呢？也不一定，但是对于kernel而言，低于kernel image的内存，kernel是不会纳入到自己的内存管理系统中的。对于dtb image的位置，linux并没有特别的要求。由于这时候MMU是turn off的，因此CPU只能看到物理地址空间。对于cache的要求也比较简单，只有一条：kernel image对应的cache必须clean to PoC，即系统中所有的observer在访问kernel image对应内存地址的时候是一致性的。
 
@@ -40,11 +40,11 @@ kernel image是否一定位于起始的main memory（memory address最低）呢�
 
 ![http://www.wowotech.net/content/uploadfile/201610/95491476331682.gif](http://www.wowotech.net/content/uploadfile/201610/95491476331682.gif)
 
-turn on MMU相关的代码被放入到一个特别的section，名字是.idmap.text，实际上对应上图中物理地址空间的IDMAP\_TEXT这个block。这个区域的代码被mapping了两次，做为kernel image的一部分，它被映像到了\_\_idmap\_text\_start开始的虚拟地址上去，此外，假设IDMAP\_TEXT block的物理地址是A地址，那么它还被映像到了A地址开始的虚拟地址上去。虽然上图中表示的A地址似乎要大于PAGE\_OFFSET，不过实际上不一定需要这样的关系，这和具体处理器的实现有关。
+turn on MMU相关的代码被放入到一个特别的section，名字是.idmap.text，实际上对应上图中物理地址空间的IDMAP_TEXT这个block。这个区域的代码被mapping了两次，做为kernel image的一部分，它被映像到了__idmap_text_start开始的虚拟地址上去，此外，假设IDMAP_TEXT block的物理地址是A地址，那么它还被映像到了A地址开始的虚拟地址上去。虽然上图中表示的A地址似乎要大于PAGE_OFFSET，不过实际上不一定需要这样的关系，这和具体处理器的实现有关。
 
-编译程序感知的是kernel image的虚拟地址（左侧），在内核的链接脚本中定义了若干的符号，都是虚拟地址。但是在内核刚开始，没有打开MMU之前，这些代码实际上是运行在物理地址上的，因此，内核起始刚开始的汇编代码基本上是PIC的，首先需要定位到页表的位置，然后在页表中填入kernel image mapping和identity mapping的页表项。页表的起始位置比较好定（bss段之后），但是具体的size还是需要思考一下的。我们要选择一个合适的size，确保能够覆盖kernel image mapping和identity mapping的地址段，然后又不会太浪费。我们以kernel image mapping为例，描述确定Tranlation table size的思考过程。假设48 bit的虚拟地址配置，4k的page size，这时候需要4级映像，地址被分成9（level 0 or PGD） ＋ 9（level 1 or PUD） ＋ 9（level 2 or PMD） ＋ 9（level 3 or PTE） ＋ 12（page offset），假设我们分配4个page分别保存Level 0到level 3的translation table，那么可以创建的最大的地址映像范围是512（level 3中有512个entry） X 4k ＝ 2M。2M这个size当然不理想，无法容纳kernel image的地址区域，怎么办？使用section mapping，让PMD执行block descriptor，这样使用3个page就可以mapping 512 X 2M ＝ 1G的地址空间范围。当然，这种方法有一点副作用就是：PAGE\_OFFSET必须2M对齐。对于16K或者64K的page size，使用section mapping就有点不合适了，因为这时候对齐的要求太高了，对于16K page size，需要32M对齐，对于64K page size，需要512M对齐。不过，这也没有什么，毕竟这时候page size也变大了，不使用section mapping也能覆盖很大区域。例如，对于16K page size，一个16K page size中可以保存2K个entry，因此能够覆盖2K X 16K ＝ 32M的地址范围。对于64K page size，一个64K page size中可以保存8K个entry，因此能够覆盖8K X 64K ＝ 512M的地址范围。32M和512M基本是可以满足需求的。最后的结论：swapper进程（内核空间）需要预留页表的size是和page table level相关，如果使用了section mapping，那么需要预留PGTABLE\_LEVELS - 1个page。如果不使用section mapping，那么需要预留PGTABLE_LEVELS 个page。
+编译程序感知的是kernel image的虚拟地址（左侧），在内核的链接脚本中定义了若干的符号，都是虚拟地址。但是在内核刚开始，没有打开MMU之前，这些代码实际上是运行在物理地址上的，因此，内核起始刚开始的汇编代码基本上是PIC的，首先需要定位到页表的位置，然后在页表中填入kernel image mapping和identity mapping的页表项。页表的起始位置比较好定（bss段之后），但是具体的size还是需要思考一下的。我们要选择一个合适的size，确保能够覆盖kernel image mapping和identity mapping的地址段，然后又不会太浪费。我们以kernel image mapping为例，描述确定Tranlation table size的思考过程。假设48 bit的虚拟地址配置，4k的page size，这时候需要4级映像，地址被分成9（level 0 or PGD） ＋ 9（level 1 or PUD） ＋ 9（level 2 or PMD） ＋ 9（level 3 or PTE） ＋ 12（page offset），假设我们分配4个page分别保存Level 0到level 3的translation table，那么可以创建的最大的地址映像范围是512（level 3中有512个entry） X 4k ＝ 2M。2M这个size当然不理想，无法容纳kernel image的地址区域，怎么办？使用section mapping，让PMD执行block descriptor，这样使用3个page就可以mapping 512 X 2M ＝ 1G的地址空间范围。当然，这种方法有一点副作用就是：PAGE_OFFSET必须2M对齐。对于16K或者64K的page size，使用section mapping就有点不合适了，因为这时候对齐的要求太高了，对于16K page size，需要32M对齐，对于64K page size，需要512M对齐。不过，这也没有什么，毕竟这时候page size也变大了，不使用section mapping也能覆盖很大区域。例如，对于16K page size，一个16K page size中可以保存2K个entry，因此能够覆盖2K X 16K ＝ 32M的地址范围。对于64K page size，一个64K page size中可以保存8K个entry，因此能够覆盖8K X 64K ＝ 512M的地址范围。32M和512M基本是可以满足需求的。最后的结论：swapper进程（内核空间）需要预留页表的size是和page table level相关，如果使用了section mapping，那么需要预留PGTABLE_LEVELS - 1个page。如果不使用section mapping，那么需要预留PGTABLE_LEVELS 个page。
 
-上面的结论起始是适合大部分情况下的identity mapping，但是还是有特例（需要考虑的点主要和其物理地址的位置相关）。我们假设这样的一个配置：虚拟地址配置为39bit，而物理地址是48个bit，同时，IDMAP\_TEXT这个block的地址位于高端地址（大于39 bit能表示的范围）。在这种情况下，上面的结论失效了，因为PGTABLE\_LEVELS 是和虚拟地址的bit数、PAGE_SIZE的定义相关，而是和物理地址的配置无关。linux kernel使用了巧妙的方法解决了这个问题，大家可以自己看代码理解，这里就不多说了。
+上面的结论起始是适合大部分情况下的identity mapping，但是还是有特例（需要考虑的点主要和其物理地址的位置相关）。我们假设这样的一个配置：虚拟地址配置为39bit，而物理地址是48个bit，同时，IDMAP_TEXT这个block的地址位于高端地址（大于39 bit能表示的范围）。在这种情况下，上面的结论失效了，因为PGTABLE_LEVELS 是和虚拟地址的bit数、PAGE_SIZE的定义相关，而是和物理地址的配置无关。linux kernel使用了巧妙的方法解决了这个问题，大家可以自己看代码理解，这里就不多说了。
 
 一旦设定完了页表，那么打开MMU之后，kernel正式就会进入虚拟地址空间的世界，美中不足的是内核的虚拟世界没有那么大。原来拥有的整个物理地址空间都消失了，能看到的仅仅剩下kernel image mapping和identity mapping这两段地址空间是可见的。不过没有关系，这只是刚开始，内存初始化之路还很长。
 
@@ -59,7 +59,7 @@ turn on MMU相关的代码被放入到一个特别的section，名字是.idmap.t
 
 整个虚拟地址空间那么大，可以被平均分成两半，上半部分的虚拟地址空间主要各种特定的功能，而下半部分主要用于物理内存的直接映像。对于DTB而言，我们借用了fixed-mapped address这个概念。fixed map是被linux kernel用来解决一类问题的机制，这类问题的共同特点是：（1）在很早期的阶段需要进行地址映像，而此时，由于内存管理模块还没有完成初始化，不能动态分配内存，也就是无法动态分配创建映像需要的页表内存空间。（2）物理地址是固定的，或者是在运行时就可以确定的。对于这类问题，内核定义了一段固定映像的虚拟地址，让使用fix map机制的各个模块可以在系统启动的早期就可以创建地址映像，当然，这种机制不是那么灵活，因为虚拟地址都是编译时固定分配的。
 
-好，我们可以考虑创建第三段地址映像了，当然，要创建地址映像就要创建各个level中描述符。对于fixed-mapped address这段虚拟地址空间，由于也是位于内核空间，因此PGD当然就是复用swapper进程的PGD了（其实整个系统就一个PGD），而其他level的Translation table则是静态定义的（arch/arm64/mm/mmu.c），位于内核bss段，由于所有的Translation table都在kernel image mapping的范围内，因此内核可以毫无压力的访问，并创建fixed-mapped address这段虚拟地址空间对应的PUD、PMD和PTE的entry。所有中间level的Translation table都是在early\_fixmap\_init函数中完成初始化的，最后一个level则是在各个具体的模块进行的，对于DTB而言，这发生在fixmap\_remap\_fdt函数中。
+好，我们可以考虑创建第三段地址映像了，当然，要创建地址映像就要创建各个level中描述符。对于fixed-mapped address这段虚拟地址空间，由于也是位于内核空间，因此PGD当然就是复用swapper进程的PGD了（其实整个系统就一个PGD），而其他level的Translation table则是静态定义的（arch/arm64/mm/mmu.c），位于内核bss段，由于所有的Translation table都在kernel image mapping的范围内，因此内核可以毫无压力的访问，并创建fixed-mapped address这段虚拟地址空间对应的PUD、PMD和PTE的entry。所有中间level的Translation table都是在early_fixmap_init函数中完成初始化的，最后一个level则是在各个具体的模块进行的，对于DTB而言，这发生在fixmap_remap_fdt函数中。
 
 系统对dtb的size有要求，不能大于2M，这个要求主要是要确保在创建地址映像（create_mapping）的时候不能分配其他的translation table page，也就是说，所有的translation table都必须静态定义。为什么呢？因为这时候内存管理模块还没有初始化，即便是memblock模块（初始化阶段分配内存的模块）都尚未初始化（没有内存布局的信息），不能动态分配内存。
 
@@ -72,7 +72,7 @@ early ioremap
 
 从上面这个图片可以看出fix-mapped虚拟地址分成两段，一段是permanent fix map，一段是temporary fixmap。所谓permanent表示映射关系永远都是存在的，例如FDT区域，一旦完成地址映像，内核可以访问DTB之后，这个映射关系一直都是存在的。而temporary fixmap则不然，一般而言，某个模块使用了这部分的虚拟地址之后，需要尽快释放这段虚拟地址，以便给其他模块使用。
 
-你可能会很奇怪，因为传统的驱动模块中，大家通常使用ioremap函数来完成地址映像，为了还有一个early IO remap呢？其实ioremap函数的使用需要一定的前提条件的，在地址映像过程中，如果某个level的Translation tabe不存在，那么该函数需要调用伙伴系统模块的接口来分配一个page size的内存来创建某个level的Translation table，但是在启动阶段，内存管理的伙伴系统还没有ready，其实这时候，内核连系统中有多少内存都不知道的。而early io remap则在early\_ioremap\_init之后就可以被使用了。更具体的信息请参考mm/early_ioremap.c文檔。
+你可能会很奇怪，因为传统的驱动模块中，大家通常使用ioremap函数来完成地址映像，为了还有一个early IO remap呢？其实ioremap函数的使用需要一定的前提条件的，在地址映像过程中，如果某个level的Translation tabe不存在，那么该函数需要调用伙伴系统模块的接口来分配一个page size的内存来创建某个level的Translation table，但是在启动阶段，内存管理的伙伴系统还没有ready，其实这时候，内核连系统中有多少内存都不知道的。而early io remap则在early_ioremap_init之后就可以被使用了。更具体的信息请参考mm/early_ioremap.c文檔。
 
 结论：如果想要在伙伴系统初始化之前进行设备寄存器的访问，那么可以考虑early IO remap机制。
 
@@ -90,22 +90,22 @@ early ioremap
 
 ![http://www.wowotech.net/content/uploadfile/201610/47b01476331686.gif](http://www.wowotech.net/content/uploadfile/201610/47b01476331686.gif)
 
-内核在收集了若干和memory相关的信息后，会调用memblock模块的接口API（例如：memblock\_add、memblock\_reserve、memblock\_remove等）来管理这些内存布局的信息。内核需要动态管理起来的内存资源被保存在memblock的memory type的数组中（上图中的绿色block，按照地址的大小顺序排列），而那些需要预留的，不需要内核管理的内存被保存在memblock的reserved type的数组中（上图中的青色block，也是按照地址的大小顺序排列）。要想了解进一步的信息，请参考内核代码中的setup\_machine\_fdt和arm64\_memblock_init这两个函数的实现。
+内核在收集了若干和memory相关的信息后，会调用memblock模块的接口API（例如：memblock_add、memblock_reserve、memblock_remove等）来管理这些内存布局的信息。内核需要动态管理起来的内存资源被保存在memblock的memory type的数组中（上图中的绿色block，按照地址的大小顺序排列），而那些需要预留的，不需要内核管理的内存被保存在memblock的reserved type的数组中（上图中的青色block，也是按照地址的大小顺序排列）。要想了解进一步的信息，请参考内核代码中的setup_machine_fdt和arm64_memblock_init这两个函数的实现。
 
 看到内存
 ----
 
 了解到了当前的物理内存的布局，但是内核仍然只是能够访问部分内存（kernel image mapping和DTB那两段内存，上图中黄色block），大部分的内存仍然处于黑暗中，等待光明的到来，也就是说需要创建这些内存的地址映像。
 
-在这个时间点上，创建内存的地址映像有一个悖论：创建地址映像需要分配内存，但是这时候伙伴系统没有ready，无法动态分配。也许你会说，memblock不是已经ready了吗，不可以调用memblock\_alloc进行物理内存的分配吗？当然可以，memblock\_alloc分配的物理内存仍然需要通过虚拟地址访问，而这些内存都还没有创建地址映像，因此内核一旦访问memblock_alloc分配的物理内存，悲剧就会发生了。
+在这个时间点上，创建内存的地址映像有一个悖论：创建地址映像需要分配内存，但是这时候伙伴系统没有ready，无法动态分配。也许你会说，memblock不是已经ready了吗，不可以调用memblock_alloc进行物理内存的分配吗？当然可以，memblock_alloc分配的物理内存仍然需要通过虚拟地址访问，而这些内存都还没有创建地址映像，因此内核一旦访问memblock_alloc分配的物理内存，悲剧就会发生了。
 
-怎么办呢？内核采用了一个巧妙的办法：那就是控制创建地址映像，memblock\_alloc分配页表内存的顺序。也就是说刚开始的时候创建的地址映像不需要页表内存的分配，当内核需要调用memblock\_alloc进行页表物理地址分配的时候，很多已经创建映像的内存已经ready了，这样，在调用create_mapping的时候不需要分配页表内存。更具体的解释参考下面的图片：
+怎么办呢？内核采用了一个巧妙的办法：那就是控制创建地址映像，memblock_alloc分配页表内存的顺序。也就是说刚开始的时候创建的地址映像不需要页表内存的分配，当内核需要调用memblock_alloc进行页表物理地址分配的时候，很多已经创建映像的内存已经ready了，这样，在调用create_mapping的时候不需要分配页表内存。更具体的解释参考下面的图片：
 
 ![http://www.wowotech.net/content/uploadfile/201610/634b1476331687.gif](http://www.wowotech.net/content/uploadfile/201610/634b1476331687.gif)
 
-我们知道，在内核编译的时候，在BSS段之后分配了几个page用于swapper进程地址空间（内核空间）的映射，当然，由于kernel image不需要mapping那么多的地址，因此swapper进程translation table的最后一个level中的entry不会全部的填充完毕。换句话说：swapper进程页表可以支持远远大于kernel image mapping那一段的地址区域，实际上，它可以支持的地址段的size是SWAPPER\_INIT\_MAP\_SIZE。为（PAGE\_OFFSET，PAGE\_OFFSET＋SWAPPER\_INIT\_MAP\_SIZE）这段虚拟内存创建地址映像，mapping到（PHYS\_OFFSET，PHYS\_OFFSET＋SWAPPER\_INIT\_MAP\_SIZE）这段物理内存的时候，调用create\_mapping不会发生内存分配，因为所有的页表都已经存在了，不需要动态分配。
+我们知道，在内核编译的时候，在BSS段之后分配了几个page用于swapper进程地址空间（内核空间）的映射，当然，由于kernel image不需要mapping那么多的地址，因此swapper进程translation table的最后一个level中的entry不会全部的填充完毕。换句话说：swapper进程页表可以支持远远大于kernel image mapping那一段的地址区域，实际上，它可以支持的地址段的size是SWAPPER_INIT_MAP_SIZE。为（PAGE_OFFSET，PAGE_OFFSET＋SWAPPER_INIT_MAP_SIZE）这段虚拟内存创建地址映像，mapping到（PHYS_OFFSET，PHYS_OFFSET＋SWAPPER_INIT_MAP_SIZE）这段物理内存的时候，调用create_mapping不会发生内存分配，因为所有的页表都已经存在了，不需要动态分配。
 
-一旦完成了（PHYS\_OFFSET，PHYS\_OFFSET＋SWAPPER\_INIT\_MAP\_SIZE）这段物理内存的地址映像，这时候，终于可以自由使用memblock\_alloc进行内存分配了，当然，要进行限制，确保分配的内存位于（PHYS\_OFFSET，PHYS\_OFFSET＋SWAPPER\_INIT\_MAP\_SIZE）这段物理内存中。完成所有memory type类型的memory region的地址映像之后，可以解除限制，任意分配memory了。而这时候，所有memory type的地址区域（上上图中绿色block）都已经可见，而这些宝贵的内存资源就是内存管理模块需要管理的对象。具体代码请参考paging\_init--->map_mem函数的实现。
+一旦完成了（PHYS_OFFSET，PHYS_OFFSET＋SWAPPER_INIT_MAP_SIZE）这段物理内存的地址映像，这时候，终于可以自由使用memblock_alloc进行内存分配了，当然，要进行限制，确保分配的内存位于（PHYS_OFFSET，PHYS_OFFSET＋SWAPPER_INIT_MAP_SIZE）这段物理内存中。完成所有memory type类型的memory region的地址映像之后，可以解除限制，任意分配memory了。而这时候，所有memory type的地址区域（上上图中绿色block）都已经可见，而这些宝贵的内存资源就是内存管理模块需要管理的对象。具体代码请参考paging_init--->map_mem函数的实现。
 
 结束语
 ---

@@ -58,15 +58,15 @@ Fig 3. 神经元
 
 可见，其主要作用就是接受其他神经元的刺激，并传导到其他神经元。可以理解为神经元为多输入输出的一个基本单元。神经网络中的感知器工作原理也类同，如下图：它接受其他感知器的输出作为输入，乘上一定的权值加总后得到一个值。用函数\[latex\]f\[/latex\]对该加总值进行处理，得到输出\[latex\]O\[/latex\]。这个输出值是一个二元值，0或1，类比表示神经元是否产生输出刺激。公式如下：
 
-\[latex\] \\begin{eqnarray} \\mbox{output} & = & \\left\\{ \\begin{array}{ll} 0 & \\mbox{if } \\sum\_j w\_j x\_j \\leq \\mbox{ threshold} \\\ 1 & \\mbox{if } \\sum\_j w\_j x\_j > \\mbox{ threshold} \\end{array} \\right. \\tag{1}\\end{eqnarray} \[/latex\]
+\[latex\] \\begin{eqnarray} \\mbox{output} & = & \\left\\{ \\begin{array}{ll} 0 & \\mbox{if } \\sum_j w_j x_j \\leq \\mbox{ threshold} \\\ 1 & \\mbox{if } \\sum_j w_j x_j > \\mbox{ threshold} \\end{array} \\right. \\tag{1}\\end{eqnarray} \[/latex\]
 
 令 \[latex\] b = \\mbox{-threshold} \[/latex\]，即有：
 
-\[latex\] \\begin{eqnarray} \\mbox{output} & = & \\left\\{ \\begin{array}{ll} 0 & \\mbox{if } \\sum\_j w\_j x\_j +b\\leq \\mbox{0} \\\ 1 & \\mbox{if } \\sum\_j w\_j x\_j+b > \\mbox{ 0} \\end{array} \\right. \\tag{2}\\end{eqnarray} \[/latex\]
+\[latex\] \\begin{eqnarray} \\mbox{output} & = & \\left\\{ \\begin{array}{ll} 0 & \\mbox{if } \\sum_j w_j x_j +b\\leq \\mbox{0} \\\ 1 & \\mbox{if } \\sum_j w_j x_j+b > \\mbox{ 0} \\end{array} \\right. \\tag{2}\\end{eqnarray} \[/latex\]
 
 如何理解上述公式？通常人类要做一件事情的时候，一定会有很多条件的输入。每个条件都有一定的优先级，综合考虑每个条件之后，做出最后的判断。例如：老王想要决定晚上出不出去健身，影响他判断的条件可能有晚上会不会加班、今天天冷不冷、昨天有没有建过身等。
 
-在机器学习中，这些输入条件即可用\[latex\]x\_1\[/latex\]到\[latex\]x\_i\[/latex\]表示，而每个条件对做出最后决策的影响成都即 \[latex\]w\_1\[/latex\]到\[latex\]w\_i\[/latex\] 。这些数据的加总和通常不会是1或者0这样的结果，因此无法直接用来判断输出的结果。通常，上述公式感知器会将该加总和与阈值threshold进行比较。如果大于阈值则输出1，反之则输出0。
+在机器学习中，这些输入条件即可用\[latex\]x_1\[/latex\]到\[latex\]x_i\[/latex\]表示，而每个条件对做出最后决策的影响成都即 \[latex\]w_1\[/latex\]到\[latex\]w_i\[/latex\] 。这些数据的加总和通常不会是1或者0这样的结果，因此无法直接用来判断输出的结果。通常，上述公式感知器会将该加总和与阈值threshold进行比较。如果大于阈值则输出1，反之则输出0。
 
 ![](https://l2h.site/wp-content/uploads/2019/01/neural-network-1-1.jpeg)
 
@@ -95,7 +95,7 @@ Fig 5. Neural Network(神经网络)
 ### Sigmoid神经元
 
 **感知器**一节提到的函数，只是简单地从输入端加权值减去阈值的结果来判断输出。  
-例，当_水温能达到28_度，今天就会出去游泳;又或，当_小黑心情不好时_，就睡觉。 这样的作法很直觉，也比较符合我们的思考习惯。这种函数，非0即1，不够平滑，函数输出值随着输入的跳变较大。如下图， 当\[latex\] \\sum\_j w\_j x_j +b\ \[/latex\]超过0之后，输出就会直接跳变为1。这样造成的结果是，输入中的某一个权值轻微变化，造成输出结果发生剧变。
+例，当_水温能达到28_度，今天就会出去游泳;又或，当_小黑心情不好时_，就睡觉。 这样的作法很直觉，也比较符合我们的思考习惯。这种函数，非0即1，不够平滑，函数输出值随着输入的跳变较大。如下图， 当\[latex\] \\sum_j w_j x_j +b\ \[/latex\]超过0之后，输出就会直接跳变为1。这样造成的结果是，输入中的某一个权值轻微变化，造成输出结果发生剧变。
 
 ![](https://l2h.site/wp-content/uploads/2019/01/perceptron-func-0.png)
 
@@ -111,9 +111,9 @@ Fig 6. 函数(2)的图形
 
 Fig 7. Sigmoid函数的图形
 
-从图上可以看出，因为输出值为平滑的0到1曲线，不会出现因为 \[latex\] \\sum\_j w\_j x_j +b\ \[/latex\] 的变化出现明显的跳变（输入的较小改变，得到的也是最终输出结果较小的变化），是较为理想的感知器函数。其数学公式如下：
+从图上可以看出，因为输出值为平滑的0到1曲线，不会出现因为 \[latex\] \\sum_j w_j x_j +b\ \[/latex\] 的变化出现明显的跳变（输入的较小改变，得到的也是最终输出结果较小的变化），是较为理想的感知器函数。其数学公式如下：
 
-\[latex\] \\begin{eqnarray} \\Delta \\mbox{output} \\approx \\sum\_j \\frac{\\partial \\, \\mbox{output}}{\\partial w\_j} \\Delta w_j + \\frac{\\partial \\, \\mbox{output}}{\\partial b} \\Delta b, \\tag{5} \\end{eqnarray} \[/latex\]
+\[latex\] \\begin{eqnarray} \\Delta \\mbox{output} \\approx \\sum_j \\frac{\\partial \\, \\mbox{output}}{\\partial w_j} \\Delta w_j + \\frac{\\partial \\, \\mbox{output}}{\\partial b} \\Delta b, \\tag{5} \\end{eqnarray} \[/latex\]
 
 即，使用Sigmoid函数的导数是一个线性的函数，随着输入参数的变化，output的值是线性增长的。
 
@@ -302,25 +302,25 @@ xxxx  
 
 这里又有疑问了：虽然是要用较平滑的函数作为误差函数，为什么一定要是均方误差函数？当然不必，之后文章会再研究是否有其他选择。但是对了解神经网络基础来讲，这个均方误差函数便已足够。
 
-如前所述，我们训练的目标，是求出可以使得误差函数最小的所有的权值和阈值，而我们将会使用梯度下降算法。为了对这一算法进行阐述，我们先简化一下我们的问题：另我们的输入只有两个像素点，对应两个权值\[latex\]v\_1和v\_2\[/latex\]，接着我们可以对应扩展到多个权值或阈值的场景。
+如前所述，我们训练的目标，是求出可以使得误差函数最小的所有的权值和阈值，而我们将会使用梯度下降算法。为了对这一算法进行阐述，我们先简化一下我们的问题：另我们的输入只有两个像素点，对应两个权值\[latex\]v_1和v_2\[/latex\]，接着我们可以对应扩展到多个权值或阈值的场景。
 
-如前所述，我们训练的目标，是求出可以使得误差函数最小的所有的权值和阈值，而我们将会使用梯度下降算法。为了对这一算法进行阐述，我们先简化一下我们的问题：另我们的输入只有两个像素点，对应两个权值\[latex\]v\_1和v\_2\[/latex\]，接着我们可以对应扩展到多个权值或阈值的场景。
+如前所述，我们训练的目标，是求出可以使得误差函数最小的所有的权值和阈值，而我们将会使用梯度下降算法。为了对这一算法进行阐述，我们先简化一下我们的问题：另我们的输入只有两个像素点，对应两个权值\[latex\]v_1和v_2\[/latex\]，接着我们可以对应扩展到多个权值或阈值的场景。
 
 ![](http://neuralnetworksanddeeplearning.com/images/valley.png)
 
 全局最小
 
-对上图来讲，我们可以一眼大概看出C的全局最小的值，得到对应的\[latex\]v\_1和v\_2\[/latex\]。但是事实上，C往往是一个复杂的函数包含了许多参数，也不可能一眼就看出其最小值。而解决此类问题（求C最小值）的一种分析方法就是微积分: 我们可以通过求导来找到使C达到最小的点。当C函数参数较少的时候，或许可以幸运地的找到。但是当参数更多时，这种方法便成了噩梦。不幸的是，往往我们的神经网络中有多得多的参数--最大的神经网络可能会有成千上万个权重和阈值要求出，是不可能用微积分得到最小值的。
+对上图来讲，我们可以一眼大概看出C的全局最小的值，得到对应的\[latex\]v_1和v_2\[/latex\]。但是事实上，C往往是一个复杂的函数包含了许多参数，也不可能一眼就看出其最小值。而解决此类问题（求C最小值）的一种分析方法就是微积分: 我们可以通过求导来找到使C达到最小的点。当C函数参数较少的时候，或许可以幸运地的找到。但是当参数更多时，这种方法便成了噩梦。不幸的是，往往我们的神经网络中有多得多的参数--最大的神经网络可能会有成千上万个权重和阈值要求出，是不可能用微积分得到最小值的。
 
 不过不要担心，幸运的是我们可以用其他算法来做这件事并得到很好的效果。首先我们把误差函数的看作一个山谷（就如上图一样），想象有一个球从斜坡滚向山谷。根据日常经验，这个球最终会滚向谷底。那么或许我们可以用这种方法来找到函数的最小值？可以随机选择一个起始点，并模拟球向山谷滚动的运动。我们可以通过对C求导（或者有时是二次导数）来做这样的模拟，并得到“山谷的形状”，最终得到球该如何向下滚动。
 
-请放心，我们这里不是讨论像牛顿定律这种物理。为了更准确地描述这个问题，假设这个球向\[latex\]v\_1\[/latex\]和 \[latex\]v\_2\[/latex\] 放心分别移\[latex\] \\Delta v\_1 \[/latex\] 和 \[latex\] \\Delta v\_2\[/latex\] 。通过微积分我们可以得到：
+请放心，我们这里不是讨论像牛顿定律这种物理。为了更准确地描述这个问题，假设这个球向\[latex\]v_1\[/latex\]和 \[latex\]v_2\[/latex\] 放心分别移\[latex\] \\Delta v_1 \[/latex\] 和 \[latex\] \\Delta v_2\[/latex\] 。通过微积分我们可以得到：
 
-\[latex\]\\begin{eqnarray} \\Delta C \\approx \\frac{\\partial C}{\\partial v\_1} \\Delta v\_1 + \\frac{\\partial C}{\\partial v\_2} \\Delta v\_2. \\tag{6}\\end{eqnarray}\[/latex\]
+\[latex\]\\begin{eqnarray} \\Delta C \\approx \\frac{\\partial C}{\\partial v_1} \\Delta v_1 + \\frac{\\partial C}{\\partial v_2} \\Delta v_2. \\tag{6}\\end{eqnarray}\[/latex\]
 
-我们需要找到一种方式选择 \[latex\]\\Delta v\_1 和\\Delta v\_2 这样\\Delta C \[/latex\]是负值，即我们的球可以向谷底移动。我们首先定义向量 \[latex\] \\Delta v \\equiv (\\Delta v\_1, \\Delta v\_2)^T \[/latex\] 来表示每个维度上的变化，其中T为矩阵转置。而C对每个变量偏导数组成向量，如下：
+我们需要找到一种方式选择 \[latex\]\\Delta v_1 和\\Delta v_2 这样\\Delta C \[/latex\]是负值，即我们的球可以向谷底移动。我们首先定义向量 \[latex\] \\Delta v \\equiv (\\Delta v_1, \\Delta v_2)^T \[/latex\] 来表示每个维度上的变化，其中T为矩阵转置。而C对每个变量偏导数组成向量，如下：
 
-\[latex\]\\begin{eqnarray} \\nabla C \\equiv \\left( \\frac{\\partial C}{\\partial v\_1}, \\frac{\\partial C}{\\partial v\_2} \\right)^T. \\tag{7}\\end{eqnarray} \[/latex\]
+\[latex\]\\begin{eqnarray} \\nabla C \\equiv \\left( \\frac{\\partial C}{\\partial v_1}, \\frac{\\partial C}{\\partial v_2} \\right)^T. \\tag{7}\\end{eqnarray} \[/latex\]
 
 其中 \[latex\] \\nabla \[/latex\] 符号表示梯度向量。公式(6)和(7)合并：
 
@@ -334,14 +334,14 @@ xxxx  
 
 ![](http://neuralnetworksanddeeplearning.com/images/valley_with_ball.png)
 
-简要说明梯度下降的思想后，我们如何将它用在神经网络中？注意到\[latex\] v\_1 和v\_2\[/latex\] 是我们为了描述问题简化的，它们代表权值 \[latex\] w\_x 或者阈值 b\[/latex\] ，那么对公式(9)提到的 \[latex\] v\_1 和v\_2\[/latex\] 更新方法，也同样适用在\[latex\] w\_x 或 b\[/latex\] ，即得到公式：
+简要说明梯度下降的思想后，我们如何将它用在神经网络中？注意到\[latex\] v_1 和v_2\[/latex\] 是我们为了描述问题简化的，它们代表权值 \[latex\] w_x 或者阈值 b\[/latex\] ，那么对公式(9)提到的 \[latex\] v_1 和v_2\[/latex\] 更新方法，也同样适用在\[latex\] w_x 或 b\[/latex\] ，即得到公式：
 
-\[latex\] \\begin{eqnarray} w\_k & \\rightarrow & w\_k' = w\_k-\\eta \\frac{\\partial C}{\\partial w\_k} \\tag{10}\\\ b\_l & \\rightarrow & b\_l' = b\_l-\\eta \\frac{\\partial C}{\\partial b\_l}. \\tag{11}\\end{eqnarray} \[/latex\]
+\[latex\] \\begin{eqnarray} w_k & \\rightarrow & w_k' = w_k-\\eta \\frac{\\partial C}{\\partial w_k} \\tag{10}\\\ b_l & \\rightarrow & b_l' = b_l-\\eta \\frac{\\partial C}{\\partial b_l}. \\tag{11}\\end{eqnarray} \[/latex\]
 
-对前文误差函数求偏导得到， \[latex\] \\nabla C = \\frac{1}{n} \\sum\_x \\nabla C\_x \[/latex\]，注意这里是对所有的训练数据做求偏导动作，当训练数据量很大时，学习时间会变得非常长。这时一种解决方案是，每次学习只取训练数据集的一部分m个，只要保证最后所有训练数据都有被取到且平均即可，那么公式为，  
-\[latex\] \\nabla C = \\frac{1}{m} \\sum\_x \\nabla C\_x \[/latex\] 。最后我们得到参数的更新公式：
+对前文误差函数求偏导得到， \[latex\] \\nabla C = \\frac{1}{n} \\sum_x \\nabla C_x \[/latex\]，注意这里是对所有的训练数据做求偏导动作，当训练数据量很大时，学习时间会变得非常长。这时一种解决方案是，每次学习只取训练数据集的一部分m个，只要保证最后所有训练数据都有被取到且平均即可，那么公式为，  
+\[latex\] \\nabla C = \\frac{1}{m} \\sum_x \\nabla C_x \[/latex\] 。最后我们得到参数的更新公式：
 
-\[latex\] \\begin{eqnarray} w\_k & \\rightarrow & w\_k' = w\_k-\\frac{\\eta}{m} \\sum\_j \\frac{\\partial C_{X\_j}}{\\partial w\_k} \\tag{12}\\\ b\_l & \\rightarrow & b\_l' = b\_l-\\frac{\\eta}{m} \\sum\_j \\frac{\\partial C_{X\_j}}{\\partial b\_l}, \\tag{13}\\end{eqnarray} \[/latex\]
+\[latex\] \\begin{eqnarray} w_k & \\rightarrow & w_k' = w_k-\\frac{\\eta}{m} \\sum_j \\frac{\\partial C_{X_j}}{\\partial w_k} \\tag{12}\\\ b_l & \\rightarrow & b_l' = b_l-\\frac{\\eta}{m} \\sum_j \\frac{\\partial C_{X_j}}{\\partial b_l}, \\tag{13}\\end{eqnarray} \[/latex\]
 
 代码实例
 ----
@@ -359,7 +359,7 @@ import numpy as np
 
 class Network(object):
 
-    def \_\_init\_\_(self, sizes):
+    def __init__(self, sizes):
         ""“
         sizes定义是每层神经网络的神经元（感知器）个数。例如若sizes=\[2,3,1\]，那么它代表输入层2个感知器，隐层3个感知器，最后一层1个感知器。
         """
@@ -376,10 +376,10 @@ class Network(object):
             a = sigmoid(np.dot(w, a)+b)
         return a
 
-    def SGD(self, training\_data, epochs, mini\_batch_size, eta,
+    def SGD(self, training_data, epochs, mini_batch_size, eta,
             test_data=None):
         """使用前文提到的‘每次学习只取训练数据集的一部分m个，只要保证最后所有训练数据都有被取到且平均即可’算法进行训练"""
-        if test\_data: n\_test = len(test_data)
+        if test_data: n_test = len(test_data)
         n = len(training_data)
         #训练轮数
         for j in xrange(epochs):
@@ -387,28 +387,28 @@ class Network(object):
             random.shuffle(training_data)
             #根据训练最小包的个数分出多个训练包
             mini_batches = \[
-                training\_data\[k:k+mini\_batch_size\]
-                for k in xrange(0, n, mini\_batch\_size)\]
+                training_data\[k:k+mini_batch_size\]
+                for k in xrange(0, n, mini_batch_size)\]
             #对每个训练数据包进行训练，权值w和b进行更新
-            for mini\_batch in mini\_batches:
-                self.update\_mini\_batch(mini_batch, eta)
+            for mini_batch in mini_batches:
+                self.update_mini_batch(mini_batch, eta)
             #用测试数据对训练结果进行计算准确率
             if test_data:
                 print "Epoch {0}: {1} / {2}".format(
-                    j, self.evaluate(test\_data), n\_test)
+                    j, self.evaluate(test_data), n_test)
             else:
                 print "Epoch {0} complete".format(j)
 
-    def update\_mini\_batch(self, mini_batch, eta):
+    def update_mini_batch(self, mini_batch, eta):
         """使用后传播方法对训练数据包进行训练（更新w和b）"""
         #初始化所有的b和w
         nabla_b = \[np.zeros(b.shape) for b in self.biases\]
         nabla_w = \[np.zeros(w.shape) for w in self.weights\]
-        #根据包中所有的训练数据计算w和b要变化的幅度nabla\_b和nabla\_w
+        #根据包中所有的训练数据计算w和b要变化的幅度nabla_b和nabla_w
         for x, y in mini_batch:
-            delta\_nabla\_b, delta\_nabla\_w = self.backprop(x, y)
-            nabla\_b = \[nb+dnb for nb, dnb in zip(nabla\_b, delta\_nabla\_b)\]
-            nabla\_w = \[nw+dnw for nw, dnw in zip(nabla\_w, delta\_nabla\_w)\]
+            delta_nabla_b, delta_nabla_w = self.backprop(x, y)
+            nabla_b = \[nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)\]
+            nabla_w = \[nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)\]
         #根据计算的更新幅度更新w和b
         self.weights = \[w-(eta/len(mini_batch))*nw
                         for w, nw in zip(self.weights, nabla_w)\]
@@ -440,7 +440,7 @@ class Network(object):
             delta = np.dot(self.weights\[-l+1\].transpose(), delta) * sp
             nabla_b\[-l\] = delta
             nabla_w\[-l\] = np.dot(delta, activations\[-l-1\].transpose())
-        return (nabla\_b, nabla\_w)
+        return (nabla_b, nabla_w)
 
     def evaluate(self, test_data):
         #此处比较容易理解，使用测试数据和我们计算得到的w和b代入的公式得到结果对比计算当前学习的准确率
@@ -448,7 +448,7 @@ class Network(object):
                         for (x, y) in test_data\]
         return sum(int(x == y) for (x, y) in test_results)
 
-    def cost\_derivative(self, output\_activations, y):
+    def cost_derivative(self, output_activations, y):
         return (output_activations-y)
 #sigmoid函数
 def sigmoid(z):

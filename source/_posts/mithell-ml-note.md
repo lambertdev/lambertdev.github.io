@@ -42,17 +42,17 @@ date: 2018-11-11 08:55:40
 > 
 > **训练经验E**: 用于学习的数据集
 > 
-> **目标函数\[latex\]V\[/latex\]**: 根据输入得到最优方案（例如，一段语音的最佳匹配、棋局的最佳落子）
+> **目标函数[latex]V[/latex]**: 根据输入得到最优方案（例如，一段语音的最佳匹配、棋局的最佳落子）
 > 
-> **目标函数的最优近似\[latex\]{\\tilde V}\[/latex\]**: 根据输入得到近似目标函数的最优方案
+> **目标函数的最优近似[latex]{\\tilde V}[/latex]**: 根据输入得到近似目标函数的最优方案
 
-    训练经验---->**学习器**---->目标函数\[latex\]V\[/latex\] （从当前任务允许的所有合法输入集合中，选出能得到最优性能标准P的输出的唯一输入）。
+    训练经验---->**学习器**---->目标函数[latex]V[/latex] （从当前任务允许的所有合法输入集合中，选出能得到最优性能标准P的输出的唯一输入）。
 
 ### 目标函数的描述
 
-    通常来说，由于任务T的复杂性，无法完全得到目标函数，通常机器学习的目标是得到目标函数的某个近似(Approximation) \[latex\]{\\tilde V}\[/latex\] 。     \[latex\]{\\tilde V}\[/latex\] 函数需要可表示，这样才能根据任务的实际状况，评估出输出结果的性能。一般来讲，目标函数输入有多个变量维度。其最简单的一种表示方法为给每个维度的变量赋予一定的权值（weights）\[latex\]w\_0->w\_n\[/latex\]，乘以对应维度变量再求和的一个线性函数。例如：
+    通常来说，由于任务T的复杂性，无法完全得到目标函数，通常机器学习的目标是得到目标函数的某个近似(Approximation) [latex]{\\tilde V}[/latex] 。     [latex]{\\tilde V}[/latex] 函数需要可表示，这样才能根据任务的实际状况，评估出输出结果的性能。一般来讲，目标函数输入有多个变量维度。其最简单的一种表示方法为给每个维度的变量赋予一定的权值（weights）[latex]w_0->w_n[/latex]，乘以对应维度变量再求和的一个线性函数。例如：
 
-> \[latex\]{\\tilde V} = w\_0+x\_1w\_1+x\_2w\_2+...+x\_nw_n\[/latex\]
+> [latex]{\\tilde V} = w_0+x_1w_1+x_2w_2+...+x_nw_n[/latex]
 
 ### 目标函数近似函数的训练
 
@@ -60,23 +60,23 @@ date: 2018-11-11 08:55:40
 
 #### 训练样例
 
-    为了学习到\[latex\]{\\tilde V}\[/latex\]，需要一系列的训练样例，它们可以表示为：
+    为了学习到[latex]{\\tilde V}[/latex]，需要一系列的训练样例，它们可以表示为：
 
-> \[latex\]<<x\_1=3,x\_2=1,...,x_n=10>, 100>\[/latex\]
+> [latex]<<x_1=3,x_2=1,...,x_n=10>, 100>[/latex]
 
-    其中100为\[latex\]<x\_1=3,x\_2=1,...,x_n=10>\[/latex\]的性能打分。
+    其中100为[latex]<x_1=3,x_2=1,...,x_n=10>[/latex]的性能打分。
 
 #### 权值调整
 
     训练过程就是对权值进行调整，逐渐逼近目标函数的过程。而调整权值的过程，就是寻找可以对训练集中的所有样例，函数得到的值和训练值之差的平方总和E最小的过程。即：
 
-> \[latex\]E\\equiv\\sum_{\\mathclap{<b, V_{train}(b)> \\in Training Data}} (V_{train}(b)-\\tilde{V}(b))^2\[/latex\]
+> [latex]E\\equiv\\sum_{\\mathclap{<b, V_{train}(b)> \\in Training Data}} (V_{train}(b)-\\tilde{V}(b))^2[/latex]
 
     权值更新则是根据当前训练值与当前近似函数的计算值的差，进行权值更新。公式如下：
 
-> \[latex\]w_{new}⇠w\_i+\\eta(V\_{train}(b)-\\tilde{V}(b))x_i\[/latex\]
+> [latex]w_{new}⇠w_i+\\eta(V_{train}(b)-\\tilde{V}(b))x_i[/latex]
 
-    其中\[latex\]\\eta\[/latex\]为小的常数代表调整幅度。
+    其中[latex]\\eta[/latex]为小的常数代表调整幅度。
 
 #### 总结
 
@@ -95,11 +95,11 @@ date: 2018-11-11 08:55:40
 
 ### 概念学习任务
 
-\[caption id="" align="aligncenter" width="629"\]![概念学习实例](http://pic.l2h.site/l2hsiteMachine-Learning-Outline-2.png) 机器学习\[/caption\]
+[caption id="" align="aligncenter" width="629"]![概念学习实例](http://pic.l2h.site/l2hsiteMachine-Learning-Outline-2.png) 机器学习[/caption]
 
     书中根据天气情况判断Aldo是否会做户外运动为实例。输入参数为一元组：<天空状况，空气温度，空气湿度，风力，水温，天气预报>。输出为布尔值：表示Aldo是否做户外运动。具体训练目标定义如下：
 
-给出训练数据，即Aldo以往做户外运动的天气状况。从假设函数集合\[latex\]H\[/latex\]中推导出目标函数h的近似函数，满足\[latex\]h(x)=c(x)\[/latex\]，其中：
+给出训练数据，即Aldo以往做户外运动的天气状况。从假设函数集合[latex]H[/latex]中推导出目标函数h的近似函数，满足[latex]h(x)=c(x)[/latex]，其中：
 
 *   *   h()和c()函数均为返回布尔值的函数，表示Aldo是否会做户外运动。
 
@@ -113,7 +113,7 @@ date: 2018-11-11 08:55:40
 
     概念学习可以认为从一个大的假设空间逐步搜索到最符合训练数据集的假设。
 
-> General-to-Specific Ordering of Hypotheses(假设的一般到特殊序)：以输入参数一元组中的“水温为例”，它可能有Warm、Cool、任意值(\[latex\]?\[/latex\])或者皆不可(\[latex\]\\Theta\[/latex\])。其中对假设的搜索顺序应该是从一般到特殊\[latex\]?\\to(Warm|Cool)\\to\\Theta\[/latex\].
+> General-to-Specific Ordering of Hypotheses(假设的一般到特殊序)：以输入参数一元组中的“水温为例”，它可能有Warm、Cool、任意值([latex]?[/latex])或者皆不可([latex]\\Theta[/latex])。其中对假设的搜索顺序应该是从一般到特殊[latex]?\\to(Warm|Cool)\\to\\Theta[/latex].
 
 #### FIND-S:寻找最大特殊假设
 
