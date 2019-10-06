@@ -8,6 +8,7 @@ id: 2436
 categories:
   - 机器学习
 date: 2019-07-13 16:55:32
+mathjax: true
 ---
 
 循环神经网络(Recurrent Nerual Networks,简称RNN)近年来被业界视作处理序列数据以及做自然语言处理的灵丹妙药。其变种LSTM仍是当今最先进的数据处理模型之一。
@@ -67,15 +68,17 @@ RNN 翻译示例
 
 首先我们看传给RNN序列下一步的隐藏状态是如何产生的。有如下公式：
 
-[latex] hidden_t = F(hidden_{t-1}, input_t) [/latex]
+$$ 
+hidden_t = F(hidden_{t-1}, input_t) 
+$$
 
 即当前步的隐藏状态，由上一步的隐藏状态加上这部分的输入经过函数F处理后产生。而第一步的隐藏状态，一般会在整个RNN初始化时人为设置为0。在最简单的RNN中，函数F一般为每个输入乘以对应的权重再用激活函数做非线性处理。激活函数一般有RELU、Sigmoid或tanh。下边公式为采用tanh作为激活函数：
 
-[latex] hidden_t = tanh(W_{hiddent}*hidden_{t-1},W_{input} * input_t) [/latex]
+$$ hidden_t = tanh(W_{hiddent}*hidden_{t-1},W_{input} * input_t) $$
 
 而我们若需要在RNN单元每一步产生一个输出，那么这个输出一般由该步的隐藏单元做一个线性处理产生，例如：
 
-[latex] output_t = W_{output}* hidden_t [/latex]
+$$ output_t = W_{output}* hidden_t $$
 
 可以看出，上一个RNN单元的隐藏状态会被传递给下一个RNN单元，如此重复，直到运行到我们设定的停止条件。
 
