@@ -82,10 +82,10 @@ early ioremap
 
 完成DTB的映射之后，内核可以访问这一段的内存了，通过解析DTB中的内容，内核可以勾勒出整个内存布局的情况，为后续内存管理初始化奠定基础。收集内存布局的信息主要来自下面几条途径：
 
-*   （1）choosen node。该节点有一个bootargs属性，该属性定义了内核的启动参数，而在启动参数中，可能包括了mem=nn\[KMG\]这样的参数项。initrd-start和initrd-end参数定义了initial ramdisk image的物理地址范围。
+*   （1）choosen node。该节点有一个bootargs属性，该属性定义了内核的启动参数，而在启动参数中，可能包括了mem=nn[KMG]这样的参数项。initrd-start和initrd-end参数定义了initial ramdisk image的物理地址范围。
 *   （2）memory node。这个节点主要定义了系统中的物理内存布局。主要的布局信息是通过reg属性来定义的，该属性定义了若干的起始地址和size条目。
 *   （3）DTB header中的memreserve域。对于dts而言，这个域是定义在root node之外的一行字符串，例如：/memreserve/ 0x05e00000 0x00100000;，memreserve之后的两个值分别定义了起始地址和size。对于dtb而言，memreserve这个字符串被DTC解析并称为DTB header中的一部分。更具体的信息可以参考[device tree基础](https://hk.saowen.com/rd/aHR0cDovL3d3dy53b3dvdGVjaC5uZXQvZGV2aWNlX21vZGVsL2R0X2Jhc2ljX2NvbmNlcHQuaHRtbA==)文文件，了解DTB的结构。
-*   （4）reserved-memory node。这个节点及其子节点定义了系统中保留的内存地址区域。保留内存有两种，一种是静态定义的，用reg属性定义的address和size。另外一种是动态定义的，只是通过size属性定义了保留内存区域的长度，或者通过alignment属性定义对齐属性，动态定义类型的子节点的属性不能精准的定义出保留内存区域的起始地址和长度。在创建地址映像方面，可以通过no-map属性来控制保留内存区域的地址映像关系的创建。更具体的信息可以阅读参考文献\[1\]。
+*   （4）reserved-memory node。这个节点及其子节点定义了系统中保留的内存地址区域。保留内存有两种，一种是静态定义的，用reg属性定义的address和size。另外一种是动态定义的，只是通过size属性定义了保留内存区域的长度，或者通过alignment属性定义对齐属性，动态定义类型的子节点的属性不能精准的定义出保留内存区域的起始地址和长度。在创建地址映像方面，可以通过no-map属性来控制保留内存区域的地址映像关系的创建。更具体的信息可以阅读参考文献[1]。
 
 通过对DTB中上述信息的解析，其实内核已经基本对内存布局有数了，但是如何来管理这些信息呢？这也就是著名的memblock模块，主要负责在初始化阶段用来管理物理内存。一个参考性的示意图如下：
 

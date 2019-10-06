@@ -247,7 +247,7 @@ static int __init init_yaffs_fs(void)
 	}}
 	return error;
 }
-static struct file_system_to_install fs_to_install\[\] = {
+static struct file_system_to_install fs_to_install[] = {
 	{&yaffs_fs_type, 0},
 	{&yaffs2_fs_type, 0},
 	{NULL, 0}
@@ -331,7 +331,7 @@ struct yaffs_dev {
 	int n_tnodes;
 	int n_hardlinks;
 
-	struct yaffs_obj_bucket obj_bucket\[YAFFS_NOBJECT_BUCKETS\];
+	struct yaffs_obj_bucket obj_bucket[YAFFS_NOBJECT_BUCKETS];
 	u32 bucket_finder;
 	int n_free_chunks; 
         //垃圾回收相关参数
@@ -355,7 +355,7 @@ struct yaffs_dev {
 	int n_unlinked_files;	/* Count of unlinked files. */
 	int n_bg_deletions;	/* Count of background deletions. */
 	/* 临时缓存相关 */
-	struct yaffs_buffer temp_buffer\[YAFFS_N_TEMP_BUFFERS\];
+	struct yaffs_buffer temp_buffer[YAFFS_N_TEMP_BUFFERS];
 	int max_temp;
 	int temp_in_use;
 	int unmanaged_buffer_allocs;

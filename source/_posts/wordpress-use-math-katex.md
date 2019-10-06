@@ -7,6 +7,7 @@ id: 1175
 categories:
   - 建站
 date: 2018-11-04 09:35:43
+mathjax: true
 ---
 
 前言
@@ -33,7 +34,7 @@ date: 2018-11-04 09:35:43
 
 *   若是单行仅公式，则使用$$公式$$。例：
 
-\[latex\]{\\tilde V} = w\_0+x\_1w\_1+x\_2w\_2+...+x\_nw_n\[/latex\]
+$${\\tilde V} = w_0+x_1w_1+x_2w_2+...+x_nw_n$$
 
     更多LaTeX数学公式可以参考[LaTex简介文档](http://pic.www.l2h.site/l2hsitelatex-short-cn.pdf "http://pic.www.l2h.site/l2hsitelatex-short-cn.pdf")的"数学公式"一节。
 
@@ -52,17 +53,17 @@ date: 2018-11-04 09:35:43
 
 ![WP-KaTex](http://pic.www.l2h.site/l2hsiteMarkdown-Math-3.png "WP-KaTex")
 
-*   数学公式的左右增加“(latex)”和“(/latex)”，()换成\[\]例如：
+*   数学公式的左右增加“(latex)”和“(/latex)”，()换成[]例如：
 
-> \[latex\]{\\tilde V} = w\_0+x\_1w\_1+x\_2w\_2+...+x\_nw_n\[/latex\]
+> $${\\tilde V} = w_0+x_1w_1+x_2w_2+...+x_nw_n$$
 
-*   KaTex支持大部分\[latex\]{\\LaTeX}\[/latex\]数学公式，具体可以参考\[latex\]\\href{https://katex.org/}{\\LaTeX}\[/latex\] 和 [https://katex.org/docs/supported.html](https://katex.org/docs/supported.html)
+*   KaTex支持大部分$${\\LaTeX}$$数学公式，具体可以参考$$\\href{https://katex.org/}{\\LaTeX}$$ 和 [https://katex.org/docs/supported.html](https://katex.org/docs/supported.html)
 
      这边可以用Notepad++的查找/替换功能+正则表达式做语法替换，替换规则参考：
 
 *   *   查找“\\$\\$(.+)\\$\\$”
 
-*   *   替换为(latex)**\\1**(\\latex) -> 注意:本博客latex相关语法插件已经生效，圆括号()要换成方括号\[\]
+*   *   替换为(latex)**\\1**(\\latex) -> 注意:本博客latex相关语法插件已经生效，圆括号()要换成方括号[]
 
 *   参考下图
 

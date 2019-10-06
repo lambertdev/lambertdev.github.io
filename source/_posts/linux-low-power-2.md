@@ -58,8 +58,8 @@ static ssize_t state_show(struct kobject *kobj, struct kobj_attribute *attr,char
 #ifdef CONFIG_SUSPEND
        suspend_state_t i;
        for (i = PM_SUSPEND_MIN; i < PM_SUSPEND_MAX; i++) //循环将所有电源管理状态加入到要返回的字符串
-              if (pm_states\[i\])
-                     s += sprintf(s,"%s ", pm_states\[i\]);  
+              if (pm_states[i])
+                     s += sprintf(s,"%s ", pm_states[i]);  
 #endif
        if (hibernation_available())
               s += sprintf(s, "disk "); //如果系统支持Hibernate，则将disk加入要返回的字符串

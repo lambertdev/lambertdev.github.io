@@ -68,4 +68,4 @@ date: 2017-02-13 20:26:39
 > 
 > 演出时间：每天晚上20：00—21:10 锦江剧场地址：成都市华兴正街54号 订座电话：1010-3721（请务必至少提前6小时预约）
 
-最后放一段现场所录木偶变脸视频 :-P ： http://v.youku.com/v\_show/id\_XMjUxMDE5MTYzNg==.html
+最后放一段现场所录木偶变脸视频 :-P ： http://v.youku.com/v_show/id_XMjUxMDE5MTYzNg==.html

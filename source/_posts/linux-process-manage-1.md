@@ -73,7 +73,7 @@ struct task_struct {
 	struct list_head tasks;//进程链表
 	struct mm_struct *mm, *active_mm;//进程内存管理结构体
 	u64 vmacache_seqnum;//虚拟地址区间缓存序列号
-	struct vm_area_struct *vmacache\[VMACACHE_SIZE\];//虚拟地址区间缓存
+	struct vm_area_struct *vmacache[VMACACHE_SIZE];//虚拟地址区间缓存
 	int exit_state; //以下记录进程的退出状态信息
 	int exit_code, exit_signal;
 	/* 调度器相关标记 */
@@ -109,7 +109,7 @@ struct task_struct {
 	struct list_head ptraced; //ptrace跟踪的进程链表
 	struct list_head ptrace_entry; //所在父进程的ptrace链表
 
-	struct pid_link pids\[PIDTYPE_MAX\];
+	struct pid_link pids[PIDTYPE_MAX];
 	struct list_head thread_group; //线程组链表
 	struct list_head thread_node; //线程节点链表
 	struct completion *vfork_done;		/* for vfork() */
@@ -137,14 +137,14 @@ struct task_struct {
 	u64 real_start_time;	//启动时间
 	unsigned long min_flt, maj_flt;
 	struct task_cputime cputime_expires;
-	struct list_head cpu_timers\[3\];
+	struct list_head cpu_timers[3];
 
 //进程身份相关参数
 	const struct cred __rcu *ptracer_cred; /* Tracer's credentials at attach */
 	const struct cred __rcu *real_cred; /* objective and real subjective task credentials (COW) */
 	const struct cred __rcu *cred;	
-	char comm\[TASK_COMM_LEN\]; /* executable name excluding path
-				     \- access with \[gs\]et_task_comm (which lockit with task_lock())
+	char comm[TASK_COMM_LEN]; /* executable name excluding path
+				     \- access with [gs]et_task_comm (which lockit with task_lock())
 				     \- initialized normally by setup_new_exec */
 	struct nameidata *nameidata; //路径相关信息
 #ifdef CONFIG_SYSVIPC
@@ -217,7 +217,7 @@ struct task_struct {
 	struct futex_pi_state *pi_state_cache;
 #endif
 #ifdef CONFIG_PERF_EVENTS
-	struct perf_event_context *perf_event_ctxp\[perf_nr_task_contexts\];
+	struct perf_event_context *perf_event_ctxp[perf_nr_task_contexts];
 	struct mutex perf_event_mutex;
 	struct list_head perf_event_list;
 #endif
@@ -286,9 +286,9 @@ struct pid
 {
 	atomic_t count;  //pid使用数量
 	unsigned int level; //层级数量
-	struct hlist_head tasks\[PIDTYPE_MAX\]; //对应每种类别命名空间进程的指针
+	struct hlist_head tasks[PIDTYPE_MAX]; //对应每种类别命名空间进程的指针
 	struct rcu_head rcu;
-	struct upid numbers\[1\]; //每级的pid
+	struct upid numbers[1]; //每级的pid
 };
 ```
 其中PIDTYPE_MAX为pid类别的枚举类型最大值，具体该枚举类型定义如下：

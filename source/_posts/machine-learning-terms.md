@@ -5,6 +5,7 @@ id: 2366
 categories:
   - 机器学习
 date: 2019-07-15 15:30:50
+mathjax: true
 ---
 
 初学机器学习，往往容易淹没在浩瀚的属于中，本文归纳总结一下机器学习相关的术语，帮您更好理解神经网络
@@ -47,7 +48,7 @@ Adagrad是一种自适应调整学习速率的算法，它会追踪梯度平方�
 
 #### Affine Layer
 
-神经网络的一种全连接层。Affine的含义是：每个上层的神经元链接当前层的神经元，即这是标准的神经网络层。Affine层通常会与 [Convolutional Neural Networks](http://www.wildml.com/deep-learning-glossary/#cnn) 或者 [Recurrent Neural Networks](http://www.wildml.com/deep-learning-glossary/#rnn)  一起使用，用于最终产生一个决策。函数形式通常是\[latex\]y=f(Wx+b)\[/latex\]。W,X,b分别是权值，输入和偏移向量。f通常为非线性函数
+神经网络的一种全连接层。Affine的含义是：每个上层的神经元链接当前层的神经元，即这是标准的神经网络层。Affine层通常会与 [Convolutional Neural Networks](http://www.wildml.com/deep-learning-glossary/#cnn) 或者 [Recurrent Neural Networks](http://www.wildml.com/deep-learning-glossary/#rnn)  一起使用，用于最终产生一个决策。函数形式通常是$$y=f(Wx+b)$$。W,X,b分别是权值，输入和偏移向量。f通常为非线性函数
 
 #### Attention Mechanism
 
@@ -102,7 +103,7 @@ Batch Normalization是对神经网络层输入数据进行小批量分组使用�
 
 #### Categorical Cross-Entropy Loss
 
-分类交叉熵损失也被称作负对数似然，它是处理分类问题或者评估概率分布相似性的方法，特别是用于评估真值标签。其公式为\[latex\]L = -sum(y * log(y\_prediction))\[/latex\]，其中y是真标签的概率分布（独热向量），\[latex\]y\_prediction\[/latex\]是已预测标签的概率分布（一般使用softmax函数）
+分类交叉熵损失也被称作负对数似然，它是处理分类问题或者评估概率分布相似性的方法，特别是用于评估真值标签。其公式为$$L = -sum(y * log(y_prediction))$$，其中y是真标签的概率分布（独热向量），$$y_prediction$$是已预测标签的概率分布（一般使用softmax函数）
 
 #### Channel
 
@@ -159,7 +160,7 @@ Google发明的一项技术，对深度卷积神经网络学习到的数据进�
 
 #### Gradient Clipping
 
-梯度修剪主要用于避免深度神经网络（特别是循环神经网络）的梯度爆炸问题。进行梯度修剪的方式有多种，一种常用的方式是对梯度进行L2正则化（new\_gradients = gradients * threshold / l2\_norm(gradients)），参考：
+梯度修剪主要用于避免深度神经网络（特别是循环神经网络）的梯度爆炸问题。进行梯度修剪的方式有多种，一种常用的方式是对梯度进行L2正则化（new_gradients = gradients * threshold / l2_norm(gradients)），参考：
 
 *   [On the difficulty of training recurrent neural networks](http://arxiv.org/abs/1211.5063)
 
@@ -186,7 +187,7 @@ GRU( Gated Recurrent Unit ,门循环单元)是LSTM单元的简化形式，有更
 
 #### Highway Layer
 
-Highway Layer ([论文参考](http://arxiv.org/abs/1505.00387))是使用门策略来控制神经网络层信息流的机制。叠加使用多个Highway层可以训练非常深层次的神经网络。Highway通过门函数选择输入的那个部分通过以及那个部分需要通过变化函数处理。Highway层的基本公式为\[latex\]T * h(x) + (1 - T) * x\[/latex\]，其中T是学习门函数，值位于0和1之间，h(x)是任意输入变化函数，x为输入数据。
+Highway Layer ([论文参考](http://arxiv.org/abs/1505.00387))是使用门策略来控制神经网络层信息流的机制。叠加使用多个Highway层可以训练非常深层次的神经网络。Highway通过门函数选择输入的那个部分通过以及那个部分需要通过变化函数处理。Highway层的基本公式为$$T * h(x) + (1 - T) * x$$，其中T是学习门函数，值位于0和1之间，h(x)是任意输入变化函数，x为输入数据。
 
 ### I
 

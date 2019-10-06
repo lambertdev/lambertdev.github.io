@@ -43,7 +43,7 @@ function qiniu_cloudtuchuang_script(){
 add_action('do_meta_boxes', 'qiniu_cloudtuchuang_post_box');
 function qiniu_cloudtuchuang_post_box(){
     $options = get_option('qiniu_options');
-    if($options\['accesskey'\] && $options\['secretkey'\]) add_meta_box('qiniu_cloudtuchuang_div', __('七牛云图床'), 'qiniu_cloudtuchuang_post_html', 'post', 'side');
+    if($options['accesskey'] && $options['secretkey']) add_meta_box('qiniu_cloudtuchuang_div', __('七牛云图床'), 'qiniu_cloudtuchuang_post_html', 'post', 'side');
 }
 
 add_action('do_meta_boxes', 'qiniu_cloudtuchuang_style');
@@ -54,12 +54,12 @@ function qiniu_cloudtuchuang_style(){
 
 function qiniu_cloudtuchuang_post_html(){
 	$options = get_option('qiniu_options');
-    $host = $options\['host'\];
-    $bucket = $options\['bucket'\];
-    $prefix = $options\['prefix'\];
-    $accesskey = $options\['accesskey'\];
-    $secretkey = $options\['secretkey'\];
-    $imgurl = $options\['imgurl'\];
+    $host = $options['host'];
+    $bucket = $options['bucket'];
+    $prefix = $options['prefix'];
+    $accesskey = $options['accesskey'];
+    $secretkey = $options['secretkey'];
+    $imgurl = $options['imgurl'];
     echo "<script>";
     if (!empty($prefix)) {
         echo 'var savekey = true; var prefix = \\''.$prefix.'\\';';

@@ -52,8 +52,8 @@ Linux将内存从大到小依次划分为Node（节点）->Zone（内存域）->
 Node对应的结构为pglist_data_t，定义如下（为方便理解，省略部分结构体成员）：
 ```C
 typedef struct pglist_data {
-    struct zone node_zones_MAX_NR_ZONES\];
-    struct zonelist node_zonelists_MAX_ZONELISTS\];
+    struct zone node_zones_MAX_NR_ZONES];
+    struct zonelist node_zonelists_MAX_ZONELISTS];
     int nr_zones;
 #ifdef CONFIG_FLAT_NODE_MEM_MAP /* means !SPARSEMEM */
     struct page *node_mem_map;
@@ -124,7 +124,7 @@ typedef struct pglist_data {
     ZONE_PADDING(_pad2_)
     /* Per-node vmstats */
     struct per_cpu_nodestat __percpu *per_cpu_nodestats;
-    atomic_long_t       vm_stat_NR_VM_NODE_STAT_ITEMS\];
+    atomic_long_t       vm_stat_NR_VM_NODE_STAT_ITEMS];
 } pg_data_t;
 ```
 *   **node_zones**: 内存节点上的内存域，分别为 ZONE_HIGHMEM, ZONE_NORMAL, ZONE_DMA。新版Linux还增加了ZONE_MOVABLE和ZONE_DEVICE。
@@ -145,9 +145,9 @@ typedef struct pglist_data {
 内存区域对应的结构体为struct zone，定义如下：
 ```C
 struct zone {
-    unsigned long watermark_NR_WMARK\];
+    unsigned long watermark_NR_WMARK];
     unsigned long nr_reserved_highatomic;
-    long lowmem_reserve_MAX_NR_ZONES\];
+    long lowmem_reserve_MAX_NR_ZONES];
 #ifdef CONFIG_NUMA
     int node;
 #endif
@@ -172,13 +172,13 @@ struct zone {
 #endif
     int initialized;
     ZONE_PADDING(_pad1_)
-    struct free_area    free_area_MAX_ORDER\];
+    struct free_area    free_area_MAX_ORDER];
     unsigned long       flags;
     spinlock_t      lock;
     ZONE_PADDING(_pad2_)
     unsigned long percpu_drift_mark;
     ........
-    atomic_long_t       vm_stat_NR_VM_ZONE_STAT_ITEMS\];
+    atomic_long_t       vm_stat_NR_VM_ZONE_STAT_ITEMS];
 } ____cacheline_internodealigned_in_smp;
 ```
 *   **watermark**: 内存域的水位
@@ -216,7 +216,7 @@ truct page {
     /* Second double word */
     union {
         pgoff_t index;      /* Our offset within mapping. */
-        void *freelist;     /* sl_aou\]b first free object */
+        void *freelist;     /* sl_aou]b first free object */
         /* page_deferred_list().prev    -- second tail page */
     };
 
@@ -288,7 +288,7 @@ truct page {
         spinlock_t ptl;
 #endif
 #endif
-        struct kmem_cache *slab_cache;  /* SL_AU\]B: Pointer to slab */
+        struct kmem_cache *slab_cache;  /* SL_AU]B: Pointer to slab */
     };
 
 #ifdef CONFIG_MEMCG
