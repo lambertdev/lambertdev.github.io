@@ -12,7 +12,7 @@ date: 2018-11-04 09:35:43
 前言
 --
 
-    最近希望在了解一些机器学习的相关知识，并在博客里做一些记录。先从著名的Tom Mitchell大神的《机器学习》开始。奈何发现数学公式过多，用[WORDPRESS使用MARKDOWN编辑器](http://l2h.site/2018/10/28/markdown-editor/ "http://l2h.site/2018/10/28/markdown-editor/")里介绍的方法做笔记，想添加公式发现力不从心。经过搜索，摸索到后文的方法。
+    最近希望在了解一些机器学习的相关知识，并在博客里做一些记录。先从著名的Tom Mitchell大神的《机器学习》开始。奈何发现数学公式过多，用[WORDPRESS使用MARKDOWN编辑器](http://www.l2h.site/2018/10/28/markdown-editor/ "http://www.l2h.site/2018/10/28/markdown-editor/")里介绍的方法做笔记，想添加公式发现力不从心。经过搜索，摸索到后文的方法。
 
 本地编辑：VS Code + “Markdown+Math”插件
 --------------------------------
@@ -23,7 +23,7 @@ date: 2018-11-04 09:35:43
 
 1.  安装并重启VS Code
 
-![Markdown+Math](http://pic.l2h.site/l2hsiteMarkdown-Math-1.png "Markdown+Math")
+![Markdown+Math](http://pic.www.l2h.site/l2hsiteMarkdown-Math-1.png "Markdown+Math")
 
 ### 工具使用
 
@@ -35,12 +35,12 @@ date: 2018-11-04 09:35:43
 
 \[latex\]{\\tilde V} = w\_0+x\_1w\_1+x\_2w\_2+...+x\_nw_n\[/latex\]
 
-    更多LaTeX数学公式可以参考[LaTex简介文档](http://pic.l2h.site/l2hsitelatex-short-cn.pdf "http://pic.l2h.site/l2hsitelatex-short-cn.pdf")的"数学公式"一节。
+    更多LaTeX数学公式可以参考[LaTex简介文档](http://pic.www.l2h.site/l2hsitelatex-short-cn.pdf "http://pic.www.l2h.site/l2hsitelatex-short-cn.pdf")的"数学公式"一节。
 
 发布到Wordpress
 ------------
 
-    由于没有对应的CSS档，如果将上文里的公式直接拷贝到Wordpress编辑器，漂亮的数学公式立马失效。 ![WP-KaTex](http://pic.l2h.site/l2hsiteMarkdown-Math-2.png "WP-KaTex")
+    由于没有对应的CSS档，如果将上文里的公式直接拷贝到Wordpress编辑器，漂亮的数学公式立马失效。 ![WP-KaTex](http://pic.www.l2h.site/l2hsiteMarkdown-Math-2.png "WP-KaTex")
 
           这时候需要Wordpress插件出场。
 
@@ -50,7 +50,7 @@ date: 2018-11-04 09:35:43
 
 *   建议在插件设置页面勾选上“Use jsDelivr to load files”，使用CDN加速公式显示公式的脚本加载
 
-![WP-KaTex](http://pic.l2h.site/l2hsiteMarkdown-Math-3.png "WP-KaTex")
+![WP-KaTex](http://pic.www.l2h.site/l2hsiteMarkdown-Math-3.png "WP-KaTex")
 
 *   数学公式的左右增加“(latex)”和“(/latex)”，()换成\[\]例如：
 
@@ -66,7 +66,7 @@ date: 2018-11-04 09:35:43
 
 *   参考下图
 
-![正则替换](http://pic.l2h.site/l2hsiteMarkdown-Math-4.png)
+![正则替换](http://pic.www.l2h.site/l2hsiteMarkdown-Math-4.png)
 
     查找样式表示查找由两边各两个美元符号包含的任意样式，圆括号表示要标记的字段，接下来会引用。因为美元符号在正则表达式有特殊含义，查找其必须使用斜杠做转义。 替换样式中最关键的就是红色字体\\1了，表示刚刚查找样式的第一个圆括号标记。 更多正则表达式语法可以参考[这里](http://www.runoob.com/regexp/regexp-tutorial.html "http://www.runoob.com/regexp/regexp-tutorial.html")。
 

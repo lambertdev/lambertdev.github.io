@@ -16,16 +16,16 @@ tags:
 
 *   客厅(Living Room)
 
-![](https://l2h.site/wp-content/uploads/2017/01/11-300x200.png) ![](https://l2h.site/wp-content/uploads/2017/01/IMG_2096-300x200.jpg)
+![](http://pic.l2h.site/11-300x200.png) ![](https://www.l2h.site/wp-content/uploads/2017/01/IMG_2096-300x200.jpg)
 
 *   卧室(Bedroom)
 
-![](https://l2h.site/wp-content/uploads/2017/01/6-300x200.png)
+![](http://pic.l2h.site/6-300x200.png)
 
 *   浴室(Bath room)
 
-![](https://l2h.site/wp-content/uploads/2017/01/IMG_2090-200x300.jpg)
+![](http://pic.l2h.site/IMG_2090-200x300.jpg)
 
 *   厨房(Kitchen)
 
-![](https://l2h.site/wp-content/uploads/2017/01/7-300x200.png)
+![](http://pic.l2h.site/7-300x200.png)

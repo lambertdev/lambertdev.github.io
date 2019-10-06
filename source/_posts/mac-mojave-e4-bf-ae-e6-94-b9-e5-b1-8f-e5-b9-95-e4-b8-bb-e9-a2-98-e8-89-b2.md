@@ -14,4 +14,4 @@ tags:
 
 选择你喜欢的主题色即可
 
-![](https://l2h.site/wp-content/uploads/2019/08/屏幕快照-2019-08-13-下午4.57.03.png)
+![](http://pic.l2h.site/屏幕快照-2019-08-13-下午4.57.03.png)

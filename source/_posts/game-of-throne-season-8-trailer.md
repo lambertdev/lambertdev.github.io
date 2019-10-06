@@ -9,7 +9,7 @@ categories:
 date: 2019-03-09 07:20:29
 ---
 
-![](https://l2h.site/wp-content/uploads/2019/03/Game-of-Thrones-Final-Season-1024x613.png)
+![](http://pic.l2h.site/Game-of-Thrones-Final-Season-1024x613.png)
 
 马丁大叔的原著无限期烂尾，好在HBO没有让我们失望。苦等了两年，最终季终于快要上映了。从预告片来看，上映时间是**4.14号**（美国当地时间），这样看来我们能看到大概实在**4.16号**左右。这一季看点：
 

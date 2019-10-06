@@ -14,9 +14,9 @@ date: 2018-12-02 13:11:42
 前言
 --
 
-PyTorchs是基于Python的机器学习操作库，他可以利用GPU的资源来进行复杂的[深度学习](https://l2h.site/category/machine-learning/)运算。
+PyTorchs是基于Python的机器学习操作库，他可以利用GPU的资源来进行复杂的[深度学习](https://www.l2h.site/category/machine-learning/)运算。
 
-![pytorch](https://l2h.site/wp-content/uploads/2018/12/PyTorch.jpg)
+![pytorch](http://pic.l2h.site/PyTorch.jpg)
 
 如果需要充分利用Pytorch的CUDA支持，需要电脑上有NVIDIA GPU。不过本人电脑是Macbook Air，没有这样的条件。且入门学习实验，希望使用CPU支持即可。
 

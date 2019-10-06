@@ -15,7 +15,7 @@ date: 2019-05-14 14:12:01
 前言
 --
 
-[Yaffs文件系统(1)-概述](https://l2h.site/2019/04/30/yaffs-1/)对文件系统的基本数据结构和初始化流程进行了介绍，本节着重介绍Yaffs如何对Block和Chunk进行管理的。
+[Yaffs文件系统(1)-概述](https://www.l2h.site/2019/04/30/yaffs-1/)对文件系统的基本数据结构和初始化流程进行了介绍，本节着重介绍Yaffs如何对Block和Chunk进行管理的。
 
 Block分类
 -------
@@ -62,7 +62,7 @@ Block为坏块
 
 以上Block状态转化图如下：
 
-![](https://l2h.site/wp-content/uploads/2019/05/yaffs-2-1.png)
+![](http://pic.l2h.site/yaffs-2-1.png)
 
 Block和Chunk分配
 -------------

@@ -89,7 +89,7 @@ RNN需要经过训练才能学习“”到更精准的拟合，从而得到我�
 
 RNN网络的权重更新
 
-我们知道，神经网络通过学习和更新网络中的权重来接近最优解（见[本站文章](https://l2h.site/2019/02/02/machine-learning-neural-network-1/)），RNN也不例外。通过一步步后传播算法来减小损失函数（Cost Function）最终得到最小值，RNN的后传播会需要前面RNN单元的数据，本文不作推导。
+我们知道，神经网络通过学习和更新网络中的权重来接近最优解（见[本站文章](https://www.l2h.site/2019/02/02/machine-learning-neural-network-1/)），RNN也不例外。通过一步步后传播算法来减小损失函数（Cost Function）最终得到最小值，RNN的后传播会需要前面RNN单元的数据，本文不作推导。
 
 ### 总结
 

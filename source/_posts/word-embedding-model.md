@@ -32,7 +32,7 @@ date: 2019-07-19 10:08:13
 词嵌入的不同方法
 --------
 
-我们当然可以使用本博客<[机器学习为什么使用独热(ONE-HOT ENCODING)编码](https://l2h.site/2019/07/09/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%bf%e7%94%a8%e7%8b%ac%e7%83%adone-hot-encoding%e7%bc%96%e7%a0%81/)>介绍的独热编码进行词嵌入，这是一种较为简单的处理方式。除此之外，还有许多不同的词嵌入方法。这些词嵌入方法可以大概分为如下两类：
+我们当然可以使用本博客<[机器学习为什么使用独热(ONE-HOT ENCODING)编码](https://www.l2h.site/2019/07/09/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%bf%e7%94%a8%e7%8b%ac%e7%83%adone-hot-encoding%e7%bc%96%e7%a0%81/)>介绍的独热编码进行词嵌入，这是一种较为简单的处理方式。除此之外，还有许多不同的词嵌入方法。这些词嵌入方法可以大概分为如下两类：
 
 *   基于频率的嵌入（简称“词频嵌入”）
 *   基于预测的嵌入
@@ -107,7 +107,7 @@ person
 
 下图帮忙理解矩阵M的形式：
 
-![](https://l2h.site/wp-content/uploads/2019/07/count-vector.png)
+![](http://pic.l2h.site/count-vector.png)
 
 #### TF-IDF Vector
 
@@ -117,7 +117,7 @@ TF-IDF是另外一种基于词频的方法，但是计算词频时不仅仅考�
 
 理想状态下，我们更希望降低这些在所有文档中都会出现的词，相反提升其他文档相关性更高单词的频率。TF-IDF的工作原理，便是给这些常现词一些惩罚，赋予更低的权重。我们以如下两个文档范例看TF-IDF的工作方式：
 
-![](https://l2h.site/wp-content/uploads/2019/07/Tf-IDF.png)
+![](http://pic.l2h.site/Tf-IDF.png)
 
 与TF-IDF相关的定义有如下：
 
@@ -309,19 +309,19 @@ Co-Occurence矩阵的缺点：
 
 CBOW模型工作的原理是根据输入的上下文来预测输出单词的概率。上下文可能为一个单词，或者是一组单词。为了描述方便，我们以一个单词作为输入来预测一个单词输出。
 
-假设我们的语料为 C = “Hey, this is sample corpus using only one context word.”同时定义上下文窗口为1。输入语料可以以如下[独热编码](https://l2h.site/2019/07/09/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%bf%e7%94%a8%e7%8b%ac%e7%83%adone-hot-encoding%e7%bc%96%e7%a0%81/)方式呈现：
+假设我们的语料为 C = “Hey, this is sample corpus using only one context word.”同时定义上下文窗口为1。输入语料可以以如下[独热编码](https://www.l2h.site/2019/07/09/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%bf%e7%94%a8%e7%8b%ac%e7%83%adone-hot-encoding%e7%bc%96%e7%a0%81/)方式呈现：
 
-![](https://l2h.site/wp-content/uploads/2019/07/cbow1-1024x289.png)
+![](http://pic.l2h.site/cbow1-1024x289.png)
 
 上述矩阵被送到一个三层神经网络来训练：包含输入层，隐层和输出层。其中输出层是一个softmax层，用来呈现输出层为某个单词的可能性。
 
 下图呈现了CBOW的网络模型：
 
-![](https://l2h.site/wp-content/uploads/2019/07/Screenshot-from-2017-06-04-22-40-29.png)
+![](http://pic.l2h.site/Screenshot-from-2017-06-04-22-40-29.png)
 
 上面架构的矩阵表示如下图：
 
-![](https://l2h.site/wp-content/uploads/2019/07/Screenshot-from-2017-06-04-22-19-202-1024x154.png)
+![](http://pic.l2h.site/Screenshot-from-2017-06-04-22-19-202-1024x154.png)
 
 计算方法如下：
 
@@ -335,11 +335,11 @@ CBOW模型工作的原理是根据输入的上下文来预测输出单词的概�
 
 以上为一个输入的例子，假如是多个输入呢？
 
-![](https://l2h.site/wp-content/uploads/2019/07/1-1.png)
+![](http://pic.l2h.site/1-1.png)
 
 上述为多个输入的神经网络架构，而下图为其矩阵表示：
 
-![](https://l2h.site/wp-content/uploads/2019/07/2-3-1024x150.png)
+![](http://pic.l2h.site/2-3-1024x150.png)
 
   
 输入三个上下文单词预测一个目标单词。输入可以用三个独热向量表示。上述输入层有3个\[1\*V\]向量作为输入，以及一个\[1\*V\]向量作为输出。
@@ -355,11 +355,11 @@ CBOW模型工作的原理是根据输入的上下文来预测输出单词的概�
 
 Skip-gram模型与CBOW架构类似。不过其核心思想与CBOW正好相反，是给定单词预测期上下文。架构如图：
 
-![](https://l2h.site/wp-content/uploads/2019/07/3-1.png)
+![](http://pic.l2h.site/3-1.png)
 
 其矩阵形式架构如图：
 
-![](https://l2h.site/wp-content/uploads/2019/07/4-1024x223.png)
+![](http://pic.l2h.site/4-1024x223.png)
 
 输入层大小为\[1\*V\]，输入-隐层权重矩阵大小\[V\*N\]，输出-权重矩阵\[N\*V\]，输出层大小\[1\*V\]
 

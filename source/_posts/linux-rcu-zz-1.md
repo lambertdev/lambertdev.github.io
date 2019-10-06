@@ -20,7 +20,7 @@ date: 2019-01-19 09:30:45
 >   
 > 本转载系列文章：  
 > LINUX内核同步之RCU  
-> [Linux内核同步之RCU（2）](https://l2h.site/2019/01/19/linux-rcu-zz-2/)
+> [Linux内核同步之RCU（2）](https://www.l2h.site/2019/01/19/linux-rcu-zz-2/)
 
 系列一：从硬件说起
 ---------

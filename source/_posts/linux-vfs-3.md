@@ -17,7 +17,7 @@ date: 2018-10-08 09:15:35
 
 前2章分别介绍了VFS的基本数据结构和初始化流程。本章介绍VFS文件系统的使用。文件系统使用大多是从应用层系统调用开始的，下表是对文件系统系统调用的一个整理。
 
-![Linux虚拟文件系统（3）-- VFS系统调用](http://pic.l2h.site/l2hsitevfs-syscalls.png "Linux虚拟文件系统（3）-- VFS系统调用")
+![Linux虚拟文件系统（3）-- VFS系统调用](http://pic.www.l2h.site/l2hsitevfs-syscalls.png "Linux虚拟文件系统（3）-- VFS系统调用")
 ===================================================================================================
 
 MOUNT
@@ -147,7 +147,7 @@ int shmem_fill_super(struct super_block *sb, void *data, int silent)
   return 0;
 }
 ```
-shmem_fill_super可以直接分配shmem_inode cache，是因为初始化流程init_rootfs()中，已经执行了如下shmem的初始化（参考[Linux虚拟文件系统（2）– 初始化流程](http://l2h.site/linux-vfs-2/) ）。
+shmem_fill_super可以直接分配shmem_inode cache，是因为初始化流程init_rootfs()中，已经执行了如下shmem的初始化（参考[Linux虚拟文件系统（2）– 初始化流程](http://www.l2h.site/linux-vfs-2/) ）。
 ```
 shmem_init()
     |

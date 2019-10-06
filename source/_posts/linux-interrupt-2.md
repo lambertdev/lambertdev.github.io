@@ -11,7 +11,7 @@ categories:
 date: 2018-07-21 20:44:47
 ---
 
-在[Linux中断学习笔记(1)](http://l2h.site/linux-interrupt-1/)提到，外设通过中断控制器连接到CPU的中断线。嵌入式系统也不例外。
+在[Linux中断学习笔记(1)](http://www.l2h.site/linux-interrupt-1/)提到，外设通过中断控制器连接到CPU的中断线。嵌入式系统也不例外。
 
 ARM嵌入式系统GIC架构
 -------------
@@ -20,13 +20,13 @@ ARM嵌入式系统GIC架构
 
 图1. GIC 简单结构图
 
-![Linux中断学习笔记(2) -- 嵌入式设备中断](http://pic.l2h.site/l2hsiteImage%203.png "Linux中断学习笔记(2) -- 嵌入式设备中断") 
+![Linux中断学习笔记(2) -- 嵌入式设备中断](http://pic.www.l2h.site/l2hsiteImage%203.png "Linux中断学习笔记(2) -- 嵌入式设备中断") 
 
 中断控制器允许级联，一个有中断级联的终端流程如下图所示。次级GIC将中断信号通知到主GIC后，主GIC再通知CPU，CPU读各级中断控制器的Ack Register得到中断号，并开始执行相应的中断例程。执行完后，**直接**写次级中断控制器的寄存器标记中断服务结束。
 
 图2. GIC中断服务级联
 
-![Linux中断学习笔记(2) -- 嵌入式设备中断](http://pic.l2h.site/l2hsiteImage%204.png "Linux中断学习笔记(2) -- 嵌入式设备中断") 
+![Linux中断学习笔记(2) -- 嵌入式设备中断](http://pic.www.l2h.site/l2hsiteImage%204.png "Linux中断学习笔记(2) -- 嵌入式设备中断") 
 参见MT6577 GIC中断控制器的DTS声明（以arch/arm/boot/dts/mt6592.dtsi为例）
 
 ```C

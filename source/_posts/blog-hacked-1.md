@@ -13,7 +13,7 @@ tags:
 
 上班无暇照料网站，今天XH发微信说网站登录不上了。打开一看，居然被重定位到了一些不可描述页面：
 
-![](https://l2h.site/wp-content/uploads/2019/03/webwxgetmsgimg-512x1024.png)
+![](http://pic.l2h.site/webwxgetmsgimg-512x1024.png)
 
 问题查找经过
 ------
@@ -31,7 +31,7 @@ tags:
 
 简言之，网站的如下两个设定直接被改写成了黑客想要重定向的页面。
 
-![](https://l2h.site/wp-content/uploads/2019/03/Image-2.png)
+![](http://pic.l2h.site/Image-2.png)
 
 个人后台密码一直设置的非常严，且数据库也保护较好，为何会有设定被改的现象？Google说，最新的Easy WP SMTP插件有权限检查不严漏洞，导致普通用户可以构造攻击数据来改写WP_OPTION。
 ```PHP
@@ -74,7 +74,7 @@ tags:
 ----
 
 1.  使用数据库命令先删除掉Easy WP SMTP插件（避免再次被人利用）
-2.  使用数据库命令更改siteurl和home回自己的网址https://l2h.site,此时就可以正常登录网站了
+2.  使用数据库命令更改siteurl和home回自己的网址https://www.l2h.site,此时就可以正常登录网站了
     *   注意你的网站如果启用了cache，需要先到后台删除例如autoptimize和wp super cache保存的cache
     *   如果你的数据库开启了redis缓存，也要清空redis缓存
 3.  到后台设置-->常规里，禁用掉新用户注册，以及更改新注册用户默认身份为普通身份

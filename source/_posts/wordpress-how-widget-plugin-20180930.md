@@ -9,7 +9,7 @@ categories:
 date: 2018-09-30 23:53:29
 ---
 
-写这篇文章的目的，是因为在使用**WP-MulticolLinks**插件时，发现只能增加一个小工具(Widget)到工具栏。如下图，这样没有办法按照类别增加多列友链小工具。 ![Wordpress-写插件增加小工具(Widget)的方法](http://pic.l2h.site/l2hsite1-1.png "Wordpress-写插件增加小工具(Widget)的方法") 于是对该插件做了修改，可以支持在后台拖动多个多列友情链接小工具。 ![Wordpress-写插件增加小工具(Widget)的方法](http://pic.l2h.site/l2hsite2.png "Wordpress-写插件增加小工具(Widget)的方法") 以下是在插件中增加代码实现多列的方法：
+写这篇文章的目的，是因为在使用**WP-MulticolLinks**插件时，发现只能增加一个小工具(Widget)到工具栏。如下图，这样没有办法按照类别增加多列友链小工具。 ![Wordpress-写插件增加小工具(Widget)的方法](http://pic.www.l2h.site/l2hsite1-1.png "Wordpress-写插件增加小工具(Widget)的方法") 于是对该插件做了修改，可以支持在后台拖动多个多列友情链接小工具。 ![Wordpress-写插件增加小工具(Widget)的方法](http://pic.www.l2h.site/l2hsite2.png "Wordpress-写插件增加小工具(Widget)的方法") 以下是在插件中增加代码实现多列的方法：
 
 *   注册我们的小工具，在widget界面初始化时可以在后台界面中增加我们的小工具
 ```PHP
@@ -117,4 +117,4 @@ function widget( $args, $instance ) {
        //以下省略剩余表项代码
    }
 ```
-最后，放上插件链接，[点击下载](http://pic.l2h.site/l2hsitel2h-multicollinks.7z) 后解压到wordpress的plugin目录，启用插件即可使用 P.S. 原插件由mg12(http://www.fighton.cn/)编写
+最后，放上插件链接，[点击下载](http://pic.www.l2h.site/l2hsitel2h-multicollinks.7z) 后解压到wordpress的plugin目录，启用插件即可使用 P.S. 原插件由mg12(http://www.fighton.cn/)编写

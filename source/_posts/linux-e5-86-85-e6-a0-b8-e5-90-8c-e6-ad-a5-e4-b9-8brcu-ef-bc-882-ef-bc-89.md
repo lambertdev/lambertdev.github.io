@@ -17,7 +17,7 @@ date: 2019-01-19 09:34:01
 > 《[谢宝友:深入理解RCU](https://mp.weixin.qq.com/s?__biz=MzAwMDUwNDgxOA==&mid=2652662265&idx=1&sn=4e0ec525316720553666482ec4bd9756&chksm=810f2f64b678a672f9573d0374786f5cb1acbb08fdfe3881fac6275145471ad5fc39aa4bb03e&scene=21#wechat_redirect) 》，请尊重原文作者劳动成果
 > 
 > 本转载系列文章：[  
-> LINUX内核同步之RCU](https://l2h.site/2019/01/19/linux-rcu-zz-1/)
+> LINUX内核同步之RCU](https://www.l2h.site/2019/01/19/linux-rcu-zz-1/)
 > 
 > Linux内核同步之RCU（2）
 
@@ -97,7 +97,7 @@ RCU免于死锁的特性带来的另一个有趣后果是RCU不会受优先级�
 
 将读写锁转换成RCU非常简单，如下：
 
-![](https://l2h.site/wp-content/uploads/2019/01/rcu-zz-pic-0.png)
+![](http://pic.l2h.site/rcu-zz-pic-0.png)
 
 #### RCU是一种受限制的引用计数机制
 
@@ -230,7 +230,7 @@ RCU的一个强大之处，就是允许你在等待上千个不同事物结束�
 
 ### RCU API
 
-![](https://l2h.site/wp-content/uploads/2019/01/RCU-API.png)
+![](http://pic.l2h.site/RCU-API.png)
 
 RCU API  
 
@@ -240,7 +240,7 @@ RCU API
 
 #### 订阅和版本维护API
 
-![](https://l2h.site/wp-content/uploads/2019/01/rcu-api-2.png)
+![](http://pic.l2h.site/rcu-api-2.png)
 
 表中的第一类API作用于Linux的struct list_head循环双链表。list_for_each_ entry_rcu()原语以类型安全的方式遍历受RCU保护的链表。在非Alpha的平台上，该原语相较于list_for_each_entry()原语不产生或者只带来极低的性能惩罚。list_add_rcu()、list_add_tail_rcu()和list_replace_rcu()原语都是对非RCU版本的模拟，但是在弱顺序的机器上回带来额外的内存屏障开销。list_del_rcu()原语同样是非RCU版本的模拟，但是奇怪的是它要比非RCU版本快一点，这是由于list_del_rcu()只毒化prev指针，而list_del()会同时毒化prev和next指针。最后，list_splice_init_rcu()原语和它的非RCU版本类似，但是会带来一个完整的优雅周期的延迟。
 

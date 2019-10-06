@@ -14,7 +14,7 @@ date: 2018-10-14 11:41:44
 前言
 ==
 
-几乎所有Linux的文件操作，例，read、write、mkdir等都会涉及到路径名查找操作。而文件查找对Linux内核来说，主要指的是找到文件路径对应的Dentry节点。其主要过程就是对路径字符串进行一级级解析（以路径名中的.. , . , /等字符作为解析依据），找到路径的最后一级目录。若传入的路径字符串是以/开始的，那么查找会从系统根目录开始。否则，从当前工作目录开始查找。 ![Linux虚拟文件系统（4）-- 路径名查找](http://pic.l2h.site/l2hsitevfs-4-find.jpeg "Linux虚拟文件系统（4）-- 路径名查找") 然而，查找过程并非仅仅是对路径名一级级解析和匹配，其中还要考虑到如下细节：
+几乎所有Linux的文件操作，例，read、write、mkdir等都会涉及到路径名查找操作。而文件查找对Linux内核来说，主要指的是找到文件路径对应的Dentry节点。其主要过程就是对路径字符串进行一级级解析（以路径名中的.. , . , /等字符作为解析依据），找到路径的最后一级目录。若传入的路径字符串是以/开始的，那么查找会从系统根目录开始。否则，从当前工作目录开始查找。 ![Linux虚拟文件系统（4）-- 路径名查找](http://pic.www.l2h.site/l2hsitevfs-4-find.jpeg "Linux虚拟文件系统（4）-- 路径名查找") 然而，查找过程并非仅仅是对路径名一级级解析和匹配，其中还要考虑到如下细节：
 
 *   用户可能对要查找的路径没有访问权限
 *   路径名查找是系统中频繁且常见的操作，如何保证查找的效率
@@ -27,7 +27,7 @@ date: 2018-10-14 11:41:44
 
 > The most obvious aspect of pathname lookup, which very little exploration is needed to discover, is that it is complex.  There are many rules, special cases, and implementation alternatives that all combine to confuse the unwary reader.
 
-[上篇文章](http://l2h.site/linux-vfs-3/)中介绍了Mount系统调用，其中do_mount函数会进行文件系统挂载点的查找，代码如下：
+[上篇文章](http://www.l2h.site/linux-vfs-3/)中介绍了Mount系统调用，其中do_mount函数会进行文件系统挂载点的查找，代码如下：
 
 long do_mount(const char *dev_name, const char __user *dir_name,
 const char *type_page, unsigned long flags, void *data_page)

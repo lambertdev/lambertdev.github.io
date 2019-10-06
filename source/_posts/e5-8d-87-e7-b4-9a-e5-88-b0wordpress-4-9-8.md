@@ -19,7 +19,7 @@ Wordpress後台最近一直在推送Gutenberg（古騰堡）編輯器。本想�
 
 1.  **界面更大氣好看**
     
-    ![](https://l2h.site/wp-content/uploads/2018/11/Gutenberg.png)
+    ![](http://pic.l2h.site/Gutenberg.png)
     
     如下圖：
     
@@ -29,7 +29,7 @@ Wordpress後台最近一直在推送Gutenberg（古騰堡）編輯器。本想�
     
 4.  **支持嵌入Youtube、Tumblr等社交網站資源插入**
     
-    ![](https://l2h.site/wp-content/uploads/2018/11/Guntenberg-social-links.png)
+    ![](http://pic.l2h.site/Guntenberg-social-links.png)
     
 5.  **支持嵌入按鈕**
 

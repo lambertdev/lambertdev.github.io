@@ -82,7 +82,7 @@ date: 2018-11-11 08:55:40
 
     用书中的一张图表示训练过程：
 
-![机器学习](http://pic.l2h.site/l2hsiteMachine-Learning-Outline.png)
+![机器学习](http://pic.www.l2h.site/l2hsiteMachine-Learning-Outline.png)
 
 概念学习 （Concept Learning）
 -----------------------
@@ -95,7 +95,7 @@ date: 2018-11-11 08:55:40
 
 ### 概念学习任务
 
-[caption id="" align="aligncenter" width="629"]![概念学习实例](http://pic.l2h.site/l2hsiteMachine-Learning-Outline-2.png) 机器学习[/caption]
+[caption id="" align="aligncenter" width="629"]![概念学习实例](http://pic.www.l2h.site/l2hsiteMachine-Learning-Outline-2.png) 机器学习[/caption]
 
     书中根据天气情况判断Aldo是否会做户外运动为实例。输入参数为一元组：<天空状况，空气温度，空气湿度，风力，水温，天气预报>。输出为布尔值：表示Aldo是否做户外运动。具体训练目标定义如下：
 

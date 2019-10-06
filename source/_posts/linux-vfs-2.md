@@ -88,7 +88,7 @@ void __init inode_init_early(void)
 ```C
 上述代码可以看出，vfs_caches_init_early创建了inode和dentry cache的hash链表，但是这里并没有分配dentry和inode的cache（vfs_caches_init中才会创建）。Hash 链表的结构如下图所示。
 
-![Linux虚拟文件系统（2）-- 初始化流程](http://pic.l2h.site/l2hsitehlist.png "Linux虚拟文件系统（2）-- 初始化流程")vfs_caches_init
+![Linux虚拟文件系统（2）-- 初始化流程](http://pic.www.l2h.site/l2hsitehlist.png "Linux虚拟文件系统（2）-- 初始化流程")vfs_caches_init
 =========================================================================================================
 
 相较于vfs_caches_init_early, vfs_caches_init则会做更多的事情。如下代码

@@ -14,9 +14,9 @@ date: 2019-01-01 00:12:17
 前言
 --
 
-之前[LINUX中断学习笔记(1)](https://l2h.site/2018/07/15/linux-interrupt-1/)和[LINUX中断学习笔记(2)](https://l2h.site/2018/07/15/linux-interrupt-2)介绍了Linux中断的一些基础知识，但是不够深入。最近公司所在团队逐渐在往内核进一步深入，仅有前边文章的浅显知识已不足以覆盖工作的需求，也无法和部门同事做深入的技术讨论。本文是在工作之余，进行代码的研究和资料的查找，希望可以将中断子系统尽量整理清楚。本文内容会不定期补充更新，也希望能对访问到本站的朋友有所帮助。
+之前[LINUX中断学习笔记(1)](https://www.l2h.site/2018/07/15/linux-interrupt-1/)和[LINUX中断学习笔记(2)](https://www.l2h.site/2018/07/15/linux-interrupt-2)介绍了Linux中断的一些基础知识，但是不够深入。最近公司所在团队逐渐在往内核进一步深入，仅有前边文章的浅显知识已不足以覆盖工作的需求，也无法和部门同事做深入的技术讨论。本文是在工作之余，进行代码的研究和资料的查找，希望可以将中断子系统尽量整理清楚。本文内容会不定期补充更新，也希望能对访问到本站的朋友有所帮助。
 
-![](https://l2h.site/wp-content/uploads/2018/12/Linux-Interrupt.png)
+![](http://pic.l2h.site/Linux-Interrupt.png)
 
 架构(Architecture)
 ----------------
@@ -120,7 +120,7 @@ Linux/
 
 IRQ Domain，顾名思义，即中断控制域。每个中断控制器都有自己的struct irq_domain结构体，以及自己下属的物理中断号，也不用担心物理中断号重复无法区分的问题。以“硬件连接”一节的图片为例，IRQ Controller 1及其下属的几根中断输入线作为一个中断控制域，而IRQ Controller 2作为另外一个中断控制域。
 
-![Linux中断控制域](http://pic.l2h.site/l2hsiteLinux-interrupt-3-irq-domain.png)
+![Linux中断控制域](http://pic.www.l2h.site/l2hsiteLinux-interrupt-3-irq-domain.png)
 
 **Figure 1. Linux中断控制域图例**
 
@@ -370,4 +370,4 @@ struct irq_chip {
 待续
 --
 
-[Linux中断(2) -- 流程](https://l2h.site/2019/01/01/linux-interrupt-4)
+[Linux中断(2) -- 流程](https://www.l2h.site/2019/01/01/linux-interrupt-4)

@@ -12,7 +12,7 @@ categories:
 date: 2019-05-15 22:16:46
 ---
 
-前文对Yaffs文件系统[框架](https://l2h.site/2019/04/30/yaffs-1/)及[Block](https://l2h.site/2019/05/14/yaffs-2/)管理，本文介绍Yaffs的检查点机制。什么是检查点机制？文件系统将目录结构存储在Nand Flash中一个特殊Block内，在Mount时快速加载，加速文件系统的加载。同时，机制也可以一定程度上避免因为突然掉电等因素造成的文件系统破坏。
+前文对Yaffs文件系统[框架](https://www.l2h.site/2019/04/30/yaffs-1/)及[Block](https://www.l2h.site/2019/05/14/yaffs-2/)管理，本文介绍Yaffs的检查点机制。什么是检查点机制？文件系统将目录结构存储在Nand Flash中一个特殊Block内，在Mount时快速加载，加速文件系统的加载。同时，机制也可以一定程度上避免因为突然掉电等因素造成的文件系统破坏。
 
 本章先介绍文件的Tnode Tree，接着介绍Yaffs的checkpoint格式。
 
@@ -27,7 +27,7 @@ struct yaffs_tnode {
 ```
 可以看出，tnode存储为简单的指针数组，内部存储为指向下一级tnodes的指针。其结构如下：
 
-![](https://l2h.site/wp-content/uploads/2019/05/tnode.png)
+![](http://pic.l2h.site/tnode.png)
 
 Tnode树结构
 
@@ -38,12 +38,12 @@ Checkpoint存储格式
 
 Checkpoint的存储格式如下图：
 
-![](https://l2h.site/wp-content/uploads/2019/05/checkpoint-2-1024x792.png)
+![](http://pic.l2h.site/checkpoint-2-1024x792.png)
 
 在Checkpoint内部存储的内容依次是：
 
 *   1字节有效性标记
-*   36字节的设备信息相关变量，储存第一章介绍的[yaffs_dev结构体](https://l2h.site/2019/04/30/yaffs-1/#i-4)必须的内容
+*   36字节的设备信息相关变量，储存第一章介绍的[yaffs_dev结构体](https://www.l2h.site/2019/04/30/yaffs-1/#i-4)必须的内容
 *   该分区所有Nand块的信息，包括块内的chunk是否被使用
 *   所有文件或目录的信息，与运行时RAM里存储的内容类似
 *   1字节尾部有效性标记

@@ -13,7 +13,7 @@ date: 2019-07-12 15:01:46
 
 Tensorflow API在线文档
 
-[https://l2h.site/docs/tf-api/﻿](https://l2h.site/docs/tf-api/)
+[https://www.l2h.site/docs/tf-api/﻿](https://www.l2h.site/docs/tf-api/)
 
 TensorFlow官方文档中文版-v1.2
 

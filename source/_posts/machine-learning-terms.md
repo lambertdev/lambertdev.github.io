@@ -289,7 +289,7 @@ Momentum是梯度下降算法的扩展，加速和优化了参数更新过程。
 
 #### Recurrent Neural Network (RNN)
 
-RNN代表循环神经网络，参考[本站文章](https://l2h.site/2019/07/13/%e5%be%aa%e7%8e%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9crnn%e7%ae%80%e5%8d%95%e7%90%86%e8%a7%a3/)，或者：
+RNN代表循环神经网络，参考[本站文章](https://www.l2h.site/2019/07/13/%e5%be%aa%e7%8e%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9crnn%e7%ae%80%e5%8d%95%e7%90%86%e8%a7%a3/)，或者：
 
 *   [Understanding LSTM Networks](http://colah.github.io/posts/2015-08-Understanding-LSTMs/)
 *   [Recurrent Neural Networks Tutorial, Part 1 – Introduction to RNNs](http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-1-introduction-to-rnns/)

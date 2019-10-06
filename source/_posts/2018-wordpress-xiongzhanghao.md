@@ -17,7 +17,7 @@ Wordpress关联熊掌号
 前言
 --
 
-![熊掌号](http://pic.l2h.site/l2hsiteXiongZhangHao-0.jpg)
+![熊掌号](http://pic.www.l2h.site/l2hsiteXiongZhangHao-0.jpg)
 
 做站还是希望能得到大家的关注，百度作为国内最大的搜索引擎，给站长提供了熊掌号平台。绑定网站后，百度搜索会倾向于优先展现熊掌号的内容，可以为网站引入一定搜索流量。
 
@@ -38,11 +38,11 @@ Wordpress关联熊掌号
 
 装饰页面可以提升熊掌号指数。 可以到“熊掌号后台-->主页管理-->主页装修”进行主页的装饰。如下图，运营位设置为网址链接：
 
-![主页装饰](http://pic.l2h.site/l2hsiteXiongzhanghao-decorate-1.png)“熊掌号后台-->主页管理-->自定义栏目”可以添加专栏文章，专栏名可以自定义：
+![主页装饰](http://pic.www.l2h.site/l2hsiteXiongzhanghao-decorate-1.png)“熊掌号后台-->主页管理-->自定义栏目”可以添加专栏文章，专栏名可以自定义：
 
-![主页装饰](http://pic.l2h.site/l2hsiteXiongzhanghao-decorate-2.png)“熊掌号后台-->主页管理-->自定义菜单”可以根据实际需求增加首页菜单，菜单可以定义到二级：
+![主页装饰](http://pic.www.l2h.site/l2hsiteXiongzhanghao-decorate-2.png)“熊掌号后台-->主页管理-->自定义菜单”可以根据实际需求增加首页菜单，菜单可以定义到二级：
 
-![主页装饰](http://pic.l2h.site/l2hsiteXiongzhanghao-decorate-3.png)
+![主页装饰](http://pic.www.l2h.site/l2hsiteXiongzhanghao-decorate-3.png)
 
 ### 提升熊掌号指数
 
@@ -60,9 +60,9 @@ Wordpress关联熊掌号
 * 开放平台接口调用（用API等方式提交资源）
 * **最直接方法**：提交资源并成功收录
 
-![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-1.png)
-![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-2.png)
-![优化指数](http://pic.l2h.site/l2hsiteXiongZhangHao-3.png)
+![优化指数](http://pic.www.l2h.site/l2hsiteXiongZhangHao-1.png)
+![优化指数](http://pic.www.l2h.site/l2hsiteXiongZhangHao-2.png)
+![优化指数](http://pic.www.l2h.site/l2hsiteXiongZhangHao-3.png)
 
 指数在100分以下时，许多后台操作是无法进行的。而超过100分后，后台操作权限相应就会放开。
 
@@ -127,7 +127,7 @@ Wordpress熊掌号H5页面改造
 
 *   添加熊掌号的APP ID及Token（可以在百度熊掌号后台查看）并保存
 
-![熊掌号插件配置](http://pic.l2h.site/l2hsiteXiongzhanghao-Plugin-0.png)
+![熊掌号插件配置](http://pic.www.l2h.site/l2hsiteXiongzhanghao-Plugin-0.png)
 
 ### 网站自动源同步
 

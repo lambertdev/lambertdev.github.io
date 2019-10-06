@@ -12,6 +12,6 @@ MacBook Air所剩空间无几，搜索了一圈，CleanMyMac好用，但是无�
 
 网上搜索一圈，发现企鹅家目前出了一个[Tencent Lemon](https://mac.gj.qq.com/)，正在限时内测，支持最新的Mac Mojave。
 
-![](https://l2h.site/wp-content/uploads/2019/05/Tencent-Lemon.png)
+![](http://pic.l2h.site/Tencent-Lemon.png)
 
 简单试用了一下，功能虽然不多，但是界面极简。可以扫描到应用程序和系统缓存。想来应该够用。推荐给大家。

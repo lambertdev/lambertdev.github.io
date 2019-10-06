@@ -35,15 +35,15 @@ date: 2019-02-27 21:09:39
 
 使用Github登录Server酱，打开[页面](http://sc.ftqq.com/?c=code)，获取到SCKey。
 
-![](https://l2h.site/wp-content/uploads/2019/02/ServerChan2-512x1024.jpg)
+![](http://pic.l2h.site/ServerChan2-512x1024.jpg)
 
 打开[微信绑定页](http://sc.ftqq.com/?c=wechat&a=bind)，使用微信扫描个人专属二维码并关注，然后电脑点击【检查结果并确认绑定】便关联成功
 
-![](https://l2h.site/wp-content/uploads/2019/02/ServerChan1-512x1024.png)
+![](http://pic.l2h.site/ServerChan1-512x1024.png)
 
 关联成功后，可以在消息发送页尝试发送一条消息看微信是否收得到，正常收到消息的微信如下图：
 
-![](https://l2h.site/wp-content/uploads/2019/02/ServerChan3-512x1024.jpg)
+![](http://pic.l2h.site/ServerChan3-512x1024.jpg)
 
 ### 编辑主题function.php
 
@@ -92,7 +92,7 @@ add_action('comment_post', 'sc_send', 19, 2);
 
 设置完保存即可。您也可以到 后台-->设置-->Easy WP SMTP--> Test Email测试配置是否正确
 
-![](https://l2h.site/wp-content/uploads/2019/02/Mail-Notify-2.png)
+![](http://pic.l2h.site/Mail-Notify-2.png)
 
 ### 修改主题funtion.php
 
@@ -128,7 +128,7 @@ add_action('comment_post', 'comment_mail_notify');
 
 配置成功后，试试效果吧。如下图：
 
-![](https://l2h.site/wp-content/uploads/2019/02/Mail-Notify.png)
+![](http://pic.l2h.site/Mail-Notify.png)
 
 结语
 --

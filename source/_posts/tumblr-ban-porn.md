@@ -12,10 +12,10 @@ tags:
 > 
 > 「显示真实人类生殖器或女性露出乳头的图像、视频或 GIF 动图」以及「非常逼真以至于可能被误认为是现实人类的内容」都属于 Tumblr 定义的「成人内容」
 
-相信很多老司机看到以上公告都哇凉哇凉啦：执行从12月17日开始。看起来是用[机器学习](https://l2h.site/category/machine-learning/)自动筛选的，因此考验机器人的时刻到啦。
+相信很多老司机看到以上公告都哇凉哇凉啦：执行从12月17日开始。看起来是用[机器学习](https://www.l2h.site/category/machine-learning/)自动筛选的，因此考验机器人的时刻到啦。
 
 相信很多老司机都会执行如下操作XD？
 
-![Tumblr 禁止成人内容](https://l2h.site/wp-content/uploads/2018/12/IMG_20181205_220300-663x1024.jpg)
+![Tumblr 禁止成人内容](http://pic.l2h.site/IMG_20181205_220300-663x1024.jpg)
 
 Tumblr禁止成人内容

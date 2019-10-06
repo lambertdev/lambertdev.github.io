@@ -23,7 +23,7 @@ BP算法最早于1970年代提出，但是直到1986年[David Rumelhart](http://
 
 跟其他章节相比，本文数学分析较多。若您对数学分析不是特别感冒，可以跳过本文，把数学原理当成一个黑盒子来看。这样，只要了解本文中的结论就可以，后续的章节学习也并不会受到影响。需要说明的是，BP算法的核心是误差函数(Cost函数）对w的偏导数\[latex\]∂C/∂w\[/latex\]。这个表达式说明了在w和b变化下，Cost的变化速度及其中的细节。因此，BP算法的原理也是非常值得学习的。
 
-![](https://l2h.site/wp-content/uploads/2018/11/Machine-Learning-Book.jpg)
+![](http://pic.l2h.site/Machine-Learning-Book.jpg)
 
 热身：一个快速的基于矩阵的计算神经网络输出方法
 -----------------------
@@ -53,7 +53,7 @@ BP算法最早于1970年代提出，但是直到1986年[David Rumelhart](http://
 误差函数（Cost Function）
 -------------------
 
-本章我们仍然使用[前一章](https://l2h.site/2019/02/02/machine-learning-neural-network-1/)的误差函数：
+本章我们仍然使用[前一章](https://www.l2h.site/2019/02/02/machine-learning-neural-network-1/)的误差函数：
 
 \[latex\]\\begin{eqnarray} C(w,b) \\equiv \\frac{1}{2n} \\sum_x \\| y(x) - a\\|^2 \\nonumber\\end{eqnarray}\[/latex\]
 
@@ -131,7 +131,7 @@ BP算法首先计算\[latex\]delta^l_j\[/latex\]，然后将它与\[latex\]\\par
 
 而BP3的证明类同
 
-有了BP1到BP4四个公式，我们就能根据输入数据一步步来更新各层的w和b（注意：这里是输出层先计算，然后输入层再计算。这也是BP算法中back的意义）。算法对应代码可在[上一章代码实例](https://l2h.site/2019/02/02/machine-learning-neural-network-1/#i-7)处查阅。
+有了BP1到BP4四个公式，我们就能根据输入数据一步步来更新各层的w和b（注意：这里是输出层先计算，然后输入层再计算。这也是BP算法中back的意义）。算法对应代码可在[上一章代码实例](https://www.l2h.site/2019/02/02/machine-learning-neural-network-1/#i-7)处查阅。
 
 总结
 --

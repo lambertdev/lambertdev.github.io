@@ -14,7 +14,7 @@ date: 2019-03-01 22:23:40
 问题
 --
 
-前段时间给博客增加了Jetpack插件，今天突然发现[文章](https://l2h.site/2019/02/05/machine-learning-neural-network-2/)里数学公式大部分变成了下边样式的图片：
+前段时间给博客增加了Jetpack插件，今天突然发现[文章](https://www.l2h.site/2019/02/05/machine-learning-neural-network-2/)里数学公式大部分变成了下边样式的图片：
 
 ![](https://s0.wp.com/latex.php?latex=%5CLaTeX%26s%3DX&bg=F9F9F9&fg=333333&s=0)
 

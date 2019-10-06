@@ -19,7 +19,7 @@ date: 2019-02-02 18:36:44
 > This work is licensed under a [Creative Commons Attribution-NonCommercial 3.0 Unported License](http://creativecommons.org/licenses/by-nc/3.0/deed.en_GB). This means you're free to copy, share, and build on this book, but not to sell it. If you're interested in  
 > commercial use, please [contact me](mailto:mn@michaelnielsen.org).
 
-![](https://l2h.site/wp-content/uploads/2018/11/Machine-Learning-Book.jpg)
+![](http://pic.l2h.site/Machine-Learning-Book.jpg)
 
 本文主要内容包含：
 
@@ -48,7 +48,7 @@ Fig 2. 手写字体范例
 
 感知器是神经网络的基本结构，而神经网络正是参照了人类神经系统的特性构造起来的，其基本单元为_感知器_。要了解感知器，先看一张人类神经元的结构图。
 
-![](https://l2h.site/wp-content/uploads/2019/01/Nueral-Cell-1024x768.jpeg)
+![](http://pic.l2h.site/Nueral-Cell-1024x768.jpeg)
 
 Fig 3. 神经元
 
@@ -68,7 +68,7 @@ Fig 3. 神经元
 
 在机器学习中，这些输入条件即可用\[latex\]x_1\[/latex\]到\[latex\]x_i\[/latex\]表示，而每个条件对做出最后决策的影响成都即 \[latex\]w_1\[/latex\]到\[latex\]w_i\[/latex\] 。这些数据的加总和通常不会是1或者0这样的结果，因此无法直接用来判断输出的结果。通常，上述公式感知器会将该加总和与阈值threshold进行比较。如果大于阈值则输出1，反之则输出0。
 
-![](https://l2h.site/wp-content/uploads/2019/01/neural-network-1-1.jpeg)
+![](http://pic.l2h.site/neural-network-1-1.jpeg)
 
 Fig 4. Perceptron(感知器)
 
@@ -84,7 +84,7 @@ Fig 4. Perceptron(感知器)
 
 输入层和输出层中感知器的数量、隐层及其所包含感知器的数量，取决于要解决的机器学习问题。往往这些数量以及 \[latex\] w_{ij} \[/latex\] 等变量初始值的选择，也决定着机器学习的效率以及效果，之后会再探讨。
 
-![](https://l2h.site/wp-content/uploads/2019/01/neural-network-1-2.jpg)
+![](http://pic.l2h.site/neural-network-1-2.jpg)
 
   
 Fig 5. Neural Network(神经网络)
@@ -97,7 +97,7 @@ Fig 5. Neural Network(神经网络)
 **感知器**一节提到的函数，只是简单地从输入端加权值减去阈值的结果来判断输出。  
 例，当_水温能达到28_度，今天就会出去游泳;又或，当_小黑心情不好时_，就睡觉。 这样的作法很直觉，也比较符合我们的思考习惯。这种函数，非0即1，不够平滑，函数输出值随着输入的跳变较大。如下图， 当\[latex\] \\sum_j w_j x_j +b\ \[/latex\]超过0之后，输出就会直接跳变为1。这样造成的结果是，输入中的某一个权值轻微变化，造成输出结果发生剧变。
 
-![](https://l2h.site/wp-content/uploads/2019/01/perceptron-func-0.png)
+![](http://pic.l2h.site/perceptron-func-0.png)
 
 Fig 6. 函数(2)的图形
 
@@ -107,7 +107,7 @@ Fig 6. 函数(2)的图形
 
 而该函数对应的几何图如下：
 
-![](https://l2h.site/wp-content/uploads/2019/01/perceptron-func-1.png)
+![](http://pic.l2h.site/perceptron-func-1.png)
 
 Fig 7. Sigmoid函数的图形
 

@@ -14,12 +14,12 @@ date: 2019-01-05 23:50:57
 前言
 --
 
-[前文](https://l2h.site/2019/01/01/linux-interrupt-3/)介绍了Linux中断的软件架构，以及其中的重要数据结构。本文介绍中断子系统的一些基本流程。本文组织如下：
+[前文](https://www.l2h.site/2019/01/01/linux-interrupt-3/)介绍了Linux中断的软件架构，以及其中的重要数据结构。本文介绍中断子系统的一些基本流程。本文组织如下：
 
 1.  初始化流程
 2.  中断处理流程
 
-![](http://pic.l2h.site/l2hsiteLinux Interrupt-2.png)
+![](http://pic.www.l2h.site/l2hsiteLinux Interrupt-2.png)
 
 初始化流程
 -----
@@ -31,7 +31,7 @@ Linux中断的初始化分为以下几个部分：
 
 ### 中断子系统初始化
 
-![](http://pic.l2h.site/l2hsiteirq_start_kernel3.jpg)
+![](http://pic.www.l2h.site/l2hsiteirq_start_kernel3.jpg)
 
 中断初始化流程如上图，初始化从start_kernel()开始：
 
@@ -261,7 +261,7 @@ void __init of_irq_init(const struct of_device_id *matches)
 
 2. 循环2，则是将所有DTS定义的中断控制器，去和编译时 **___irqchip_of_table_**里的定义中断控制器设备做匹配。
 
-3. 如果匹配到，则执行对应irqchip项的**data**字段指向的回调函数。对前面的例子，gic_v3来讲，就是执行_**gic_of_init**_。关于_**gic_of_init**_, 本文不做深入解析。大家可以到drivers/irqchip/irq-gic-v3.c去找到对应函数。不过值得一提的是，如[Linux中断(1)](https://l2h.site/2019/01/01/linux-interrupt-3/)所讲，每个中断控制器属于一个中断控制域。GIC也不例外，初始化过程中，会去向系统注册中断控制域(irq_domain)。另外也会向如下代码中对handle_arch_irq赋值。
+3. 如果匹配到，则执行对应irqchip项的**data**字段指向的回调函数。对前面的例子，gic_v3来讲，就是执行_**gic_of_init**_。关于_**gic_of_init**_, 本文不做深入解析。大家可以到drivers/irqchip/irq-gic-v3.c去找到对应函数。不过值得一提的是，如[Linux中断(1)](https://www.l2h.site/2019/01/01/linux-interrupt-3/)所讲，每个中断控制器属于一个中断控制域。GIC也不例外，初始化过程中，会去向系统注册中断控制域(irq_domain)。另外也会向如下代码中对handle_arch_irq赋值。
 ```C
 static int __init gic_of_init(struct device_node *node, struct device_node *parent)
 {

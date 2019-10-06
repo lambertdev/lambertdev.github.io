@@ -309,7 +309,7 @@ enum pid_type
 
 一张图表示task_struct中进程id的相互关联：
 
-![](https://i0.wp.com/l2h.site/wp-content/uploads/2019/09/1.png?fit=810%2C467&ssl=1)
+![](https://i0.wp.com/www.l2h.site/wp-content/uploads/2019/09/1.png?fit=810%2C467&ssl=1)
 
 pid数据结构关系图（引用自《深入理解linux内核架构》）
 

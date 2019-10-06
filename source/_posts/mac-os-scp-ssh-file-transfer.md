@@ -16,7 +16,7 @@ date: 2019-02-09 11:36:38
 
 建站，进行文件传输是必不可少的。而本人又不希望给服务器开太多的服务端口，因此是拒绝FTP的。而一直知道SSH服务器支持文件传输，为何不复用该端口的服务进行呢？经过搜索，发现MAC OS下可以用SCP命令和服务器进行文件双向传输。
 
-![](https://l2h.site/wp-content/uploads/2019/02/scp_command-1024x353.png)
+![](http://pic.l2h.site/scp_command-1024x353.png)
 
 使用方法
 ----

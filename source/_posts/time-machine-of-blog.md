@@ -14,4 +14,4 @@ date: 2018-10-07 01:52:26
 1.  本科期间的建站-- COGT.cn
 2.  读研期间的建站-- imlambert.tk/lambert-scape.appspot.com
 
-科学上网，google上找到了之前自己写的一些小程序，打算把这些内容加回来作为纪念。 人还真是越老越怀旧。 ![L的博客时光机](http://pic.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.28.14.png "L的博客时光机")![L的博客时光机](http://pic.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.28.56.png "L的博客时光机")![L的博客时光机](http://pic.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.31.16.png "L的博客时光机")![L的博客时光机](http://pic.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.31.32.png "L的博客时光机")
+科学上网，google上找到了之前自己写的一些小程序，打算把这些内容加回来作为纪念。 人还真是越老越怀旧。 ![L的博客时光机](http://pic.www.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.28.14.png "L的博客时光机")![L的博客时光机](http://pic.www.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.28.56.png "L的博客时光机")![L的博客时光机](http://pic.www.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.31.16.png "L的博客时光机")![L的博客时光机](http://pic.www.l2h.site/l2hsite屏幕快照 2018-10-07 上午1.31.32.png "L的博客时光机")

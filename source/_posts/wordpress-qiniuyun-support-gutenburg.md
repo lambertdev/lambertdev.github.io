@@ -15,14 +15,14 @@ date: 2018-12-09 13:25:37
 前言
 --
 
-博客空间有限，一直使用[七牛云图床](https://www.qiniu.com/)和[开心洋葱的图床插件](http://www.75271.com/2954.html)做图片上传。之前按照《[升級到WORDPRESS 4.9.8](https://l2h.site/2018/11/25/%E5%8D%87%E7%B4%9A%E5%88%B0wordpress-4-9-8/)》介绍更新古腾堡编辑器后，发现插件失效。本文介绍简单修改，让Gutenberg后台仍可使用插件做图片上传。
+博客空间有限，一直使用[七牛云图床](https://www.qiniu.com/)和[开心洋葱的图床插件](http://www.75271.com/2954.html)做图片上传。之前按照《[升級到WORDPRESS 4.9.8](https://www.l2h.site/2018/11/25/%E5%8D%87%E7%B4%9A%E5%88%B0wordpress-4-9-8/)》介绍更新古腾堡编辑器后，发现插件失效。本文介绍简单修改，让Gutenberg后台仍可使用插件做图片上传。
 
 > 注：本文修改简单，并非实现Gutenberg Block，若您想了解如何修改，可以移步[How to build a ](https://wisdomplugin.com/build-gutenberg-block-plugin/)**[Gutenberg block](https://wisdomplugin.com/build-gutenberg-block-plugin/)**[ plugin](https://wisdomplugin.com/build-gutenberg-block-plugin/) 学习了解。
 
 呈现效果
 ----
 
-![](http://pic.l2h.site/l2hsiteqiniuyun-gutenberg.png)
+![](http://pic.www.l2h.site/l2hsiteqiniuyun-gutenberg.png)
 
 修改方法
 ----
