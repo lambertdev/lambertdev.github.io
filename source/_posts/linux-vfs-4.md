@@ -6,6 +6,7 @@ tags:
 url: 928.html
 id: 928
 categories:
+  - Linux
   - Linux文件系统
 date: 2018-10-14 11:41:44
 ---

@@ -3,7 +3,6 @@ title: 大端(Big Endian)与小端(Little Endian)简介
 url: 865.html
 id: 865
 categories:
-  - L&amp;H Site
   - Linux
 date: 2010-10-05 10:12:13
 tags:

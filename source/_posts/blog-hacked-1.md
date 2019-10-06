@@ -3,7 +3,7 @@ title: 网站被黑了
 url: 2115.html
 id: 2115
 categories:
-  - Wordpress建站
+  - 建站
 date: 2019-03-21 21:39:03
 tags:
 ---

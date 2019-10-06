@@ -6,6 +6,7 @@ tags:
 url: 1080.html
 id: 1080
 categories:
+  - Linux
   - Linux电源管理
 date: 2018-10-29 12:57:22
 ---

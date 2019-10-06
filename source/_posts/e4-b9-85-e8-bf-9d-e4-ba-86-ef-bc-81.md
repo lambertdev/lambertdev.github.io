@@ -3,6 +3,7 @@ title: 久违了！
 url: 867.html
 id: 867
 categories:
+  - L&amp;H生活
   - L&amp;H随感
 date: 2010-09-30 10:12:09
 tags:

@@ -2,6 +2,8 @@
 title: 机器学习术语归纳
 url: 2366.html
 id: 2366
+categories:
+  - 机器学习
 date: 2019-07-15 15:30:50
 ---
 

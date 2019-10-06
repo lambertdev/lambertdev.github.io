@@ -7,6 +7,7 @@ tags:
 url: 1684.html
 id: 1684
 categories:
+  - Linux
   - Linux编译
 date: 2019-01-06 22:38:44
 ---

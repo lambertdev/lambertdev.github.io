@@ -8,7 +8,7 @@ tags:
 url: 1440.html
 id: 1440
 categories:
-  - Wordpress建站
+  - 建站
 date: 2018-12-08 12:10:22
 ---
 

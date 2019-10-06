@@ -6,6 +6,7 @@ tags:
 url: 1563.html
 id: 1563
 categories:
+  - Linux
   - Linux中断
 date: 2019-01-05 23:50:57
 ---

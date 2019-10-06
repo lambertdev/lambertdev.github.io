@@ -5,7 +5,7 @@ tags:
 url: 2431.html
 id: 2431
 categories:
-  - Tensorflow
+  - 机器学习
 date: 2019-07-12 15:01:46
 ---
 

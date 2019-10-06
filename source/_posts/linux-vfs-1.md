@@ -7,6 +7,7 @@ tags:
 url: 497.html
 id: 497
 categories:
+  - Linux
   - Linux文件系统
 date: 2018-07-28 23:21:45
 ---

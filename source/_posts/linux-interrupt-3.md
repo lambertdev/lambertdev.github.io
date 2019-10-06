@@ -6,6 +6,7 @@ tags:
 url: 1490.html
 id: 1490
 categories:
+  - Linux
   - Linux中断
 date: 2019-01-01 00:12:17
 ---

@@ -3,6 +3,7 @@ title: 快乐，so simple
 url: 872.html
 id: 872
 categories:
+  - L&amp;H生活
   - L&amp;H随感
 date: 2010-09-18 08:44:43
 tags:

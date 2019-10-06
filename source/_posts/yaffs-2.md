@@ -7,6 +7,7 @@ tags:
 url: 2194.html
 id: 2194
 categories:
+  - Linux
   - Linux文件系统
 date: 2019-05-14 14:12:01
 ---

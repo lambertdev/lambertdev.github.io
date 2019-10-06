@@ -5,7 +5,7 @@ tags:
 url: 2595.html
 id: 2595
 categories:
-  - L&amp;H Site
+  - Linux
   - Linux进程管理
 date: 2019-09-15 09:01:02
 ---

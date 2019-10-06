@@ -6,6 +6,7 @@ tags:
 url: 2555.html
 id: 2555
 categories:
+  - Linux
   - Linux文件系统
 date: 2019-08-02 19:27:46
 ---

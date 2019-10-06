@@ -7,6 +7,7 @@ tags:
 url: 561.html
 id: 561
 categories:
+  - Linux
   - Linux文件系统
 date: 2018-10-08 09:15:35
 ---

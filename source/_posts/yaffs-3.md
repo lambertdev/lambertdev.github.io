@@ -7,6 +7,7 @@ tags:
 url: 2248.html
 id: 2248
 categories:
+  - Linux
   - Linux文件系统
 date: 2019-05-15 22:16:46
 ---

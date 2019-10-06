@@ -6,6 +6,7 @@ tags:
 url: 2580.html
 id: 2580
 categories:
+  - Linux
   - Linux内存管理
 date: 2019-08-13 08:49:07
 ---

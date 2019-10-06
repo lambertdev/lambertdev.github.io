@@ -6,6 +6,7 @@ tags:
 url: 460.html
 id: 460
 categories:
+  - Linux
   - Linux中断
 date: 2018-07-15 00:56:44
 ---

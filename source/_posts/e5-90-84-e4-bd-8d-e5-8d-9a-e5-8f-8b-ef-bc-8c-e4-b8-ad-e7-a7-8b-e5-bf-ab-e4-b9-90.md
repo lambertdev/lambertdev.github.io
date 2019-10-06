@@ -3,6 +3,7 @@ title: 各位博友，中秋快乐
 url: 869.html
 id: 869
 categories:
+  - L&amp;H生活
   - L&amp;H随感
 date: 2010-09-22 10:50:00
 tags:

@@ -8,6 +8,7 @@ tags:
 url: 1757.html
 id: 1757
 categories:
+  - Linux
   - Linux内核同步
 date: 2019-01-19 09:30:45
 ---

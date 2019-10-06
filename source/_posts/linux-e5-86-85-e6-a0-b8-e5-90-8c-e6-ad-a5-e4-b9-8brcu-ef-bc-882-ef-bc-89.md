@@ -2,12 +2,13 @@
 title: Linux内核同步之RCU（2）
 tags:
   - Linux
-  - RCu
+  - RCU
   - 内核同步
   - 转载
 url: 1834.html
 id: 1834
 categories:
+  - Linux
   - Linux内核同步
 date: 2019-01-19 09:34:01
 ---

@@ -7,6 +7,7 @@ tags:
 url: 1882.html
 id: 1882
 categories:
+  - Linux
   - Linux内存管理
 date: 2019-01-29 22:43:58
 ---

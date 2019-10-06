@@ -7,6 +7,7 @@ tags:
 url: 527.html
 id: 527
 categories:
+  - Linux
   - Linux文件系统
 date: 2018-08-10 20:36:02
 ---

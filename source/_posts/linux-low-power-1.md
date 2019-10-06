@@ -6,6 +6,7 @@ tags:
 url: 1069.html
 id: 1069
 categories:
+  - Linux
   - Linux电源管理
 date: 2018-10-24 21:46:19
 ---

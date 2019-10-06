@@ -7,6 +7,7 @@ tags:
 url: 2143.html
 id: 2143
 categories:
+  - Linux
   - Linux文件系统
 date: 2019-04-30 22:12:19
 ---
