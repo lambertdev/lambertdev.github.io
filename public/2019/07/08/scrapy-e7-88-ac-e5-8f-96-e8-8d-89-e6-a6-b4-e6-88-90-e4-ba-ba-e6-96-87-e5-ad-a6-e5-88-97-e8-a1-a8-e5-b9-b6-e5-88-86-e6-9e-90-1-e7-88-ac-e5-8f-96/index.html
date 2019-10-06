@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="最近想学习下Python。考虑到一点一点看教程学习过于枯燥，没有时间也没有学习动力。爬虫和Python最常用的功能就是爬虫和数据分析。不如就先从这两样着手做个简单的小项目，爬取一些网站数据，并做一些简单的分析。选定了爬取草榴成人文学的标题列表（不好内容）来作为学术目的。工具准备安装ScrapyScrapy是一个现行常用的爬虫框架，扩展性强，拥有强大的爬取和分析能力，安装起来也蛮简单。 ** pip">
+<meta name="keywords" content="python,草榴,Scrapy">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零开始爬草榴小黄文 (1) - 爬取">
+<meta property="og:url" content="http://l2h.site/2019/07/08/scrapy-e7-88-ac-e5-8f-96-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-e5-88-97-e8-a1-a8-e5-b9-b6-e5-88-86-e6-9e-90-1-e7-88-ac-e5-8f-96/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="最近想学习下Python。考虑到一点一点看教程学习过于枯燥，没有时间也没有学习动力。爬虫和Python最常用的功能就是爬虫和数据分析。不如就先从这两样着手做个简单的小项目，爬取一些网站数据，并做一些简单的分析。选定了爬取草榴成人文学的标题列表（不好内容）来作为学术目的。工具准备安装ScrapyScrapy是一个现行常用的爬虫框架，扩展性强，拥有强大的爬取和分析能力，安装起来也蛮简单。 ** pip">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-05T14:34:40.218Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从零开始爬草榴小黄文 (1) - 爬取">
+<meta name="twitter:description" content="最近想学习下Python。考虑到一点一点看教程学习过于枯燥，没有时间也没有学习动力。爬虫和Python最常用的功能就是爬虫和数据分析。不如就先从这两样着手做个简单的小项目，爬取一些网站数据，并做一些简单的分析。选定了爬取草榴成人文学的标题列表（不好内容）来作为学术目的。工具准备安装ScrapyScrapy是一个现行常用的爬虫框架，扩展性强，拥有强大的爬取和分析能力，安装起来也蛮简单。 ** pip">
+  <link rel="canonical" href="http://l2h.site/2019/07/08/scrapy-e7-88-ac-e5-8f-96-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-e5-88-97-e8-a1-a8-e5-b9-b6-e5-88-86-e6-9e-90-1-e7-88-ac-e5-8f-96/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>从零开始爬草榴小黄文 (1) - 爬取 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/07/08/scrapy-e7-88-ac-e5-8f-96-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-e5-88-97-e8-a1-a8-e5-b9-b6-e5-88-86-e6-9e-90-1-e7-88-ac-e5-8f-96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">从零开始爬草榴小黄文 (1) - 爬取
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-07-08 10:31:07" itemprop="dateCreated datePublished" datetime="2019-07-08T10:31:07+08:00">2019-07-08</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-05 22:34:40" itemprop="dateModified" datetime="2019-10-05T22:34:40+08:00">2019-10-05</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Python/" itemprop="url" rel="index"><span itemprop="name">Python</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>最近想学习下Python。考虑到一点一点看教程学习过于枯燥，没有时间也没有学习动力。爬虫和Python最常用的功能就是爬虫和数据分析。不如就先从这两样着手做个简单的小项目，爬取一些网站数据，并做一些简单的分析。选定了爬取草榴成人文学的标题列表（不好内容）来作为学术目的。</p><h2 id="工具准备"><a href="#工具准备" class="headerlink" title="工具准备"></a>工具准备</h2><h3 id="安装Scrapy"><a href="#安装Scrapy" class="headerlink" title="安装Scrapy"></a>安装Scrapy</h3><p><a href="https://scrapy.org/" target="_blank" rel="noopener">Scrapy</a>是一个现行常用的爬虫框架，扩展性强，拥有强大的爬取和分析能力，安装起来也蛮简单。</p><blockquote>
+<p>** pip install scrapy **  </p>
+</blockquote><p>当然安装使用起来也有很多的坑会踩，比如说没有安装Twisted、lxml等，这在Python下都不是问题，一个_pip install_搞定。</p><p>另外CentOS服务器会碰到运行时找不到__sqlite3模块的错误。靠如下方法搞定：</p><a id="more"></a>
+
+
+
+
+<ol>
+<li>_sudo yum install sqlite-deve_l</li>
+<li>重新编译python3.6：<em>./configure –enable-loadable-sqlite-extensions –with-ssl;make;sudo make install</em></li>
+</ol>
+<p>P.S. 简单的功能，其实爬虫完全可以利用现行的HTTP Request类来写也不复杂。个人只是图省事儿用了Scrapy</p>
+<h3 id="安装Pymongo"><a href="#安装Pymongo" class="headerlink" title="安装Pymongo"></a>安装Pymongo</h3><p>原本以为数据量很大，就打算直接使用数据库来存储爬取到的数据，而Python常用的数据库为Mongo，使用需要安装Pymongo（后来发现其实只有2000多条数据，直接存文本就可以的）。</p>
+<blockquote>
+<p>pip install Pymongo</p>
+</blockquote>
+<p>这里说一下，数据库我直接使用的是<a href="https://cloud.mongodb.com" target="_blank" rel="noopener">Pymongo官方</a>提供的实验数据库，有500M空间，可以远程使用.</p>
+<p>Python使用Pymongo的文档，可以参考<a href="http://api.mongodb.com/python/current/" target="_blank" rel="noopener">pymongo 文档</a></p>
+<h2 id="使用Scrapy爬取"><a href="#使用Scrapy爬取" class="headerlink" title="使用Scrapy爬取"></a>使用Scrapy爬取</h2><p>先执行s_crapy startproject 爬虫项目名_来创建项目，得到如下目录结构</p>
+<p>t66y<br>    ├── proxy.py<br>    ├── scrapy.cfg<br>    └── t66y<br>        ├── <strong>init</strong>.py<br>        ├── items.py<br>        ├── middlewares.py<br>        ├── pipelines.py<br>        ├── settings.py<br>        └── spiders<br>            └── <strong>init</strong>.py</p>
+<h3 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h3><p>我们在spiders下建立t66y.py，直接上代码了（为避免教坏小朋友，删掉网址）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> scrapy</span><br><span class="line"><span class="keyword">from</span> scrapy.http <span class="keyword">import</span> Request</span><br><span class="line"><span class="keyword">from</span> t66y.items <span class="keyword">import</span> T66YItem</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">t66yLitSpider</span><span class="params">(scrapy.Spider)</span>:</span></span><br><span class="line">    name = <span class="string">"t66yLit"</span> </span><br><span class="line">    allowed_domains = [<span class="string">'草榴域名'</span>]</span><br><span class="line">    <span class="comment">#start_urls为开始抓取的网址</span></span><br><span class="line">    start_urls = [<span class="string">'http://草榴域名/thread0806.php?fid=20&amp;search=&amp;page=&#123;&#125;'</span>.format(i) <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>,<span class="number">22</span>)]</span><br><span class="line">    <span class="comment">#对抓取到的网页进行Xpath解析，得到数据。注意每一个T66YItem对象对应一条pymongo中的数据</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse</span><span class="params">(self, response)</span>:</span></span><br><span class="line">        item = T66YItem()</span><br><span class="line">        lits = response.xpath(<span class="string">'//tr[@class="tr3 t_one tac"]'</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> lit <span class="keyword">in</span> lits:</span><br><span class="line">            item[<span class="string">'lit_type'</span>] = lit.xpath(<span class="string">'.//*[@class="tal"]/text()[1]'</span>).extract()[<span class="number">0</span>].strip()</span><br><span class="line">            item[<span class="string">'lit_title'</span>] = lit.xpath(<span class="string">'.//*[@class="tal"]//h3/a/text()'</span>).extract()</span><br><span class="line">            <span class="keyword">if</span> len(item[<span class="string">'lit_title'</span>]) == <span class="number">1</span>:</span><br><span class="line">                item[<span class="string">'lit_title'</span>] = item[<span class="string">'lit_title'</span>][<span class="number">0</span>].strip()</span><br><span class="line">            item[<span class="string">'lit_url'</span>] = lit.xpath(<span class="string">'.//*[@class="tal"]//h3/a/@href'</span>).extract()[<span class="number">0</span>].strip()</span><br><span class="line">            item[<span class="string">'lit_writer'</span>] = lit.xpath(<span class="string">'.//td[1]//following-sibling::*[2]/a/text()'</span>).extract()[<span class="number">0</span>].strip()</span><br><span class="line">            item[<span class="string">'lit_submit'</span>] = lit.xpath(<span class="string">'.//td[1]//following-sibling::*[2]/a//following-sibling::*[1]/text()'</span>).extract()</span><br><span class="line">            <span class="keyword">if</span> len(item[<span class="string">'lit_submit'</span>]) == <span class="number">1</span>:</span><br><span class="line">                lit_submit = lit.xpath(<span class="string">'.//td[1]//following-sibling::*[2]/a//following-sibling::*[1]'</span>)</span><br><span class="line">                item[<span class="string">'lit_submit'</span>] = lit_submit.xpath(<span class="string">'string(.)'</span>).extract()[<span class="number">0</span>].strip()</span><br><span class="line">            item[<span class="string">'lit_comments'</span>] = lit.xpath(<span class="string">'.//td[1]//following-sibling::*[3]/text()'</span>).extract()</span><br><span class="line">            <span class="keyword">if</span> len(item[<span class="string">'lit_comments'</span>]) == <span class="number">1</span>:</span><br><span class="line">                item[<span class="string">'lit_comments'</span>] = item[<span class="string">'lit_comments'</span>][<span class="number">0</span>]</span><br><span class="line">            item[<span class="string">'lit_last_comments'</span>] = lit.xpath(<span class="string">'.//td[1]//following-sibling::*[4]/a/text()'</span>).extract()</span><br><span class="line">            <span class="keyword">if</span> len(item[<span class="string">'lit_last_comments'</span>]) == <span class="number">1</span>:</span><br><span class="line">                item[<span class="string">'lit_last_comments'</span>] = item[<span class="string">'lit_last_comments'</span>][<span class="number">0</span>]</span><br><span class="line">            self.log(<span class="string">"[%s],[%s],[%s],[%s],[%s],[%s],[%s]"</span> % (item[<span class="string">'lit_type'</span>],item[<span class="string">'lit_title'</span>],item[<span class="string">'lit_url'</span>],item[<span class="string">'lit_writer'</span>],item[<span class="string">'lit_submit'</span>],item[<span class="string">'lit_comments'</span>],item[<span class="string">'lit_last_comments'</span>]))</span><br><span class="line">            <span class="keyword">yield</span> item</span><br></pre></td></tr></table></figure>
+
+<p>T66YItem定义在items.py:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Define here the models for your scraped items</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># See documentation in:</span></span><br><span class="line"><span class="comment"># https://doc.scrapy.org/en/latest/topics/items.html</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> scrapy</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">T66YItem</span><span class="params">(scrapy.Item)</span>:</span></span><br><span class="line">    <span class="comment"># define the fields for your item here like:</span></span><br><span class="line">    lit_type = scrapy.Field()</span><br><span class="line">    lit_title = scrapy.Field()</span><br><span class="line">    lit_url = scrapy.Field()</span><br><span class="line">    lit_writer = scrapy.Field()</span><br><span class="line">    lit_submit = scrapy.Field()</span><br><span class="line">    lit_comments = scrapy.Field()</span><br><span class="line">    lit_last_comments = scrapy.Field()</span><br><span class="line">    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<p>pipeline.py负责抓取后的mongodb存储</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Define your item pipelines here</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Don't forget to add your pipeline to the ITEM_PIPELINES setting</span></span><br><span class="line"><span class="comment"># See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html</span></span><br><span class="line"><span class="keyword">import</span> pymongo</span><br><span class="line"><span class="keyword">from</span> scrapy.conf <span class="keyword">import</span> settings</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">T66YPipeline</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self)</span>:</span></span><br><span class="line">        host = settings[<span class="string">'MONGODB_HOST'</span>]</span><br><span class="line">        user = settings[<span class="string">'MONGODB_USER'</span>]</span><br><span class="line">        passwd = settings[<span class="string">'MONGODB_PASSWD'</span>]</span><br><span class="line">        dbname = settings[<span class="string">'MONGODB_DBNAME'</span>]</span><br><span class="line">        sheetname = settings[<span class="string">'MONGODB_SHEET'</span>]</span><br><span class="line">        client = pymongo.MongoClient(<span class="string">"mongodb+srv://&#123;0&#125;:&#123;1&#125;@&#123;2&#125;/test?retryWrites=true&amp;w=majority"</span>.format(user,passwd,host))</span><br><span class="line">        </span><br><span class="line">        mydb = client[dbname] </span><br><span class="line">        self.post = mydb[sheetname]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">process_item</span><span class="params">(self, item, spider)</span>:</span></span><br><span class="line">        data = dict(item)</span><br><span class="line">        self.post.insert(data)<span class="comment">#这行就是存储mongo数据了</span></span><br><span class="line">        <span class="keyword">return</span> item</span><br></pre></td></tr></table></figure>
+
+<p>若要抓取时同步保存，需要对setting.py进行配置：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">BOT_NAME = <span class="string">'t66y'</span></span><br><span class="line"></span><br><span class="line">SPIDER_MODULES = [<span class="string">'t66y.spiders'</span>]</span><br><span class="line">NEWSPIDER_MODULE = <span class="string">'t66y.spiders'</span></span><br><span class="line"><span class="comment">#看到这些配置和t66y.py里的关联了吗。对应配置名就是setting['xxxx']</span></span><br><span class="line">MONGODB_USER = <span class="string">'***'</span></span><br><span class="line">MONGODB_PASSWD = <span class="string">'***'</span></span><br><span class="line">MONGODB_DBNAME = <span class="string">'***'</span></span><br><span class="line">MONGODB_SHEET = <span class="string">'***'</span></span><br><span class="line">MONGODB_HOST = <span class="string">'***.mongodb.net'</span></span><br><span class="line"></span><br><span class="line">ROBOTSTXT_OBEY = <span class="literal">False</span></span><br><span class="line"><span class="comment">#需要定义一个延迟时间，否则会被服务器当成DDOS攻击</span></span><br><span class="line">DOWNLOAD_DELAY = <span class="number">5</span></span><br><span class="line">DEFAULT_REQUEST_HEADERS = &#123;</span><br><span class="line">   <span class="string">'Accept'</span>: <span class="string">'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'</span>,</span><br><span class="line">   <span class="string">'Accept-Language'</span>: <span class="string">'en'</span>,</span><br><span class="line">   <span class="string">'User-Agent'</span>:<span class="string">'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#pipeline的名字要和pipeline.py里定义的类名相同</span></span><br><span class="line">ITEM_PIPELINES = &#123;</span><br><span class="line">    <span class="string">'t66y.pipelines.T66YPipeline'</span>: <span class="number">300</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以注意到创建工程的时候还有一个middleware.py文件生成，从名字看它应该是一种中间件对吧。其实一般大家用它来更换代理IP（有些网站会查询爬虫的ip，过于频繁的读取会被当成不合规行为，并进行拦截），更换代理IP的代码一般放在此处。当然当碰到网站返回错误要做一些处理的时候，也通常会在这里实现相应代码。好在CL并没有麻烦到需要更换代理IP。</p>
+<h3 id="效果"><a href="#效果" class="headerlink" title="效果"></a>效果</h3><p>直接看在mongoDB存储的内容。可以看到爬取过程中插入操作增多了，右边是爬取到的数据，文章名称过于暴露就不再显示。</p>
+<ul>
+<li><p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/1-1024x358.png"></p>
+</li>
+<li><p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/2-1024x498.png"></p>
+</li>
+</ul>
+<p>下一章我们介绍：</p>
+<p>Jupyter+Pandas+Pyplot进行简单的数据分析。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\08\e4-bb-8e-e9-9b-b6-e5-bc-80-e5-a7-8b-e7-88-ac-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-2-e5-88-86-e6-9e-90\" rel="bookmark">从零开始爬草榴成人文学 (2) – 分析</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\09\e6-9c-ba-e5-99-a8-e5-ad-a6-e4-b9-a0-e4-b8-ba-e4-bb-80-e4-b9-88-e4-bd-bf-e7-94-a8-e7-8b-ac-e7-83-adone-hot-encoding-e7-bc-96-e7-a0-81\" rel="bookmark">机器学习为什么使用独热(One-hot Encoding)编码</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\12\02\mac-os-install-pytorch\" rel="bookmark">MAC OS本地安装PyTorch</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\19\e4-bb-8e-e9-9b-b6-e5-bc-80-e5-a7-8b-e7-88-ac-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-3-e8-81-9a-e7-b1-bb-e5-92-8cpca\" rel="bookmark">从零开始爬草榴成人文学 (3) – 聚类和PCA</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/python/" rel="tag"># python</a>
+            
+              <a href="/tags/草榴/" rel="tag"># 草榴</a>
+            
+              <a href="/tags/Scrapy/" rel="tag"># Scrapy</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/06/28/tensorflow-importerror-ef-bc-9adll-e5-8a-a0-e8-bd-bd-e5-a4-b1-e8-b4-a5-ef-bc-8c-e9-94-99-e8-af-af-e4-bb-a3-e7-a0-81-e4-b8-ba-1073741795-e9-97-ae-e9-a2-98-e8-a7-a3-e5-86-b3/" rel="next" title="TensorFlow ImportError：DLL加载失败，错误代码为-1073741795 问题解决">
+                  <i class="fa fa-chevron-left"></i> TensorFlow ImportError：DLL加载失败，错误代码为-1073741795 问题解决
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/07/08/e4-bb-8e-e9-9b-b6-e5-bc-80-e5-a7-8b-e7-88-ac-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-2-e5-88-86-e6-9e-90/" rel="prev" title="从零开始爬草榴成人文学 (2) – 分析">
+                  从零开始爬草榴成人文学 (2) – 分析 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#工具准备"><span class="nav-number">1.</span> <span class="nav-text">工具准备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#安装Scrapy"><span class="nav-number">1.1.</span> <span class="nav-text">安装Scrapy</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装Pymongo"><span class="nav-number">1.2.</span> <span class="nav-text">安装Pymongo</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用Scrapy爬取"><span class="nav-number">2.</span> <span class="nav-text">使用Scrapy爬取</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码"><span class="nav-number">2.1.</span> <span class="nav-text">代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#效果"><span class="nav-number">2.2.</span> <span class="nav-text">效果</span></a></li></ol></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

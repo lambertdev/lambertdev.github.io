@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="机器学习绪论应用  语音识别 自动车辆驾驶 西洋双陆棋   ….  相关学科  人工智能 贝叶斯方法 计算复杂性理论 信息论 控制论   统计学  问题的标准描述 任务T: 描述机器学习要做任务 性能标准P: 描述机器学习结果的性能 训练经验E: 用于学习的数据集 目标函数[latex]V[/latex]: 根据输入得到最优方案（例如，一段语音的最佳匹配、棋局的最佳落子） 目标函数的最优近似[la">
+<meta name="keywords" content="机器学习,Machine Learning">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mithell《机器学习》学习笔记 - Chapter 1&amp;2">
+<meta property="og:url" content="http://l2h.site/2018/11/11/mithell-ml-note/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="机器学习绪论应用  语音识别 自动车辆驾驶 西洋双陆棋   ….  相关学科  人工智能 贝叶斯方法 计算复杂性理论 信息论 控制论   统计学  问题的标准描述 任务T: 描述机器学习要做任务 性能标准P: 描述机器学习结果的性能 训练经验E: 用于学习的数据集 目标函数[latex]V[/latex]: 根据输入得到最优方案（例如，一段语音的最佳匹配、棋局的最佳落子） 目标函数的最优近似[la">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-05T14:54:03.507Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Mithell《机器学习》学习笔记 - Chapter 1&amp;2">
+<meta name="twitter:description" content="机器学习绪论应用  语音识别 自动车辆驾驶 西洋双陆棋   ….  相关学科  人工智能 贝叶斯方法 计算复杂性理论 信息论 控制论   统计学  问题的标准描述 任务T: 描述机器学习要做任务 性能标准P: 描述机器学习结果的性能 训练经验E: 用于学习的数据集 目标函数[latex]V[/latex]: 根据输入得到最优方案（例如，一段语音的最佳匹配、棋局的最佳落子） 目标函数的最优近似[la">
+  <link rel="canonical" href="http://l2h.site/2018/11/11/mithell-ml-note/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Mithell《机器学习》学习笔记 - Chapter 1&2 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/11/11/mithell-ml-note/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Mithell《机器学习》学习笔记 - Chapter 1&2
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2018-11-11 08:55:40" itemprop="dateCreated datePublished" datetime="2018-11-11T08:55:40+08:00">2018-11-11</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-05 22:54:03" itemprop="dateModified" datetime="2019-10-05T22:54:03+08:00">2019-10-05</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/机器学习/" itemprop="url" rel="index"><span itemprop="name">机器学习</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="机器学习"><a href="#机器学习" class="headerlink" title="机器学习"></a>机器学习</h1><h2 id="绪论"><a href="#绪论" class="headerlink" title="绪论"></a>绪论</h2><h3 id="应用"><a href="#应用" class="headerlink" title="应用"></a>应用</h3><ul>
+<li><ul>
+<li>语音识别</li>
+<li>自动车辆驾驶</li>
+<li>西洋双陆棋</li>
+</ul>
+</li>
+<li><p>….</p>
+</li>
+</ul><h3 id="相关学科"><a href="#相关学科" class="headerlink" title="相关学科"></a>相关学科</h3><ul>
+<li><ul>
+<li>人工智能</li>
+<li>贝叶斯方法</li>
+<li>计算复杂性理论</li>
+<li>信息论</li>
+<li>控制论</li>
+</ul>
+</li>
+<li><p>统计学</p>
+</li>
+</ul><h3 id="问题的标准描述"><a href="#问题的标准描述" class="headerlink" title="问题的标准描述"></a>问题的标准描述</h3><blockquote>
+<p><strong>任务T</strong>: 描述机器学习要做任务</p>
+<p><strong>性能标准P</strong>: 描述机器学习结果的性能</p>
+<p><strong>训练经验E</strong>: 用于学习的数据集</p>
+<p><strong>目标函数[latex]V[/latex]</strong>: 根据输入得到最优方案（例如，一段语音的最佳匹配、棋局的最佳落子）</p>
+<p><strong>目标函数的最优近似[latex]{\tilde V}[/latex]</strong>: 根据输入得到近似目标函数的最优方案</p>
+</blockquote><p>    训练经验—-&gt;<strong>学习器</strong>—-&gt;目标函数[latex]V[/latex] （从当前任务允许的所有合法输入集合中，选出能得到最优性能标准P的输出的唯一输入）。</p><a id="more"></a>
+
+
+
+<h3 id="目标函数的描述"><a href="#目标函数的描述" class="headerlink" title="目标函数的描述"></a>目标函数的描述</h3><p>    通常来说，由于任务T的复杂性，无法完全得到目标函数，通常机器学习的目标是得到目标函数的某个近似(Approximation) [latex]{\tilde V}[/latex] 。     [latex]{\tilde V}[/latex] 函数需要可表示，这样才能根据任务的实际状况，评估出输出结果的性能。一般来讲，目标函数输入有多个变量维度。其最简单的一种表示方法为给每个维度的变量赋予一定的权值（weights）[latex]w_0-&gt;w_n[/latex]，乘以对应维度变量再求和的一个线性函数。例如：</p>
+<blockquote>
+<p>[latex]{\tilde V} = w_0+x_1w_1+x_2w_2+…+x_nw_n[/latex]</p>
+</blockquote>
+<h3 id="目标函数近似函数的训练"><a href="#目标函数近似函数的训练" class="headerlink" title="目标函数近似函数的训练"></a>目标函数近似函数的训练</h3><p>    训练的目的，便是确定目标函数的近似函数。以上述函数为例，便是确定目标函数里的权值的确切数值。</p>
+<h4 id="训练样例"><a href="#训练样例" class="headerlink" title="训练样例"></a>训练样例</h4><p>    为了学习到[latex]{\tilde V}[/latex]，需要一系列的训练样例，它们可以表示为：</p>
+<blockquote>
+<p>[latex]&lt;&lt;x_1=3,x_2=1,…,x_n=10&gt;, 100&gt;[/latex]</p>
+</blockquote>
+<p>    其中100为[latex]&lt;x_1=3,x_2=1,…,x_n=10&gt;[/latex]的性能打分。</p>
+<h4 id="权值调整"><a href="#权值调整" class="headerlink" title="权值调整"></a>权值调整</h4><p>    训练过程就是对权值进行调整，逐渐逼近目标函数的过程。而调整权值的过程，就是寻找可以对训练集中的所有样例，函数得到的值和训练值之差的平方总和E最小的过程。即：</p>
+<blockquote>
+<p>[latex]E\equiv\sum_{\mathclap{&lt;b, V_{train}(b)&gt; \in Training Data}} (V_{train}(b)-\tilde{V}(b))^2[/latex]</p>
+</blockquote>
+<p>    权值更新则是根据当前训练值与当前近似函数的计算值的差，进行权值更新。公式如下：</p>
+<blockquote>
+<p>[latex]w_{new}⇠w_i+\eta(V_{train}(b)-\tilde{V}(b))x_i[/latex]</p>
+</blockquote>
+<p>    其中[latex]\eta[/latex]为小的常数代表调整幅度。</p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>    用书中的一张图表示训练过程：</p>
+<p><img alt="机器学习" data-src="http://pic.l2h.site/l2hsiteMachine-Learning-Outline.png"></p>
+<h2 id="概念学习-（Concept-Learning）"><a href="#概念学习-（Concept-Learning）" class="headerlink" title="概念学习 （Concept Learning）"></a>概念学习 （Concept Learning）</h2><h3 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h3><blockquote>
+<p>Concept Learning: Inferring a boolean-valued function from training examples of its input and output.</p>
+</blockquote>
+<p>    “概念学习”指的是从有输入输出的训练数据中推导出返回布尔值的函数。 例如：识别物体是否是汽车、鸟类或植物。</p>
+<h3 id="概念学习任务"><a href="#概念学习任务" class="headerlink" title="概念学习任务"></a>概念学习任务</h3><p>[caption id=”” align=”aligncenter” width=”629”]<img alt="概念学习实例" data-src="http://pic.l2h.site/l2hsiteMachine-Learning-Outline-2.png"> 机器学习[/caption]</p>
+<p>    书中根据天气情况判断Aldo是否会做户外运动为实例。输入参数为一元组：&lt;天空状况，空气温度，空气湿度，风力，水温，天气预报&gt;。输出为布尔值：表示Aldo是否做户外运动。具体训练目标定义如下：</p>
+<p>给出训练数据，即Aldo以往做户外运动的天气状况。从假设函数集合[latex]H[/latex]中推导出目标函数h的近似函数，满足[latex]h(x)=c(x)[/latex]，其中：</p>
+<ul>
+<li><ul>
+<li>h()和c()函数均为返回布尔值的函数，表示Aldo是否会做户外运动。</li>
+</ul>
+</li>
+<li><p>c()函数为目标函数，事先并不知道，只有以往的训练数据。</p>
+</li>
+</ul>
+<h4 id="Inductive-Learning-Hypothesis-（归纳学习假设）"><a href="#Inductive-Learning-Hypothesis-（归纳学习假设）" class="headerlink" title="Inductive Learning Hypothesis （归纳学习假设）"></a>Inductive Learning Hypothesis （归纳学习假设）</h4><blockquote>
+<p>若某近似函数在足够大的训练数据集上与目标函数输出结果匹配，我们有理由相信剩余未被观察到的数据上该近似函数也可得到正确输出。</p>
+</blockquote>
+<h4 id="CONCEPT-LEARNING-AS-SEARCH（概念学习即搜索）"><a href="#CONCEPT-LEARNING-AS-SEARCH（概念学习即搜索）" class="headerlink" title="CONCEPT LEARNING AS SEARCH（概念学习即搜索）"></a>CONCEPT LEARNING AS SEARCH（概念学习即搜索）</h4><p>    概念学习可以认为从一个大的假设空间逐步搜索到最符合训练数据集的假设。</p>
+<blockquote>
+<p>General-to-Specific Ordering of Hypotheses(假设的一般到特殊序)：以输入参数一元组中的“水温为例”，它可能有Warm、Cool、任意值([latex]?[/latex])或者皆不可([latex]\Theta[/latex])。其中对假设的搜索顺序应该是从一般到特殊[latex]?\to(Warm|Cool)\to\Theta[/latex].</p>
+</blockquote>
+<h4 id="FIND-S-寻找最大特殊假设"><a href="#FIND-S-寻找最大特殊假设" class="headerlink" title="FIND-S:寻找最大特殊假设"></a>FIND-S:寻找最大特殊假设</h4><p>    按照一般到特殊顺序计算出匹配训练数据集的最一般假设。</p>
+<h4 id="概念空间和候选消除算法"><a href="#概念空间和候选消除算法" class="headerlink" title="概念空间和候选消除算法"></a>概念空间和候选消除算法</h4><p>    候选消除算法，解决Find-S的部分问题：因为Find-S得到的可能只是诸多满足训练数据集合的一系列假设的集合。候选消除算法则从这些假设中消除不匹配的假设。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\02\05\machine-learning-neural-network-2\" rel="bookmark">神经网络和深度学习(2) -- 后向传播算法原理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\10\e5-8d-b7-e7-a7-af-e7-a5-9e-e7-bb-8f-e7-bd-91-e7-bb-9ccnn-e7-9a-84-e7-90-86-e8-a7-a3\" rel="bookmark">卷积神经网络(CNN)的理解</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\09\e6-9c-ba-e5-99-a8-e5-ad-a6-e4-b9-a0-e4-b8-ba-e4-bb-80-e4-b9-88-e4-bd-bf-e7-94-a8-e7-8b-ac-e7-83-adone-hot-encoding-e7-bc-96-e7-a0-81\" rel="bookmark">机器学习为什么使用独热(One-hot Encoding)编码</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\14\e6-9c-ba-e5-99-a8-e5-ad-a6-e4-b9-a0-e5-87-a0-e4-b8-aa-e8-a6-81-e7-b4-a0\" rel="bookmark">机器学习几个要素</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\12\02\mac-os-install-pytorch\" rel="bookmark">MAC OS本地安装PyTorch</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/机器学习/" rel="tag"># 机器学习</a>
+            
+              <a href="/tags/Machine-Learning/" rel="tag"># Machine Learning</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/11/07/2018-chinese-league-a/" rel="next" title="恭喜上港夺冠！">
+                  <i class="fa fa-chevron-left"></i> 恭喜上港夺冠！
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/11/11/2018-wordpress-xiongzhanghao/" rel="prev" title="Wordpress如何关联熊掌号">
+                  Wordpress如何关联熊掌号 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#机器学习"><span class="nav-number">1.</span> <span class="nav-text">机器学习</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#绪论"><span class="nav-number">1.1.</span> <span class="nav-text">绪论</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#应用"><span class="nav-number">1.1.1.</span> <span class="nav-text">应用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#相关学科"><span class="nav-number">1.1.2.</span> <span class="nav-text">相关学科</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#问题的标准描述"><span class="nav-number">1.1.3.</span> <span class="nav-text">问题的标准描述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#目标函数的描述"><span class="nav-number">1.1.4.</span> <span class="nav-text">目标函数的描述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#目标函数近似函数的训练"><span class="nav-number">1.1.5.</span> <span class="nav-text">目标函数近似函数的训练</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#训练样例"><span class="nav-number">1.1.5.1.</span> <span class="nav-text">训练样例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#权值调整"><span class="nav-number">1.1.5.2.</span> <span class="nav-text">权值调整</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#总结"><span class="nav-number">1.1.5.3.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#概念学习-（Concept-Learning）"><span class="nav-number">1.2.</span> <span class="nav-text">概念学习 （Concept Learning）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#概念"><span class="nav-number">1.2.1.</span> <span class="nav-text">概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#概念学习任务"><span class="nav-number">1.2.2.</span> <span class="nav-text">概念学习任务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Inductive-Learning-Hypothesis-（归纳学习假设）"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">Inductive Learning Hypothesis （归纳学习假设）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CONCEPT-LEARNING-AS-SEARCH（概念学习即搜索）"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">CONCEPT LEARNING AS SEARCH（概念学习即搜索）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#FIND-S-寻找最大特殊假设"><span class="nav-number">1.2.2.3.</span> <span class="nav-text">FIND-S:寻找最大特殊假设</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#概念空间和候选消除算法"><span class="nav-number">1.2.2.4.</span> <span class="nav-text">概念空间和候选消除算法</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

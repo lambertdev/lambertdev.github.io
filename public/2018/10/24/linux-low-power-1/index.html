@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="前言为了节省功耗，需要让系统在不需要工作的时候尽可能的休眠（甚至断电）。同时，为了不影响到系统功能的正常运作，又必须保证休眠不能打断正在进行的重要事务，且能在适时还原回来。因此，一个高效运行的Low Power框架必不可少。  本文以Linux 4.4内核为基础，介绍Linux的Low Power框架。架构Linux的电源管理架构如下图。首先内核态导出了一些sysfs节点，用来给用户空间态作电源管">
+<meta name="keywords" content="Linux,电源管理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux电源管理介绍-1">
+<meta property="og:url" content="http://l2h.site/2018/10/24/linux-low-power-1/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="前言为了节省功耗，需要让系统在不需要工作的时候尽可能的休眠（甚至断电）。同时，为了不影响到系统功能的正常运作，又必须保证休眠不能打断正在进行的重要事务，且能在适时还原回来。因此，一个高效运行的Low Power框架必不可少。  本文以Linux 4.4内核为基础，介绍Linux的Low Power框架。架构Linux的电源管理架构如下图。首先内核态导出了一些sysfs节点，用来给用户空间态作电源管">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-06T00:31:42.938Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux电源管理介绍-1">
+<meta name="twitter:description" content="前言为了节省功耗，需要让系统在不需要工作的时候尽可能的休眠（甚至断电）。同时，为了不影响到系统功能的正常运作，又必须保证休眠不能打断正在进行的重要事务，且能在适时还原回来。因此，一个高效运行的Low Power框架必不可少。  本文以Linux 4.4内核为基础，介绍Linux的Low Power框架。架构Linux的电源管理架构如下图。首先内核态导出了一些sysfs节点，用来给用户空间态作电源管">
+  <link rel="canonical" href="http://l2h.site/2018/10/24/linux-low-power-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux电源管理介绍-1 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/10/24/linux-low-power-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux电源管理介绍-1
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2018-10-24 21:46:19" itemprop="dateCreated datePublished" datetime="2018-10-24T21:46:19+08:00">2018-10-24</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-06 08:31:42" itemprop="dateModified" datetime="2019-10-06T08:31:42+08:00">2019-10-06</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux电源管理/" itemprop="url" rel="index"><span itemprop="name">Linux电源管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>为了节省功耗，需要让系统在不需要工作的时候尽可能的休眠（甚至断电）。同时，为了不影响到系统功能的正常运作，又必须保证休眠不能打断正在进行的重要事务，且能在适时还原回来。因此，一个高效运行的Low Power框架必不可少。 <img alt="Linux电源管理介绍-1" title="Linux电源管理介绍-1" data-src="http://pic.l2h.site/l2hsiteLinux-low-power-1.png"> 本文以Linux 4.4内核为基础，介绍Linux的Low Power框架。</p><h1 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h1><p>Linux的电源管理架构如下图。首先内核态导出了一些sysfs节点，用来给用户空间态作电源管理控制：</p><ol>
+<li>/sys/power/autosleep : 主要用于控制是否开启内核自动休眠，之后会有章节介绍</li>
+<li>/sys/power/state：直接控制进入休眠（有多种state，后边会看到）</li>
+<li>/sys/power/wake_lock&amp;wake_unlock：拿Wake lock和释放Wake lock，用于避免正在处理重要事务时系统进入休眠<figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">                                                      +-----------+</span><br><span class="line">                                                      |<span class="string">应 用 程 序</span>|</span><br><span class="line">             +------------------+                     +-----+-----+</span><br><span class="line">             |<span class="string">电 源 管 理 程 序  +---------+                 </span>|</span><br><span class="line">             +-----+------------+         |<span class="string">                 </span>|</span><br><span class="line">                   |<span class="string">                      </span>|<span class="string">                 </span>|</span><br><span class="line">                   |<span class="string">                      </span>|<span class="string">                 </span>|</span><br><span class="line">用 户 空 间 态      v                      v                 v</span><br><span class="line">            /sys/power/autosleep   /sys/power/state  /sys/power/wake_lock&amp;wake_unlock</span><br><span class="line">+------------------+----------------------+-----------------+---------------------------</span><br><span class="line">                   |<span class="string">                      </span>|<span class="string">                 </span>|</span><br><span class="line">内 核 态           |<span class="string">                      </span>|<span class="string">                 </span>|</span><br><span class="line">                   v                      v                 v </span><br><span class="line">             +-----+----------------------+-----------------+---+</span><br><span class="line">             |<span class="string">                   sysfs                          </span>|</span><br><span class="line">             +--------------------------------------------------+</span><br><span class="line">           kernel/power/main.c                              |</span><br><span class="line"><span class="string">               +                                            </span>|</span><br><span class="line">   +--------------------------------------------------------|<span class="string">-------------------------+</span></span><br><span class="line"><span class="string">   </span>|<span class="string">           </span>|<span class="string">                                            v        电 源 管 理 框 架 </span>|</span><br><span class="line">   |<span class="string">           </span>|<span class="string">                   +--------------------------------+                 </span>|</span><br><span class="line">   |<span class="string">           v                   </span>|<span class="string">                                </span>|<span class="string">                 </span>|</span><br><span class="line">   |<span class="string">  +----------+                 </span>|<span class="string"> Wakeup Source                  </span>|<span class="string">                 </span>|</span><br><span class="line">   |<span class="string">  </span>|<span class="string">autosleep </span>|<span class="string"> &lt;---------------+                                </span>|<span class="string">                 </span>|</span><br><span class="line">   |<span class="string">  +----------+                 +----------------------------^---+                 </span>|</span><br><span class="line">   |<span class="string">kernel/power/autosleep.c                                    </span>|<span class="string">                     </span>|</span><br><span class="line">   |<span class="string">        </span>|<span class="string">                                             +-----+-----------+         </span>|</span><br><span class="line">   |<span class="string">        </span>|<span class="string">                                             </span>|<span class="string">                 </span>|<span class="string">         </span>|</span><br><span class="line">   |<span class="string">        </span>|<span class="string">--------------------------------------------&gt;</span>|<span class="string">  驱 动 程 序     </span>|<span class="string">         </span>|</span><br><span class="line">   |<span class="string">        v                                             </span>|<span class="string">                 </span>|<span class="string">         </span>|</span><br><span class="line">   |<span class="string">  +-----+--------+                                    +-----------------+         </span>|</span><br><span class="line">   |<span class="string">  </span>|<span class="string"> 平 台 相 关   </span>|<span class="string">                                                                </span>|</span><br><span class="line">   |<span class="string">  </span>|<span class="string"> 睡 眠 代 码   </span>|<span class="string">                                                                </span>|</span><br><span class="line">   |<span class="string">  +--------------+                                                                </span>|</span><br><span class="line">   |<span class="string">                                                                                  </span>|</span><br><span class="line">   +----------------------------------------------------------------------------------+</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol><a id="more"></a>
+
+
+<p>内核态是实现电源管理的核心代码，主要分为如下几大功能模块：</p>
+<ol>
+<li>提供用户空间态操作的SYSFS节点操作</li>
+<li>记录系统中拿睡眠锁的Wake Source</li>
+<li>内核自动休眠例程Autosleep</li>
+<li>平台相关睡眠（及唤醒）代码</li>
+<li>各个硬件驱动程序：<ol>
+<li>注册硬件相关的睡眠及唤醒代码，保证经过一次断电恢复后的硬件仍能正常工作。</li>
+<li>根据应用需要，拿Wake Lock和释放Wake Lock，保证硬件驱动可以正常工作。</li>
+</ol>
+</li>
+</ol>
+<h1 id="数据和变量"><a href="#数据和变量" class="headerlink" title="数据和变量"></a>数据和变量</h1><p>在对电源管理的系统流程进行介绍之前，先对电源管理的一些必要的数据结构和关键变量进行分析。</p>
+<h2 id="wakeup-source-wakeup-sources"><a href="#wakeup-source-wakeup-sources" class="headerlink" title="wakeup_source/wakeup_sources"></a>wakeup_source/wakeup_sources</h2><p>wakeup_source名字具有一定迷惑性，乍一看像是触发系统从睡眠中唤醒的唤醒源，实则不然。这个结构体是用来描述所有“阻挡”系统进入休眠的对象，即向电源管理模块拿wakelock用的。而wakeup_sources则是记录系统中所有wakeup_source的链表。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">wakeup_source</span> &#123;</span></span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">char</span> 		*name;            <span class="comment">//名称</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">entry</span>;</span>             <span class="comment">//挂入wakeup_sources链表的表头</span></span><br><span class="line">	<span class="keyword">spinlock_t</span>		lock;              <span class="comment">//自旋锁保护该wakeup_source内容的修改</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">wake_irq</span>		*<span class="title">wakeirq</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">timer_list</span>	<span class="title">timer</span>;</span>             <span class="comment">//wakeup source相关的定时器</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		timer_expires;  <span class="comment">//超时时间，也就是wake_lock_timeout()里面的时间参数，超时后会执行deactivate函数</span></span><br><span class="line">	<span class="keyword">ktime_t</span> total_time;                  <span class="comment">//该wakeup source被激活的总时间</span></span><br><span class="line">	<span class="keyword">ktime_t</span> max_time;                  </span><br><span class="line">	<span class="keyword">ktime_t</span> last_time;                  <span class="comment">//该wakeup source上次被访问的时间</span></span><br><span class="line">	<span class="keyword">ktime_t</span> start_prevent_time;           <span class="comment">//上次因wakeup source导致系统无法休眠的时间</span></span><br><span class="line">	<span class="keyword">ktime_t</span> prevent_sleep_time;          <span class="comment">//’阻止系统休眠的时长</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		event_count;   <span class="comment">//产生事件数</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		active_count;   <span class="comment">//激活次数</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		relax_count;    <span class="comment">//释放次数</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		expire_count;   <span class="comment">//Wakeup source的超时次数</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		wakeup_count;  <span class="comment">//该source阻止系统休眠的次数</span></span><br><span class="line">	<span class="keyword">bool</span>			active:<span class="number">1</span>;               <span class="comment">//是否激活状态</span></span><br><span class="line">	<span class="keyword">bool</span>			autosleep_enabled:<span class="number">1</span>;    <span class="comment">//系统是否开启autosleep</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="suspend-state-t"><a href="#suspend-state-t" class="headerlink" title="suspend_state_t"></a>suspend_state_t</h2><p>描述系统休眠几种不同状态，按照睡眠从浅入深分别是：</p>
+<ol>
+<li>On：未休眠</li>
+<li>Freeze：轻量级的休眠状态。</li>
+<li>Standby：中等休眠状态，CPU没有挂起（Memory和CPU带电）</li>
+<li>Mem：深度休眠，系统及设备状态挂起到Memory（Memory仍然带电），CPU不再工作（少数外围设备工作）。<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">typedefint __bitwise <span class="keyword">suspend_state_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM_SUSPEND_ON         ((__force suspend_state_t) 0)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM_SUSPEND_FREEZE   ((__force suspend_state_t) 1)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM_SUSPEND_STANDBY      ((__force suspend_state_t) 2)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM_SUSPEND_MEM             ((__force suspend_state_t) 3)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM_SUSPEND_MIN        PM_SUSPEND_FREEZE</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM_SUSPEND_MAX              ((__force suspend_state_t) 4)</span></span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h2 id="combined-event-count"><a href="#combined-event-count" class="headerlink" title="combined_event_count"></a>combined_event_count</h2><p>用于记录系统中已注册的wakeup事件数量和正在生效的wakeup事件数量。这两个变量需要一起更新的，所以用combined_event_count一个变量来记录。高16 bit存放正在生效的wakeup事件数量，低16bit存放wakeup事件总数量。</p>
+<h1 id="后续章节预告"><a href="#后续章节预告" class="headerlink" title="后续章节预告"></a>后续章节预告</h1><blockquote>
+<p>Autosleep及power状态设置流程 Autosleep代码分析 Wakelock拿锁与释放锁流程分析</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\10\29\linux-low-power-2\" rel="bookmark">LINUX电源管理介绍-2</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\08\10\linux-vfs-2\" rel="bookmark">Linux虚拟文件系统（2）-- 初始化流程</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\07\21\linux-interrupt-2\" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\01\06\linux-kernel-e-books\" rel="bookmark">Linux内核学习电子书</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\05\15\yaffs-3\" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/电源管理/" rel="tag"># 电源管理</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/10/20/hell-mode/" rel="next" title="为你的博客开出地狱模式">
+                  <i class="fa fa-chevron-left"></i> 为你的博客开出地狱模式
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/10/28/markdown-editor/" rel="prev" title="Wordpress使用Markdown编辑器">
+                  Wordpress使用Markdown编辑器 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#架构"><span class="nav-number">2.</span> <span class="nav-text">架构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#数据和变量"><span class="nav-number">3.</span> <span class="nav-text">数据和变量</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#wakeup-source-wakeup-sources"><span class="nav-number">3.1.</span> <span class="nav-text">wakeup_source/wakeup_sources</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#suspend-state-t"><span class="nav-number">3.2.</span> <span class="nav-text">suspend_state_t</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#combined-event-count"><span class="nav-number">3.3.</span> <span class="nav-text">combined_event_count</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#后续章节预告"><span class="nav-number">4.</span> <span class="nav-text">后续章节预告</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

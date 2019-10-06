@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="前言Yaffs文件系统(1)-概述对文件系统的基本数据结构和初始化流程进行了介绍，本节着重介绍Yaffs如何对Block和Chunk进行管理的。Block分类UNKNOWN区块状态未知NEEDS_SCANNING预扫描时确定该Block需要被扫描SCANNINGBlock正在扫描EMPTYBlock为空，表示已经被擦除ALLOCATINGBlock被Chunk分配器使用中FULLBlock已经分配">
+<meta name="keywords" content="Linux,YAFFS,文件系统">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Yaffs文件系统(2)--块及Chunk管理">
+<meta property="og:url" content="http://l2h.site/2019/05/14/yaffs-2/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="前言Yaffs文件系统(1)-概述对文件系统的基本数据结构和初始化流程进行了介绍，本节着重介绍Yaffs如何对Block和Chunk进行管理的。Block分类UNKNOWN区块状态未知NEEDS_SCANNING预扫描时确定该Block需要被扫描SCANNINGBlock正在扫描EMPTYBlock为空，表示已经被擦除ALLOCATINGBlock被Chunk分配器使用中FULLBlock已经分配">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-06T00:30:05.171Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Yaffs文件系统(2)--块及Chunk管理">
+<meta name="twitter:description" content="前言Yaffs文件系统(1)-概述对文件系统的基本数据结构和初始化流程进行了介绍，本节着重介绍Yaffs如何对Block和Chunk进行管理的。Block分类UNKNOWN区块状态未知NEEDS_SCANNING预扫描时确定该Block需要被扫描SCANNINGBlock正在扫描EMPTYBlock为空，表示已经被擦除ALLOCATINGBlock被Chunk分配器使用中FULLBlock已经分配">
+  <link rel="canonical" href="http://l2h.site/2019/05/14/yaffs-2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Yaffs文件系统(2)--块及Chunk管理 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/05/14/yaffs-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Yaffs文件系统(2)--块及Chunk管理
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-05-14 14:12:01" itemprop="dateCreated datePublished" datetime="2019-05-14T14:12:01+08:00">2019-05-14</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-06 08:30:05" itemprop="dateModified" datetime="2019-10-06T08:30:05+08:00">2019-10-06</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux文件系统/" itemprop="url" rel="index"><span itemprop="name">Linux文件系统</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><a href="https://l2h.site/2019/04/30/yaffs-1/">Yaffs文件系统(1)-概述</a>对文件系统的基本数据结构和初始化流程进行了介绍，本节着重介绍Yaffs如何对Block和Chunk进行管理的。</p><h2 id="Block分类"><a href="#Block分类" class="headerlink" title="Block分类"></a>Block分类</h2><p>UNKNOWN</p><p>区块状态未知</p><p>NEEDS_SCANNING</p><p>预扫描时确定该Block需要被扫描</p><p>SCANNING</p><p>Block正在扫描</p><p>EMPTY</p><p>Block为空，表示已经被擦除</p><p>ALLOCATING</p><p>Block被Chunk分配器使用中</p><p>FULL</p><p>Block已经分配，且至少有一个chunk被删除</p><p>DIRTY</p><p>Block全部chunk被删可被擦除</p><p>CHECKPOINT</p><p>Block中包含checkpoint数据</p><p>COLLECTING</p><p>Block正在被做垃圾回收</p><p>DEAD</p><p>Block为坏块</p><a id="more"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<p>以上Block状态转化图如下：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/05/yaffs-2-1.png"></p>
+<h2 id="Block和Chunk分配"><a href="#Block和Chunk分配" class="headerlink" title="Block和Chunk分配"></a>Block和Chunk分配</h2><p>Yaffs分配原则如下：</p>
+<ul>
+<li>Yaffs保存目前正在使用的Block编号，优先从该block上分配Chunk</li>
+<li>当Block已经分配完毕（进入FULL状态），则选取另外一个未分配Block（即EMPTY Block）来分配</li>
+<li>分配Chunk时，更新该Block对应的分配位图</li>
+</ul>
+<p>代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">yaffs_alloc_chunk</span><span class="params">(struct yaffs_dev *dev, <span class="keyword">int</span> use_reserver, struct yaffs_block_info **block_ptr)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">int</span> ret_val;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_block_info</span> *<span class="title">bi</span>;</span></span><br><span class="line">        <span class="comment">//若当前用于分配的Block为0，则找到一个EMPTY块分配</span></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;alloc_block &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		dev-&gt;alloc_block = yaffs_find_alloc_block(dev);</span><br><span class="line">		dev-&gt;alloc_page = <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">        ..........</span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;alloc_block &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="comment">//取得当前Block信息</span></span><br><span class="line">		bi = yaffs_get_block_info(dev, dev-&gt;alloc_block);</span><br><span class="line">                <span class="comment">//得到Chunk ID</span></span><br><span class="line">		ret_val = (dev-&gt;alloc_block * dev-&gt;param.chunks_per_block) + dev-&gt;alloc_page;</span><br><span class="line">		bi-&gt;pages_in_use++;</span><br><span class="line">                <span class="comment">//设定当前Block的Chunk位图，更新剩余chunk的id，以及当前Block已分配page数量</span></span><br><span class="line">		yaffs_set_chunk_bit(dev, dev-&gt;alloc_block, dev-&gt;alloc_page);</span><br><span class="line">		dev-&gt;alloc_page++;</span><br><span class="line">		dev-&gt;n_free_chunks--;</span><br><span class="line">                <span class="comment">//若已经分配数量大于Block支持最大的数量，则标记block状态为FULL，同时设置alloc_block为-1，表示重新查找一个EMPTY block进行分配</span></span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;alloc_page &gt;= dev-&gt;param.chunks_per_block)          &#123;</span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_FULL;</span><br><span class="line">			dev-&gt;alloc_block = <span class="number">-1</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (block_ptr) *block_ptr = bi;</span><br><span class="line">		<span class="keyword">return</span> ret_val;</span><br><span class="line">	&#125;</span><br><span class="line">        .......</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">yaffs_find_alloc_block</span><span class="params">(struct yaffs_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        ......<span class="comment">//若剩余可用Block不足，则不分配</span></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;n_erased_blocks &lt; <span class="number">1</span>)  <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        <span class="comment">//以下为遍历查找一个可用block</span></span><br><span class="line">	<span class="keyword">for</span> (i = dev-&gt;internal_start_block; i &lt;= dev-&gt;internal_end_block; i++) &#123;</span><br><span class="line">		dev-&gt;alloc_block_finder++;</span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;alloc_block_finder &lt; (<span class="keyword">int</span>)dev-&gt;internal_start_block || dev-&gt;alloc_block_finder &gt; (<span class="keyword">int</span>)dev-&gt;internal_end_block) &#123;</span><br><span class="line">			dev-&gt;alloc_block_finder = dev-&gt;internal_start_block;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		bi = yaffs_get_block_info(dev, dev-&gt;alloc_block_finder);</span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_EMPTY) &#123;</span><br><span class="line"><span class="comment">//查找到一个EMPLY Block，则使用之，使用前更新状态为ALLOCATING</span></span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_ALLOCATING;</span><br><span class="line"><span class="comment">//序列号，用于标记文件chunk的新旧，每分配一个block就+1</span></span><br><span class="line">			dev-&gt;seq_number++;</span><br><span class="line">			bi-&gt;seq_number = dev-&gt;seq_number;</span><br><span class="line">			dev-&gt;n_erased_blocks--;</span><br><span class="line">			<span class="keyword">return</span> dev-&gt;alloc_block_finder;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">..........</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> struct yaffs_block_info *<span class="title">yaffs_get_block_info</span><span class="params">(struct yaffs_dev *dev, <span class="keyword">int</span> blk)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">..........</span><br><span class="line">       <span class="comment">//返回当前Block的info</span></span><br><span class="line">	<span class="keyword">return</span> &amp;dev-&gt;block_info[blk - dev-&gt;internal_start_block];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Block的扫描"><a href="#Block的扫描" class="headerlink" title="Block的扫描"></a>Block的扫描</h2><p>扫描的目的是Mount时建立起Yaffs的文件结构，代码实现在yaffs_guts_initialise（如果您还有印象，即mount过程中yaffs_internal_read_super会调用到的），如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">yaffs_guts_initialise</span><span class="params">(struct yaffs_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">......<span class="comment">//yaffs的Low Level初始化，主要为初始化一些基本参数</span></span><br><span class="line">	<span class="keyword">if</span>(yaffs_guts_ll_init(dev) != YAFFS_OK) <span class="keyword">return</span> YAFFS_FAIL; </span><br><span class="line">......</span><br><span class="line">	dev-&gt;is_mounted = <span class="number">1</span>;</span><br><span class="line">......<span class="comment">//初始化块管理相关一些基本参数</span></span><br><span class="line">	<span class="keyword">if</span> (!init_failed &amp;&amp; !yaffs_init_blocks(dev)) init_failed = <span class="number">1</span>;</span><br><span class="line">      <span class="comment">//初始化tnode对象树</span></span><br><span class="line">	yaffs_init_tnodes_and_objs(dev);</span><br><span class="line">      <span class="comment">//初始化根目录、lost and found等特殊目录</span></span><br><span class="line">	<span class="keyword">if</span> (!init_failed &amp;&amp; !yaffs_create_initial_dir(dev)) init_failed = <span class="number">1</span>;</span><br><span class="line">      <span class="comment">//summary init（Yaffs2新引入的机制，利用block的空白chunk区域存储一些有效信息来帮助加速加载）</span></span><br><span class="line">	<span class="keyword">if</span> (!init_failed &amp;&amp; dev-&gt;param.is_yaffs2 &amp;&amp; !dev-&gt;param.disable_summary &amp;&amp; !yaffs_summary_init(dev))</span><br><span class="line">		init_failed = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!init_failed) &#123;</span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;param.is_yaffs2) &#123;</span><br><span class="line">      <span class="comment">//尝试从checkpoint中恢复mount</span></span><br><span class="line">			<span class="keyword">if</span> (yaffs2_checkpt_restore(dev)) &#123;</span><br><span class="line">				yaffs_check_obj_details_loaded(dev-&gt;root_dir);</span><br><span class="line">......</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">//如果checkpoint加载失败，则重新初始化block和tnode树（因为checkpoint加载过程中可能已经使用了相关结构做存储，而我们这里要重新建立）</span></span><br><span class="line">				yaffs_deinit_blocks(dev);</span><br><span class="line">				yaffs_deinit_tnodes_and_objs(dev);</span><br><span class="line">......</span><br><span class="line">				<span class="keyword">if</span> (!init_failed &amp;&amp; yaffs_init_blocks(dev)) init_failed = <span class="number">1</span>;</span><br><span class="line">				yaffs_init_tnodes_and_objs(dev);</span><br><span class="line">				<span class="keyword">if</span> (!init_failed &amp;&amp; !yaffs_create_initial_dir(dev)) init_failed = <span class="number">1</span>;</span><br><span class="line">      <span class="comment">//执行Block扫描过程</span></span><br><span class="line">				<span class="keyword">if</span> (!init_failed &amp;&amp; !yaffs2_scan_backwards(dev)) init_failed = <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!yaffs1_scan(dev)) &#123;</span><br><span class="line">			init_failed = <span class="number">1</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		yaffs_strip_deleted_objs(dev);</span><br><span class="line">		yaffs_fix_hanging_objs(dev);</span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;param.empty_lost_n_found)</span><br><span class="line">			yaffs_empty_l_n_f(dev);</span><br><span class="line">	&#125;</span><br><span class="line">......</span><br><span class="line">	<span class="keyword">return</span> YAFFS_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>本文暂不讨论summary以及checkpoint等情况，那么整个block加载过程的核心代码即为：<strong>yaffs2_scan_backwards</strong>。详细如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">yaffs2_scan_backwards</span><span class="params">(struct yaffs_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">......</span><br><span class="line">	dev-&gt;seq_number = YAFFS_LOWEST_SEQUENCE_NUMBER;</span><br><span class="line"><span class="comment">//为block信息存储分配空间</span></span><br><span class="line">	block_index = kmalloc(n_blocks * <span class="keyword">sizeof</span>(struct yaffs_block_index), GFP_NOFS);</span><br><span class="line">	<span class="keyword">if</span> (!block_index) &#123;</span><br><span class="line">		block_index =  vmalloc(n_blocks * <span class="keyword">sizeof</span>(struct yaffs_block_index)); alt_block_index = <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">......</span><br><span class="line">	dev-&gt;blocks_in_checkpt = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	chunk_data = yaffs_get_temp_buffer(dev);</span><br><span class="line"><span class="comment">//以下这段代码看着很长，但其实比较容易理解，详见注释</span></span><br><span class="line">	bi = dev-&gt;block_info;</span><br><span class="line">	<span class="keyword">for</span> (blk = dev-&gt;internal_start_block; blk &lt;= dev-&gt;internal_end_block; blk++) &#123;</span><br><span class="line"><span class="comment">//清除block的chunk使用标记</span></span><br><span class="line">		yaffs_clear_chunk_bits(dev, blk);</span><br><span class="line">		bi-&gt;pages_in_use = <span class="number">0</span>;</span><br><span class="line">		bi-&gt;soft_del_pages = <span class="number">0</span>;</span><br><span class="line"><span class="comment">//得到block初始状态以及序列号，即执行yaffs_tags_marshall_query_block得到当前block里chunk是否有正在使用，如果有则需要扫描</span></span><br><span class="line">		yaffs_query_init_block_state(dev, blk, &amp;state, &amp;seq_number);</span><br><span class="line">		bi-&gt;block_state = state;</span><br><span class="line">		bi-&gt;seq_number = seq_number;</span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;seq_number == YAFFS_SEQUENCE_CHECKPOINT_DATA)</span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_CHECKPOINT;</span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;seq_number == YAFFS_SEQUENCE_BAD_BLOCK)</span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_DEAD;</span><br><span class="line">......</span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_CHECKPOINT) &#123;</span><br><span class="line">			dev-&gt;blocks_in_checkpt++;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_DEAD) &#123;</span><br><span class="line">			yaffs_trace(YAFFS_TRACE_BAD_BLOCKS, <span class="string">"block %d is bad"</span>, blk);</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_EMPTY) &#123;</span><br><span class="line">			yaffs_trace(YAFFS_TRACE_SCAN_DEBUG, <span class="string">"Block empty "</span>);</span><br><span class="line">			dev-&gt;n_erased_blocks++;</span><br><span class="line">			dev-&gt;n_free_chunks += dev-&gt;param.chunks_per_block;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_NEEDS_SCAN) &#123;</span><br><span class="line"><span class="comment">//如果block状态为needs_scan，则标记后续对block进行scan</span></span><br><span class="line">			<span class="keyword">if</span> (seq_number &gt;= YAFFS_LOWEST_SEQUENCE_NUMBER &amp;&amp; seq_number &lt; YAFFS_HIGHEST_SEQUENCE_NUMBER) &#123;</span><br><span class="line">				block_index[n_to_scan].seq = seq_number;</span><br><span class="line">				block_index[n_to_scan].block = blk;</span><br><span class="line">				n_to_scan++;</span><br><span class="line">				<span class="keyword">if</span> (seq_number &gt;= dev-&gt;seq_number)</span><br><span class="line">					dev-&gt;seq_number = seq_number;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				yaffs_trace(YAFFS_TRACE_SCAN, <span class="string">"Block scanning block %d has bad sequence number %d"</span>, blk, seq_number);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		bi++;</span><br><span class="line">	&#125;</span><br><span class="line">...... <span class="comment">//对block进行排序，排序的依据是按照block的序列号。会这样做原因是yaffs在管理文件，采用就是逐步增加的序列号。同一个文件同一个chunk id，较大的序列号为最新。这也是函数scan_backwards的由来。</span></span><br><span class="line">	sort(block_index, n_to_scan, <span class="keyword">sizeof</span>(struct yaffs_block_index),</span><br><span class="line">		   yaffs2_ybicmp, <span class="literal">NULL</span>);</span><br><span class="line"><span class="comment">//真正开始进行扫描</span></span><br><span class="line">	start_iter = <span class="number">0</span>;</span><br><span class="line">	end_iter = n_to_scan - <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">for</span> (block_iter = end_iter;!alloc_failed &amp;&amp; block_iter &gt;= start_iter;block_iter--) &#123;</span><br><span class="line">......</span><br><span class="line"><span class="comment">//对每个需要扫描的block进行扫描</span></span><br><span class="line">		blk = block_index[block_iter].block;</span><br><span class="line">		bi = yaffs_get_block_info(dev, blk);</span><br><span class="line">		deleted = <span class="number">0</span>;</span><br><span class="line"><span class="comment">//summary读取，本文不做详述</span></span><br><span class="line">		summary_available = yaffs_summary_read(dev, dev-&gt;sum_tags, blk);</span><br><span class="line">		found_chunks = <span class="number">0</span>;</span><br><span class="line">		<span class="keyword">if</span> (summary_available)</span><br><span class="line">			c = dev-&gt;chunks_per_summary - <span class="number">1</span>;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			c = dev-&gt;param.chunks_per_block - <span class="number">1</span>;</span><br><span class="line"><span class="comment">//对block中的每一个chunk进行扫描</span></span><br><span class="line">		<span class="keyword">for</span> (  !alloc_failed &amp;&amp; c &gt;= <span class="number">0</span> &amp;&amp;</span><br><span class="line">		     (bi-&gt;block_state == YAFFS_BLOCK_STATE_NEEDS_SCAN ||</span><br><span class="line">		      bi-&gt;block_state == YAFFS_BLOCK_STATE_ALLOCATING);</span><br><span class="line">		      c--) &#123;</span><br><span class="line">			<span class="keyword">if</span> (yaffs2_scan_chunk(dev, bi, blk, c, &amp;found_chunks, chunk_data, &amp;hard_list, summary_available) == YAFFS_FAIL) alloc_failed = <span class="number">1</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_NEEDS_SCAN) &#123;</span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_FULL;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;pages_in_use == <span class="number">0</span> &amp;&amp;  !bi-&gt;has_shrink_hdr &amp;&amp;</span><br><span class="line">		    bi-&gt;block_state == YAFFS_BLOCK_STATE_FULL) &#123;</span><br><span class="line">			yaffs_block_became_dirty(dev, blk);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	yaffs_skip_rest_of_block(dev);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (alt_block_index) vfree(block_index);</span><br><span class="line">	<span class="keyword">else</span> kfree(block_index);</span><br><span class="line">        <span class="comment">//处理文件Hard Link</span></span><br><span class="line">	yaffs_link_fixup(dev, &amp;hard_list);</span><br><span class="line">        <span class="comment">//释放分配的临时缓存</span></span><br><span class="line">	yaffs_release_temp_buffer(dev, chunk_data);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (alloc_failed)</span><br><span class="line">		<span class="keyword">return</span> YAFFS_FAIL;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> YAFFS_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从代码注释可以看出，yaffs2_scan_backwards核心代码为yaffs2_scan_chunk,代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">int</span> <span class="title">yaffs2_scan_chunk</span><span class="params">(struct yaffs_dev *dev,</span></span></span><br><span class="line"><span class="function"><span class="params">		struct yaffs_block_info *bi,</span></span></span><br><span class="line"><span class="function"><span class="params">		<span class="keyword">int</span> blk, <span class="keyword">int</span> chunk_in_block,</span></span></span><br><span class="line"><span class="function"><span class="params">		<span class="keyword">int</span> *found_chunks,</span></span></span><br><span class="line"><span class="function"><span class="params">		u8 *chunk_data,</span></span></span><br><span class="line"><span class="function"><span class="params">		struct list_head *hard_list,</span></span></span><br><span class="line"><span class="function"><span class="params">		<span class="keyword">int</span> summary_available)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">......<span class="comment">//如果存在summary则读取summary</span></span><br><span class="line">	<span class="keyword">int</span> chunk = blk * dev-&gt;param.chunks_per_block + chunk_in_block</span><br><span class="line">	<span class="keyword">if</span> (summary_available) &#123;</span><br><span class="line">		result = yaffs_summary_fetch(dev, &amp;tags, chunk_in_block);</span><br><span class="line">		tags.seq_number = bi-&gt;seq_number;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="comment">//从chunk中读取对应tag信息</span></span><br><span class="line">	<span class="keyword">if</span> (!summary_available || tags.obj_id == <span class="number">0</span>) &#123;</span><br><span class="line">		result = yaffs_rd_chunk_tags_nand(dev, chunk, <span class="literal">NULL</span>, &amp;tags);</span><br><span class="line">		dev-&gt;tags_used++;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		dev-&gt;summary_used++;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!tags.chunk_used) &#123;</span><br><span class="line">......</span><br><span class="line">		<span class="keyword">if</span> (*found_chunks) &#123;</span><br><span class="line">			<span class="comment">/* This is a chunk that was skipped due</span></span><br><span class="line"><span class="comment">			 * to failing the erased check */</span></span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (chunk_in_block == <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="comment">//如果为block第一个chunk且未使用，则整个block为空</span></span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_EMPTY;</span><br><span class="line">			dev-&gt;n_erased_blocks++;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="comment">//若扫到block末尾，则进行相应标记</span></span><br><span class="line">			<span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_NEEDS_SCAN ||  bi-&gt;block_state == YAFFS_BLOCK_STATE_ALLOCATING) &#123;</span><br><span class="line">				<span class="keyword">if</span> (dev-&gt;seq_number == bi-&gt;seq_number) &#123;</span><br><span class="line">					bi-&gt;block_state = YAFFS_BLOCK_STATE_ALLOCATING;</span><br><span class="line">					dev-&gt;alloc_block = blk;</span><br><span class="line">					dev-&gt;alloc_page = chunk_in_block;</span><br><span class="line">					dev-&gt;alloc_block_finder = blk;</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="comment">//从打印可以看出该block之前没有写完整，导致block内seq_number不相同</span></span><br><span class="line">					yaffs_trace(YAFFS_TRACE_SCAN,</span><br><span class="line">						<span class="string">"Partially written block %d detected. gc will fix this."</span>, blk);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		dev-&gt;n_free_chunks++;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (tags.ecc_result ==</span><br><span class="line">		YAFFS_ECC_RESULT_UNFIXED) &#123;</span><br><span class="line"><span class="comment">//出现ECC校验失败</span></span><br><span class="line">                yaffs_trace(YAFFS_TRACE_SCAN, <span class="string">" Unfixed ECC in chunk(%d:%d), chunk ignored"</span>,blk, chunk_in_block);</span><br><span class="line">		dev-&gt;n_free_chunks++;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (tags.obj_id &gt; YAFFS_MAX_OBJECT_ID ||</span><br><span class="line">		   tags.chunk_id &gt; YAFFS_MAX_CHUNK_ID ||</span><br><span class="line">		   tags.obj_id == YAFFS_OBJECTID_SUMMARY ||</span><br><span class="line">		   (tags.chunk_id &gt; <span class="number">0</span> &amp;&amp;  tags.n_bytes &gt; dev-&gt;data_bytes_per_chunk) || tags.seq_number != bi-&gt;seq_number) &#123;</span><br><span class="line">                <span class="comment">//对一些异常chunk做处理</span></span><br><span class="line">		yaffs_trace(YAFFS_TRACE_SCAN, <span class="string">"Chunk (%d:%d) with bad tags:obj = %d, chunk_id = %d, n_bytes = %d, ignored"</span>, blk, chunk_in_block, tags.obj_id, tags.chunk_id, tags.n_bytes);</span><br><span class="line">		dev-&gt;n_free_chunks++;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (tags.chunk_id &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">//所有的tag标记都正常，则开始进行后续处理</span></span><br><span class="line">		<span class="comment">/* chunk_id &gt; 0 so it is a data chunk... */</span></span><br><span class="line">		<span class="keyword">loff_t</span> endpos;</span><br><span class="line">		<span class="keyword">loff_t</span> chunk_base = (tags.chunk_id - <span class="number">1</span>) *</span><br><span class="line">					dev-&gt;data_bytes_per_chunk;</span><br><span class="line"></span><br><span class="line">		*found_chunks = <span class="number">1</span>;</span><br><span class="line">        <span class="comment">//标记block中的chunk使用状况</span></span><br><span class="line">		yaffs_set_chunk_bit(dev, blk, chunk_in_block);</span><br><span class="line">		bi-&gt;pages_in_use++;</span><br><span class="line">        <span class="comment">//找到文件句柄。若没有，表示第一次扫到该文件，创建之</span></span><br><span class="line">		in = yaffs_find_or_create_by_number(dev,tags.obj_id, YAFFS_OBJECT_TYPE_FILE);</span><br><span class="line">		<span class="keyword">if</span> (!in)  alloc_failed = <span class="number">1</span>;</span><br><span class="line">		<span class="keyword">if</span> (in &amp;&amp;  in-&gt;variant_type == YAFFS_OBJECT_TYPE_FILE &amp;&amp;</span><br><span class="line">		    chunk_base &lt; in-&gt;variant.file_variant.shrink_size) &#123;</span><br><span class="line">			<span class="keyword">if</span> (!yaffs_put_chunk_in_file(in, tags.chunk_id, chunk, <span class="number">-1</span>)) alloc_failed = <span class="number">1</span>;</span><br><span class="line"><span class="comment">//将该文件部分加入tnode tree</span></span><br><span class="line">			endpos = chunk_base + tags.n_bytes;</span><br><span class="line">			<span class="keyword">if</span> (!in-&gt;valid &amp;&amp; in-&gt;variant.file_variant.scanned_size &lt; endpos) &#123;</span><br><span class="line">				in-&gt;variant.file_variant.</span><br><span class="line">				    scanned_size = endpos;</span><br><span class="line">				in-&gt;variant.file_variant.</span><br><span class="line">				    file_size = endpos;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (in) &#123;</span><br><span class="line"><span class="comment">//该文件超出了文件shrink大小，表示这是一个被resize过的文件，则删除超出文件大小的部分</span></span><br><span class="line">			yaffs_chunk_del(dev, chunk, <span class="number">1</span>, __LINE__);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"><span class="comment">//存放文件头部（chunk id为0）的chunk进行处理</span></span><br><span class="line">		*found_chunks = <span class="number">1</span>;</span><br><span class="line">		yaffs_set_chunk_bit(dev, blk, chunk_in_block);</span><br><span class="line">		bi-&gt;pages_in_use++;</span><br><span class="line">		oh = <span class="literal">NULL</span>;</span><br><span class="line">		in = <span class="literal">NULL</span>;</span><br><span class="line">		<span class="keyword">if</span> (tags.extra_available) &#123;</span><br><span class="line">			in = yaffs_find_or_create_by_number(dev,</span><br><span class="line">					tags.obj_id,</span><br><span class="line">					tags.extra_obj_type);</span><br><span class="line">			<span class="keyword">if</span> (!in) alloc_failed = <span class="number">1</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!in || (!in-&gt;valid &amp;&amp; dev-&gt;param.disable_lazy_load) || tags.extra_shadows || (!in-&gt;valid &amp;&amp; (tags.obj_id == YAFFS_OBJECTID_ROOT || tags.obj_id == YAFFS_OBJECTID_LOSTNFOUND))) &#123;</span><br><span class="line"><span class="comment">//从头部中读取文件信息</span></span><br><span class="line">			result = yaffs_rd_chunk_tags_nand(dev, chunk,  chunk_data,  <span class="literal">NULL</span>);</span><br><span class="line"><span class="comment">//文件头部的信息存放在chunk的数据起始位置</span></span><br><span class="line">			oh = (struct yaffs_obj_hdr *)chunk_data;</span><br><span class="line"><span class="comment">//使用Inband tag的特殊处理</span></span><br><span class="line">			<span class="keyword">if</span> (dev-&gt;param.inband_tags) &#123;</span><br><span class="line">				oh-&gt;shadows_obj = oh-&gt;inband_shadowed_obj_id;</span><br><span class="line">				oh-&gt;is_shrink = oh-&gt;inband_is_shrink;</span><br><span class="line">			&#125;</span><br><span class="line"><span class="comment">//创建文件obj</span></span><br><span class="line">			<span class="keyword">if</span> (!in) &#123;</span><br><span class="line">				in = yaffs_find_or_create_by_number(dev, tags.obj_id, oh-&gt;type);</span><br><span class="line">				<span class="keyword">if</span> (!in) alloc_failed = <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">..........</span><br><span class="line">		<span class="keyword">if</span> (in-&gt;valid) &#123;</span><br><span class="line"><span class="comment">//找到过同一文件。删除该chunk之前进行必要清理工作</span></span><br><span class="line">			<span class="keyword">if</span> ((in-&gt;variant_type == YAFFS_OBJECT_TYPE_FILE) &amp;&amp; ((oh &amp;&amp; oh-&gt;type == YAFFS_OBJECT_TYPE_FILE) || (tags.extra_available &amp;&amp;  tags.extra_obj_type == YAFFS_OBJECT_TYPE_FILE) )) &#123;</span><br><span class="line">				<span class="keyword">loff_t</span> this_size = (oh) ? yaffs_oh_to_size(oh) : tags.extra_file_size;</span><br><span class="line">				u32 parent_obj_id = (oh) ? oh-&gt;parent_obj_id : tags.extra_parent_id;</span><br><span class="line">				is_shrink = (oh) ? oh-&gt;is_shrink : tags.extra_is_shrink;</span><br><span class="line"><span class="comment">//文件的父id若为特殊标记，则文件大小为0</span></span><br><span class="line">				<span class="keyword">if</span> (parent_obj_id == AFFS_OBJECTID_DELETED ||parent_obj_id == YAFFS_OBJECTID_UNLINKED) &#123;</span><br><span class="line">					this_size = <span class="number">0</span>;</span><br><span class="line">					is_shrink = <span class="number">1</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> (is_shrink &amp;&amp;  in-&gt;variant.file_variant.shrink_size &gt; this_size)</span><br><span class="line">					in-&gt;variant.file_variant.shrink_size = this_size;</span><br><span class="line">				<span class="keyword">if</span> (is_shrink) bi-&gt;has_shrink_hdr = <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">/* Use existing - destroy this one. */</span></span><br><span class="line">			yaffs_chunk_del(dev, chunk, <span class="number">1</span>, __LINE__);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!in-&gt;valid &amp;&amp; in-&gt;variant_type !=</span><br><span class="line">		    (oh ? oh-&gt;type : tags.extra_obj_type)) &#123;</span><br><span class="line">			yaffs_trace(YAFFS_TRACE_ERROR,</span><br><span class="line">				<span class="string">"yaffs tragedy: Bad type, %d != %d, for object %d at chunk %d during scan"</span>,</span><br><span class="line">				oh ? oh-&gt;type : tags.extra_obj_type,</span><br><span class="line">				in-&gt;variant_type, tags.obj_id,</span><br><span class="line">				chunk);</span><br><span class="line">			in = yaffs_retype_obj(in, oh ? oh-&gt;type : tags.extra_obj_type);</span><br><span class="line">		&#125;</span><br><span class="line"><span class="comment">//Root目录和lostfound目录处理</span></span><br><span class="line">		<span class="keyword">if</span> (!in-&gt;valid &amp;&amp;  (tags.obj_id == YAFFS_OBJECTID_ROOT || tags.obj_id == YAFFS_OBJECTID_LOSTNFOUND)) &#123;</span><br><span class="line">			in-&gt;valid = <span class="number">1</span>;</span><br><span class="line">			<span class="keyword">if</span> (oh) &#123;</span><br><span class="line">				in-&gt;yst_mode = oh-&gt;yst_mode;</span><br><span class="line">				yaffs_load_attribs(in, oh);</span><br><span class="line">				in-&gt;lazy_loaded = <span class="number">0</span>;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				in-&gt;lazy_loaded = <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			in-&gt;hdr_chunk = chunk;</span><br><span class="line"></span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!in-&gt;valid) &#123;</span><br><span class="line"><span class="comment">//第一次找到文件头部</span></span><br><span class="line">			in-&gt;valid = <span class="number">1</span>;</span><br><span class="line">			in-&gt;hdr_chunk = chunk;</span><br><span class="line">			<span class="keyword">if</span> (oh) &#123;</span><br><span class="line">				in-&gt;variant_type = oh-&gt;type;</span><br><span class="line">				in-&gt;yst_mode = oh-&gt;yst_mode;</span><br><span class="line">				yaffs_load_attribs(in, oh);</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> (oh-&gt;shadows_obj &gt; <span class="number">0</span>) yaffs_handle_shadowed_obj(dev,  oh-&gt;shadows_obj, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">				yaffs_set_obj_name_from_oh(in, oh);</span><br><span class="line">				parent = yaffs_find_or_create_by_number(dev, oh-&gt;parent_obj_id, YAFFS_OBJECT_TYPE_DIRECTORY);</span><br><span class="line">				file_size = yaffs_oh_to_size(oh);</span><br><span class="line">				is_shrink = oh-&gt;is_shrink;</span><br><span class="line">				equiv_id = oh-&gt;equiv_id;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				in-&gt;variant_type = tags.extra_obj_type;</span><br><span class="line">				parent = yaffs_find_or_create_by_number(dev, tags.extra_parent_id, YAFFS_OBJECT_TYPE_DIRECTORY);</span><br><span class="line">				file_size = tags.extra_file_size;</span><br><span class="line">				is_shrink = tags.extra_is_shrink;</span><br><span class="line">				equiv_id = tags.extra_equiv_id;</span><br><span class="line">				in-&gt;lazy_loaded = <span class="number">1</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			in-&gt;dirty = <span class="number">0</span>;</span><br><span class="line">			<span class="keyword">if</span> (!parent)</span><br><span class="line">				alloc_failed = <span class="number">1</span>;</span><br><span class="line">			<span class="keyword">if</span> (parent &amp;&amp;</span><br><span class="line">			    parent-&gt;variant_type == YAFFS_OBJECT_TYPE_UNKNOWN) &#123;</span><br><span class="line">				parent-&gt;variant_type =</span><br><span class="line">					YAFFS_OBJECT_TYPE_DIRECTORY;</span><br><span class="line">				INIT_LIST_HEAD(&amp;parent-&gt;variant.dir_variant.children);</span><br><span class="line">			&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!parent || parent-&gt;variant_type != YAFFS_OBJECT_TYPE_DIRECTORY) &#123;</span><br><span class="line"><span class="comment">//文件若找不到父目录放到lost and found</span></span><br><span class="line">				yaffs_trace(YAFFS_TRACE_ERROR,</span><br><span class="line">					<span class="string">"yaffs tragedy: attempting to use non-directory as a directory in scan. Put in lost+found."</span></span><br><span class="line">					);</span><br><span class="line">				parent = dev-&gt;lost_n_found;</span><br><span class="line">			&#125;</span><br><span class="line">			yaffs_add_obj_to_dir(parent, in);</span><br><span class="line"></span><br><span class="line">			is_unlinked = (parent == dev-&gt;del_dir) || (parent == dev-&gt;unlinked_dir);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (is_shrink)</span><br><span class="line">				bi-&gt;has_shrink_hdr = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">switch</span> (in-&gt;variant_type) &#123;</span><br><span class="line">			<span class="keyword">case</span> YAFFS_OBJECT_TYPE_UNKNOWN:</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> YAFFS_OBJECT_TYPE_FILE:</span><br><span class="line">				file_var = &amp;in-&gt;variant.file_variant;</span><br><span class="line">				<span class="keyword">if</span> (file_var-&gt;scanned_size &lt; file_size) &#123;</span><br><span class="line">				<span class="comment">//文件扫到的大小小于文件chunk头部表示的大小</span></span><br><span class="line">					file_var-&gt;file_size = file_size;</span><br><span class="line">					file_var-&gt;scanned_size = file_size;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> (file_var-&gt;shrink_size &gt; file_size)</span><br><span class="line">					file_var-&gt;shrink_size = file_size;  <span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> YAFFS_OBJECT_TYPE_HARDLINK:</span><br><span class="line">				hl_var = &amp;in-&gt;variant.hardlink_variant;</span><br><span class="line">				<span class="keyword">if</span> (!is_unlinked) &#123;</span><br><span class="line">					hl_var-&gt;equiv_id = equiv_id;</span><br><span class="line">					list_add(&amp;in-&gt;hard_links, hard_list); &#125; <span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> YAFFS_OBJECT_TYPE_DIRECTORY:</span><br><span class="line">				<span class="comment">/* Do nothing */</span></span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> YAFFS_OBJECT_TYPE_SPECIAL:</span><br><span class="line">				<span class="comment">/* Do nothing */</span></span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> YAFFS_OBJECT_TYPE_SYMLINK:</span><br><span class="line">				sl_var = &amp;in-&gt;variant.symlink_variant;</span><br><span class="line">				<span class="keyword">if</span> (oh) &#123;</span><br><span class="line">					sl_var-&gt;alias =</span><br><span class="line">					    yaffs_clone_str(oh-&gt;alias);</span><br><span class="line">					<span class="keyword">if</span> (!sl_var-&gt;alias)</span><br><span class="line">						alloc_failed = <span class="number">1</span>;</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> alloc_failed ? YAFFS_FAIL : YAFFS_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上，就完成了扫描过程。</p>
+<h2 id="Block分配"><a href="#Block分配" class="headerlink" title="Block分配"></a>Block分配</h2><p>执行Block分配一般是由写操作触发的，最后的三个函数调用顺序为yaffs_write_new_chunk–&gt;yaffs_alloc_chunk–&gt;yaffs_find_alloc_block。代码分析如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">yaffs_write_new_chunk</span><span class="params">(struct yaffs_dev *dev,<span class="keyword">const</span> u8 *data, struct yaffs_ext_tags *tags, <span class="keyword">int</span> use_reserver)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">......<span class="comment">//因为写信chunk，表示Flash上内容已经改变了，将Checkpoint的数据设置为无效</span></span><br><span class="line">	yaffs2_checkpt_invalidate(dev);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">......<span class="comment">//分配chunk空间</span></span><br><span class="line">		chunk = yaffs_alloc_chunk(dev, use_reserver, &amp;bi);</span><br><span class="line">		<span class="keyword">if</span> (chunk &lt; <span class="number">0</span>) &#123;<span class="comment">/* no space */</span><span class="keyword">break</span>;&#125;</span><br><span class="line">		attempts++;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;param.always_check_erased)</span><br><span class="line">			bi-&gt;skip_erased_check = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!bi-&gt;skip_erased_check) &#123;</span><br><span class="line"><span class="comment">//确认chunk是否已经擦除</span></span><br><span class="line">			erased_ok = yaffs_check_chunk_erased(dev, chunk);</span><br><span class="line">			<span class="keyword">if</span> (erased_ok != YAFFS_OK) &#123;</span><br><span class="line">				yaffs_trace(YAFFS_TRACE_ERROR,</span><br><span class="line">				  <span class="string">"**&gt;\&gt; yaffs chunk %d was not erased"</span>, chunk);</span><br><span class="line"><span class="comment">//如果chunk没有擦除，则删除该chunk，跳到下个可用block寻找chunk</span></span><br><span class="line">				yaffs_chunk_del(dev, chunk, <span class="number">1</span>, __LINE__);</span><br><span class="line">				yaffs_skip_rest_of_block(dev);</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"><span class="comment">//写数据和tag到chunk内</span></span><br><span class="line">		write_ok = yaffs_wr_chunk_tags_nand(dev, chunk, data, tags);</span><br><span class="line">		<span class="keyword">if</span> (!bi-&gt;skip_erased_check)</span><br><span class="line">			write_ok =  yaffs_verify_chunk_written(dev, chunk, data, tags);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (write_ok != YAFFS_OK) &#123;</span><br><span class="line"><span class="comment">//执行写错的回调</span></span><br><span class="line">			yaffs_handle_chunk_wr_error(dev, chunk, erased_ok);</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		bi-&gt;skip_erased_check = <span class="number">1</span>;</span><br><span class="line"><span class="comment">//执行成功的回调</span></span><br><span class="line">		yaffs_handle_chunk_wr_ok(dev, chunk, data, tags);</span><br><span class="line"></span><br><span class="line">	&#125; <span class="keyword">while</span> (write_ok != YAFFS_OK &amp;&amp; (yaffs_wr_attempts == <span class="number">0</span> || attempts &lt;= yaffs_wr_attempts));</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!write_ok) chunk = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">if</span> (attempts &gt; <span class="number">1</span>) &#123;</span><br><span class="line">		yaffs_trace(YAFFS_TRACE_ERROR,<span class="string">"**&gt;&gt; yaffs write required %d attempts"</span>,attempts);</span><br><span class="line">		dev-&gt;n_retried_writes += (attempts - <span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> chunk;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">yaffs_alloc_chunk</span><span class="params">(struct yaffs_dev *dev, <span class="keyword">int</span> use_reserver, struct yaffs_block_info **block_ptr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;alloc_block &lt; <span class="number">0</span>) &#123;</span><br><span class="line"><span class="comment">//若当前无可分配的块，则分配块</span></span><br><span class="line">		dev-&gt;alloc_block = yaffs_find_alloc_block(dev);</span><br><span class="line">		dev-&gt;alloc_page = <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (!use_reserver &amp;&amp; !yaffs_check_alloc_available(dev, <span class="number">1</span>)) &#123;</span><br><span class="line"><span class="comment">//不使用保留块也找不到可用块</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;n_erased_blocks &lt; (<span class="keyword">int</span>)dev-&gt;param.n_reserved_blocks &amp;&amp; dev-&gt;alloc_page == <span class="number">0</span>)</span><br><span class="line">		yaffs_trace(YAFFS_TRACE_ALLOCATE, <span class="string">"Allocating reserve"</span>);</span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;alloc_block &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">		bi = yaffs_get_block_info(dev, dev-&gt;alloc_block);</span><br><span class="line">		ret_val = (dev-&gt;alloc_block * dev-&gt;param.chunks_per_block) +dev-&gt;alloc_page;</span><br><span class="line">		bi-&gt;pages_in_use++;</span><br><span class="line">		yaffs_set_chunk_bit(dev, dev-&gt;alloc_block, dev-&gt;alloc_page);</span><br><span class="line">		dev-&gt;alloc_page++;</span><br><span class="line">		dev-&gt;n_free_chunks--;</span><br><span class="line"></span><br><span class="line"><span class="comment">//若块已满，则标记状态为已满</span></span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;alloc_page &gt;= dev-&gt;param.chunks_per_block) &#123;</span><br><span class="line">			bi-&gt;block_state = YAFFS_BLOCK_STATE_FULL;</span><br><span class="line">			dev-&gt;alloc_block = <span class="number">-1</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (block_ptr)</span><br><span class="line">			*block_ptr = bi;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> ret_val;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	yaffs_trace(YAFFS_TRACE_ERROR,</span><br><span class="line">		<span class="string">"!!!!!!!!! Allocator out !!!!!!!!!!!!!!!!!"</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">yaffs_find_alloc_block</span><span class="params">(struct yaffs_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	u32 i;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_block_info</span> *<span class="title">bi</span>;</span></span><br><span class="line"><span class="comment">//没有可使用的块则返回-1</span></span><br><span class="line">	<span class="keyword">if</span> (dev-&gt;n_erased_blocks &lt; <span class="number">1</span>) &#123;</span><br><span class="line">	        yaffs_trace(YAFFS_TRACE_ERROR,<span class="string">"yaffs tragedy: no more erased blocks"</span>);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="comment">//否则，遍历找到一个可使用的块</span></span><br><span class="line">	<span class="keyword">for</span> (i = dev-&gt;internal_start_block; i &lt;= dev-&gt;internal_end_block; i++) &#123;</span><br><span class="line">		dev-&gt;alloc_block_finder++;</span><br><span class="line">		<span class="keyword">if</span> (dev-&gt;alloc_block_finder &lt; (<span class="keyword">int</span>)dev-&gt;internal_start_block || dev-&gt;alloc_block_finder &gt; (<span class="keyword">int</span>)dev-&gt;internal_end_block) &#123;</span><br><span class="line">			dev-&gt;alloc_block_finder = dev-&gt;internal_start_block;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		bi = yaffs_get_block_info(dev, dev-&gt;alloc_block_finder);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (bi-&gt;block_state == YAFFS_BLOCK_STATE_EMPTY) &#123;</span><br><span class="line"><span class="comment">//找到块的条件是该块的状态为EMPTY，此时返回块的编号			</span></span><br><span class="line">bi-&gt;block_state = YAFFS_BLOCK_STATE_ALLOCATING;</span><br><span class="line">			dev-&gt;seq_number++;</span><br><span class="line">			bi-&gt;seq_number = dev-&gt;seq_number;</span><br><span class="line">			dev-&gt;n_erased_blocks--;</span><br><span class="line">			yaffs_trace(YAFFS_TRACE_ALLOCATE,</span><br><span class="line">			  <span class="string">"Allocated block %d, seq  %d, %d left"</span> ,</span><br><span class="line">			   dev-&gt;alloc_block_finder, dev-&gt;seq_number,</span><br><span class="line">			   dev-&gt;n_erased_blocks);</span><br><span class="line">			<span class="keyword">return</span> dev-&gt;alloc_block_finder;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	yaffs_trace(YAFFS_TRACE_ALWAYS,<span class="string">"yaffs tragedy: no more erased blocks, but there should have been %d"</span>,dev-&gt;n_erased_blocks);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Block擦除"><a href="#Block擦除" class="headerlink" title="Block擦除"></a>Block擦除</h2><p>Block擦除的条件是：</p>
+<ul>
+<li>遇到坏块，且无法正确执行坏块标记</li>
+<li>脏数据回收</li>
+<li>上层下Format Flash指令</li>
+</ul>
+<p>其中脏数据回收是GC（Garbage Collection）机制在执行，后续章节会再对GC进行介绍。</p>
+<p>擦除块执行的函数也很简单，代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">yaffs_erase_block</span><span class="params">(struct yaffs_dev *dev, <span class="keyword">int</span> block_no)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	block_no -= dev-&gt;block_offset;</span><br><span class="line">	dev-&gt;n_erasures++;</span><br><span class="line">	result = dev-&gt;drv.drv_erase_fn(dev, block_no);</span><br><span class="line">	<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">其中drv_erase_fn回调函数在Linux的系统下最后MTD块系统的mtd_erase函数：</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">nandmtd_erase_block</span><span class="params">(struct yaffs_dev *dev, <span class="keyword">int</span> block_no)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mtd_info</span> *<span class="title">mtd</span> = <span class="title">yaffs_dev_to_mtd</span>(<span class="title">dev</span>);</span></span><br><span class="line">	u32 addr = ((<span class="keyword">loff_t</span>) block_no) * dev-&gt;param.total_bytes_per_chunk *dev-&gt;param.chunks_per_block;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">erase_info</span> <span class="title">ei</span>;</span></span><br><span class="line">	<span class="keyword">int</span> retval = <span class="number">0</span>;</span><br><span class="line">........</span><br><span class="line">	retval = mtd_erase(mtd, &amp;ei);</span><br><span class="line">.......</span><br><span class="line">	<span class="keyword">if</span> (retval == <span class="number">0</span>)<span class="keyword">return</span> YAFFS_OK;</span><br><span class="line">	<span class="keyword">return</span> YAFFS_FAIL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上，块初始化及管理大致过程分析结束，下一章节介绍Checkpoint机制</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\05\15\yaffs-3\" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\05\18\yaffs-4\" rel="bookmark">YAFFS文件系统(4)– 垃圾回收(GC)机制</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\04\30\yaffs-1\" rel="bookmark">Yaffs文件系统(1)-- 概述</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\07\28\linux-vfs-1\" rel="bookmark">Linux虚拟文件系统（1）</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\08\10\linux-vfs-2\" rel="bookmark">Linux虚拟文件系统（2）-- 初始化流程</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/YAFFS/" rel="tag"># YAFFS</a>
+            
+              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/05/03/e8-af-95-e7-94-a8cleanmymac-e6-9b-bf-e4-bb-a3-e8-80-85-e8-85-be-e8-ae-af-e6-9f-a0-e6-aa-ac/" rel="next" title="试用CleanMyMac替代者-腾讯柠檬">
+                  <i class="fa fa-chevron-left"></i> 试用CleanMyMac替代者-腾讯柠檬
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/05/15/yaffs-3/" rel="prev" title="Yaffs文件系统(3)-- 检查点(Checkpoint)机制">
+                  Yaffs文件系统(3)-- 检查点(Checkpoint)机制 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Block分类"><span class="nav-number">2.</span> <span class="nav-text">Block分类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Block和Chunk分配"><span class="nav-number">3.</span> <span class="nav-text">Block和Chunk分配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Block的扫描"><span class="nav-number">4.</span> <span class="nav-text">Block的扫描</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Block分配"><span class="nav-number">5.</span> <span class="nav-text">Block分配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Block擦除"><span class="nav-number">6.</span> <span class="nav-text">Block擦除</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

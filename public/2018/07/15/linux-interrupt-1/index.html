@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="什么是中断CPU获取外设状态变化有两种方式: Polling：不断跟外设询问它的状态 当外设状态变化后主动通知CPU CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用： 中断优先级处理 接收中断控制器ACK 分发中断 中断控">
+<meta name="keywords" content="Linux,中断">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux中断学习笔记(1)">
+<meta property="og:url" content="http://l2h.site/2018/07/15/linux-interrupt-1/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="什么是中断CPU获取外设状态变化有两种方式: Polling：不断跟外设询问它的状态 当外设状态变化后主动通知CPU CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用： 中断优先级处理 接收中断控制器ACK 分发中断 中断控">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-06T00:23:42.754Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux中断学习笔记(1)">
+<meta name="twitter:description" content="什么是中断CPU获取外设状态变化有两种方式: Polling：不断跟外设询问它的状态 当外设状态变化后主动通知CPU CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用： 中断优先级处理 接收中断控制器ACK 分发中断 中断控">
+  <link rel="canonical" href="http://l2h.site/2018/07/15/linux-interrupt-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux中断学习笔记(1) | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/07/15/linux-interrupt-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux中断学习笔记(1)
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2018-07-15 00:56:44" itemprop="dateCreated datePublished" datetime="2018-07-15T00:56:44+08:00">2018-07-15</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-06 08:23:42" itemprop="dateModified" datetime="2019-10-06T08:23:42+08:00">2019-10-06</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux中断/" itemprop="url" rel="index"><span itemprop="name">Linux中断</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="什么是中断"><a href="#什么是中断" class="headerlink" title="什么是中断"></a>什么是中断</h1><p>CPU获取外设状态变化有两种方式:</p><ul>
+<li>Polling：不断跟外设询问它的状态</li>
+<li>当外设状态变化后主动通知CPU</li>
+</ul><p>CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用：</p><ul>
+<li>中断优先级处理</li>
+<li>接收中断控制器ACK</li>
+<li>分发中断</li>
+</ul><p>中断控制器连接到MCU的中断输入引脚（在ARM就是IRQ-Interrupt Request or FIQ-Fast Interrupt Request信号线）。中断控制器驱动负责Kernel中断号与物理中断号的Mapping。 当外设没有变化的时候，CPU可以专心地处理其他事务。外设准备好资料时，通过中断控制器通知CPU，CPU再对其进行相应的处理。</p><a id="more"></a>
+
+
+
+
+<h1 id="Linux的中断处理"><a href="#Linux的中断处理" class="headerlink" title="Linux的中断处理"></a>Linux的中断处理</h1><h2 id="顶半部（Top-Half）和底半部（Bottom-Half）"><a href="#顶半部（Top-Half）和底半部（Bottom-Half）" class="headerlink" title="顶半部（Top Half）和底半部（Bottom Half）"></a>顶半部（Top Half）和底半部（Bottom Half）</h2><p>中断会将正在运行的程序给打断（操作系统会保留相应的执行数据以便返回）。外设中断有时要处理的数据量很大，为了避免中断处理长期占用CPU导致系统中其他事务无法正常进行，Linux将中断处理分为顶半部和底半部。顶半部主要负责响应中断，处理该外设一些必须的业务，同时将需要复杂处理的事务放到底半部执行。 Linux中中断的顶半部是不能被Block的，原因： <em>操作系统并没有为中断分配相应的进程管理单元，当中断服务例程因为发生Block而被系统Schedule出去后，便无法再返回到该中断服务例程。而因为中断被调度出的进程，被schedule后却不能得到调度。</em> 实现底半部有多种方式，常用的是Tasklet（特殊的软中断）和Workqueue（内核线程）</p>
+<h3 id="软中断和Tasklet"><a href="#软中断和Tasklet" class="headerlink" title="软中断和Tasklet"></a>软中断和Tasklet</h3><p>当中断上半部执行结束后，操作系统会调度执行软中断。具体实现以linux-4.x为例：</p>
+<p>./kernel/softirq.c</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">arch_do_IRQ</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">int</span> irq, struct pt_regs *regs)</span>                <span class="comment">//中断向量表调用相应的IRQ处理函数</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pt_regs</span> *<span class="title">old_regs</span> = <span class="title">set_irq_regs</span>(<span class="title">regs</span>);</span>                      <span class="comment">//保留中断现场</span></span><br><span class="line"></span><br><span class="line">    irq_enter();                                                        <span class="comment">//进入中断处理前的必要处理，如关闭硬件中断,关闭抢占（preempt），禁止ksoftirqd启动处理（softirq）-- 因为稍后会看到，中断结束后会做处理</span></span><br><span class="line">    generic_handle_irq(irq);                                            <span class="comment">//执行外设驱动注册的irq handler</span></span><br><span class="line">    irq_exit();                                                         <span class="comment">//进入到irq_exit</span></span><br><span class="line">    set_irq_regs(old_regs);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">irq_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __ARCH_IRQ_EXIT_IRQS_DISABLED</span></span><br><span class="line">    local_irq_disable();</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">    WARN_ON_ONCE(!irqs_disabled());</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    account_irq_exit_time(current);</span><br><span class="line">    preempt_count_sub(HARDIRQ_OFFSET);                                 <span class="comment">//打开抢占</span></span><br><span class="line">    <span class="keyword">if</span> (!in_interrupt() &amp;&amp; local_softirq_pending())                    <span class="comment">//如果有软中断pending，执行softirq</span></span><br><span class="line">        invoke_softirq();</span><br><span class="line">    tick_irq_exit();</span><br><span class="line">    rcu_irq_exit();</span><br><span class="line">    trace_hardirq_exit(); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，软中断是在中断处理进程退出后，立即执行。软中断处理函数，会检查当前系统中有哪些软中断，然后循环执行。因为系统仍有很多任务要处理，包括之前被抢占的任务，因此kernel不会无限度的将时间片都留给软中断。它设置了一个软中断循环执行的最大次数。当超过这个次数后，就退出软中断执行，并将内核线程ksoftirqd叫起。 ksoftirqd是内核线程，他与系统中其他线程包括用户态进程一起接受系统调度。因此保证了未完成的软中断也可再后来继续执行完毕。 Tasklet是一种特殊的软中断。Workqueue是一种特殊的内核线程。它们都是实现中断下半部的方式。具体用法可在有使用需求时查看。</p>
+<h2 id="irq-在多处理器系统的分发"><a href="#irq-在多处理器系统的分发" class="headerlink" title="irq 在多处理器系统的分发"></a>irq 在多处理器系统的分发</h2><ul>
+<li>中断亲和力：多处理系统中，操作系统会按照一定策略把中断分配到各CPU Core来处理。中断亲和力高的CPU Core，操作系统会倾向于把中断交给其处理</li>
+<li>通过修改/proc/irq/smp_affinity 可以改变Linux的中断亲和力</li>
+<li>内核线程kirqd：周期性执行do_irq_balance()。Track最近时间间隔每个Core的接收中断次数，动态做Balance</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\07\21\linux-interrupt-2\" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\01\05\linux-interrupt-4\" rel="bookmark">Linux中断(2)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\01\01\linux-interrupt-3\" rel="bookmark">Linux中断(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\08\10\linux-vfs-2\" rel="bookmark">Linux虚拟文件系统（2）-- 初始化流程</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\05\15\yaffs-3\" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/中断/" rel="tag"># 中断</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/07/01/bye-argentina/" rel="next" title="再见，潘帕斯雄鹰">
+                  <i class="fa fa-chevron-left"></i> 再见，潘帕斯雄鹰
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/07/21/linux-interrupt-2/" rel="prev" title="Linux中断学习笔记(2) -- 嵌入式设备中断">
+                  Linux中断学习笔记(2) -- 嵌入式设备中断 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#什么是中断"><span class="nav-number">1.</span> <span class="nav-text">什么是中断</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Linux的中断处理"><span class="nav-number">2.</span> <span class="nav-text">Linux的中断处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#顶半部（Top-Half）和底半部（Bottom-Half）"><span class="nav-number">2.1.</span> <span class="nav-text">顶半部（Top Half）和底半部（Bottom Half）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#软中断和Tasklet"><span class="nav-number">2.1.1.</span> <span class="nav-text">软中断和Tasklet</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#irq-在多处理器系统的分发"><span class="nav-number">2.2.</span> <span class="nav-text">irq 在多处理器系统的分发</span></a></li></ol></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

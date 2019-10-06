@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="Wordpress关联熊掌号前言做站还是希望能得到大家的关注，百度作为国内最大的搜索引擎，给站长提供了熊掌号平台。绑定网站后，百度搜索会倾向于优先展现熊掌号的内容，可以为网站引入一定搜索流量。通过摸索，得到建立熊掌号的流程如下： 建立熊掌号 Wordpress页面改造 提交页面 建立熊掌号申请熊掌号到熊掌号官网按照百度的要求进行提交审核即可，一般5个工作日左右，需要耐心等待。熊掌号装潢装饰页面可以">
+<meta name="keywords" content="wordpress,熊掌号,百度">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Wordpress如何关联熊掌号">
+<meta property="og:url" content="http://l2h.site/2018/11/11/2018-wordpress-xiongzhanghao/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="Wordpress关联熊掌号前言做站还是希望能得到大家的关注，百度作为国内最大的搜索引擎，给站长提供了熊掌号平台。绑定网站后，百度搜索会倾向于优先展现熊掌号的内容，可以为网站引入一定搜索流量。通过摸索，得到建立熊掌号的流程如下： 建立熊掌号 Wordpress页面改造 提交页面 建立熊掌号申请熊掌号到熊掌号官网按照百度的要求进行提交审核即可，一般5个工作日左右，需要耐心等待。熊掌号装潢装饰页面可以">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-06T00:20:30.192Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Wordpress如何关联熊掌号">
+<meta name="twitter:description" content="Wordpress关联熊掌号前言做站还是希望能得到大家的关注，百度作为国内最大的搜索引擎，给站长提供了熊掌号平台。绑定网站后，百度搜索会倾向于优先展现熊掌号的内容，可以为网站引入一定搜索流量。通过摸索，得到建立熊掌号的流程如下： 建立熊掌号 Wordpress页面改造 提交页面 建立熊掌号申请熊掌号到熊掌号官网按照百度的要求进行提交审核即可，一般5个工作日左右，需要耐心等待。熊掌号装潢装饰页面可以">
+  <link rel="canonical" href="http://l2h.site/2018/11/11/2018-wordpress-xiongzhanghao/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Wordpress如何关联熊掌号 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/11/11/2018-wordpress-xiongzhanghao/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Wordpress如何关联熊掌号
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2018-11-11 19:07:17" itemprop="dateCreated datePublished" datetime="2018-11-11T19:07:17+08:00">2018-11-11</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-06 08:20:30" itemprop="dateModified" datetime="2019-10-06T08:20:30+08:00">2019-10-06</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/建站/" itemprop="url" rel="index"><span itemprop="name">建站</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="Wordpress关联熊掌号"><a href="#Wordpress关联熊掌号" class="headerlink" title="Wordpress关联熊掌号"></a>Wordpress关联熊掌号</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><img alt="熊掌号" data-src="http://pic.l2h.site/l2hsiteXiongZhangHao-0.jpg"></p><p>做站还是希望能得到大家的关注，百度作为国内最大的搜索引擎，给站长提供了熊掌号平台。绑定网站后，百度搜索会倾向于优先展现熊掌号的内容，可以为网站引入一定搜索流量。</p><p>通过摸索，得到建立熊掌号的流程如下：</p><ul>
+<li>建立熊掌号</li>
+<li>Wordpress页面改造</li>
+<li>提交页面</li>
+</ul><h2 id="建立熊掌号"><a href="#建立熊掌号" class="headerlink" title="建立熊掌号"></a>建立熊掌号</h2><h3 id="申请熊掌号"><a href="#申请熊掌号" class="headerlink" title="申请熊掌号"></a>申请熊掌号</h3><p>到<a href="https://xiongzhang.baidu.com/" title="https://xiongzhang.baidu.com/" target="_blank" rel="noopener">熊掌号官网</a>按照百度的要求进行提交审核即可，一般5个工作日左右，需要耐心等待。</p><h3 id="熊掌号装潢"><a href="#熊掌号装潢" class="headerlink" title="熊掌号装潢"></a>熊掌号装潢</h3><p>装饰页面可以提升熊掌号指数。 可以到“熊掌号后台–&gt;主页管理–&gt;主页装修”进行主页的装饰。如下图，运营位设置为网址链接：</p><p><img alt="主页装饰" data-src="http://pic.l2h.site/l2hsiteXiongzhanghao-decorate-1.png">“熊掌号后台–&gt;主页管理–&gt;自定义栏目”可以添加专栏文章，专栏名可以自定义：</p><a id="more"></a>
+
+
+
+
+
+
+<p><img alt="主页装饰" data-src="http://pic.l2h.site/l2hsiteXiongzhanghao-decorate-2.png">“熊掌号后台–&gt;主页管理–&gt;自定义菜单”可以根据实际需求增加首页菜单，菜单可以定义到二级：</p>
+<p><img alt="主页装饰" data-src="http://pic.l2h.site/l2hsiteXiongzhanghao-decorate-3.png"></p>
+<h3 id="提升熊掌号指数"><a href="#提升熊掌号指数" class="headerlink" title="提升熊掌号指数"></a>提升熊掌号指数</h3><h4 id="绑定网站"><a href="#绑定网站" class="headerlink" title="绑定网站"></a>绑定网站</h4><p>“熊掌号后台–&gt;内容源设置–&gt;绑定设置”来绑定您的网站</p>
+<h4 id="提升指数"><a href="#提升指数" class="headerlink" title="提升指数"></a>提升指数</h4><p>这里到“熊掌号后台–&gt;熊掌号成长–&gt;熊掌号指数”里可以看到您的熊掌号指数成长。点击“去优化指数”，可以根据后台提示来提升指数。一些提升指数的方法：</p>
+<ul>
+<li>绑定微信公众号、微博、今日头条等</li>
+<li>装饰主页</li>
+<li>用百度APP发表动态（类似发微信朋友圈）</li>
+<li>开放平台接口调用（用API等方式提交资源）</li>
+<li><strong>最直接方法</strong>：提交资源并成功收录</li>
+</ul>
+<p><img alt="优化指数" data-src="http://pic.l2h.site/l2hsiteXiongZhangHao-1.png"><br><img alt="优化指数" data-src="http://pic.l2h.site/l2hsiteXiongZhangHao-2.png"><br><img alt="优化指数" data-src="http://pic.l2h.site/l2hsiteXiongZhangHao-3.png"></p>
+<p>指数在100分以下时，许多后台操作是无法进行的。而超过100分后，后台操作权限相应就会放开。</p>
+<h2 id="Wordpress熊掌号H5页面改造"><a href="#Wordpress熊掌号H5页面改造" class="headerlink" title="Wordpress熊掌号H5页面改造"></a>Wordpress熊掌号H5页面改造</h2><p>若要Wordpress页面能够被正常收录，需要改造您的Wordpress文章页面。Wordpress后台–&gt;外观–&gt;编辑–&gt;修改主题的header.php。在header标签前增加如下熊掌号ID声明：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script src=<span class="string">"https://xiongzhang.baidu.com/sdk/c.js?appid=xxxxxx"</span>&gt;&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>同时增加如下页面改造代码：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span> <span class="keyword">if</span>( is_single() || is_page() ): <span class="meta">?&gt;</span></span><br><span class="line">&lt;script type=<span class="string">"application/ld+json"</span>&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">"@context"</span>: <span class="string">"https://ziyuan.baidu.com/contexts/cambrian.jsonld"</span>,</span><br><span class="line">        <span class="string">"@id"</span>: <span class="string">"&lt;?php the_permalink(); ?&gt;"</span>,</span><br><span class="line">        <span class="string">"appid"</span>: <span class="string">"您的熊掌号APP ID"</span>,</span><br><span class="line">        <span class="string">"title"</span>: <span class="string">"&lt;?php the_title(); ?&gt;"</span>,</span><br><span class="line">        <span class="string">"images"</span>: [</span><br><span class="line">            <span class="string">"&lt;?php echo zillah_catch_that_image(); ?&gt;"</span></span><br><span class="line">            ],</span><br><span class="line">        <span class="string">"description"</span>: <span class="string">"&lt;?php if ($post-&gt;post_excerpt) </span></span><br><span class="line"><span class="string">        &#123;$printDescription = $post-&gt;post_excerpt;&#125; </span></span><br><span class="line"><span class="string">              else&#123;</span></span><br><span class="line"><span class="string">      $printDescription = preg_replace('/\s+/','',mb_strimwidth(strip_tags($post-&gt;post_content),0,145,''));</span></span><br><span class="line"><span class="string">                &#125;</span></span><br><span class="line"><span class="string">            echo $printDescription;?&gt;"</span>,</span><br><span class="line">        <span class="string">"pubDate"</span>: <span class="string">"&lt;?php echo get_the_time('Y-m-d\TG:i:s'); ?&gt;"</span></span><br><span class="line">    &#125;</span><br><span class="line">&lt;/script&gt;	</span><br><span class="line"><span class="meta">&lt;?php</span> <span class="keyword">endif</span>; <span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="提交页面"><a href="#提交页面" class="headerlink" title="提交页面"></a>提交页面</h2><h3 id="历史数据提交"><a href="#历史数据提交" class="headerlink" title="历史数据提交"></a>历史数据提交</h3><p>到<a href="https://curl.haxx.se/windows/" title="https://curl.haxx.se/windows/" target="_blank" rel="noopener">Curl官网</a>下载Curl For Windows并解压（注意根据您的Windows版本下载）。</p>
+<p>准备好urls.txt，里边为您希望提交的历史数据URL，每行一个网址。到解压的Curl的bin目录执行如下命令：</p>
+<blockquote>
+<p>curl -H ‘Content-Type:text/plain’ –data-binary @urls.txt “<a href="http://data.zz.baidu.com/urls?appid%3Dxxxxxx%26token%3Dxxxxxxxx" title="http://data.zz.baidu.com/urls?appid%3Dxxxxxx%26token%3Dxxxxxxxx" target="_blank" rel="noopener">http://data.zz.baidu.com/urls?appid=xxxxxx&amp;token=xxxxxxxx</a>“</p>
+</blockquote>
+<p>其中appid和token需要更换成您自己熊掌号的id和token。以上命令也可以在”熊掌号后台–&gt;资源提交–&gt;API提交–&gt;历史内容接口–&gt;推送示例”中找到。 历史数据提交上限为50000，对个人站长绰绰有余了。</p>
+<h3 id="新增数据提交"><a href="#新增数据提交" class="headerlink" title="新增数据提交"></a>新增数据提交</h3><p>新增数据也可用Curl进行提交，提交方法与历史数据提交类似，差别只是在于调用时的参数增加 <em><strong>type=realtime。</strong></em></p>
+<blockquote>
+<p>curl -H ‘Content-Type:text/plain’ –data-binary @urls.txt “<a href="http://data.zz.baidu.com/urls?appid%3Dzxxxxxxx%26token%3Dxxxxxxxxxxx%26type%3Drealtime" title="http://data.zz.baidu.com/urls?appid%3Dzxxxxxxx%26token%3Dxxxxxxxxxxx%26type%3Drealtime" target="_blank" rel="noopener">http://data.zz.baidu.com/urls?appid=zxxxxxxx&amp;token=xxxxxxxxxxx&amp;type=realtime</a>“</p>
+</blockquote>
+<p>每天提交上限为10条</p>
+<h3 id="增加Wordpress插件做数据提交"><a href="#增加Wordpress插件做数据提交" class="headerlink" title="增加Wordpress插件做数据提交"></a>增加Wordpress插件做数据提交</h3><p>总是使用Curl提交难免复杂，要是Wordpress后台添加文章的时候自动提交则比较简单。</p>
+<ul>
+<li><ul>
+<li>Wordpress后台–&gt;插件–&gt;搜索”BaiduXZH Submit”，添加并安装</li>
+</ul>
+</li>
+<li><ul>
+<li>转到插件设置页面</li>
+</ul>
+</li>
+<li><p>添加熊掌号的APP ID及Token（可以在百度熊掌号后台查看）并保存</p>
+</li>
+</ul>
+<p><img alt="熊掌号插件配置" data-src="http://pic.l2h.site/l2hsiteXiongzhanghao-Plugin-0.png"></p>
+<h3 id="网站自动源同步"><a href="#网站自动源同步" class="headerlink" title="网站自动源同步"></a>网站自动源同步</h3><p>熊掌号支持网站自动抓取，参照”绑定网站”一节绑定网站并添加同步源。添加过后，一般一天之内即可抓取完网站内容。之后百度也会定期自动抓取。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上为Wordpress绑定熊掌号的一些基础设置，更多内容待继续摸索和发掘。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\09\30\wordpress-how-widget-plugin-20180930\" rel="bookmark">Wordpress-写插件增加小工具(Widget)的方法</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\11\25\e5-8d-87-e7-b4-9a-e5-88-b0wordpress-4-9-8\" rel="bookmark">升級到Wordpress 4.9.8</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\09\30\qiniuyun\" rel="bookmark">Wordpress-使用七牛云存储测试域名过期问题解决</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\12\08\wordpress-fix-autoptimize-enlighter-conflict\" rel="bookmark">Wordpress:解决Autoptimize+Enlighter插件冲突</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\09\28\wordpress-how-to-set-template-page-wo-scandir\" rel="bookmark">Wordpress--免修改scandir添加模板页面</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/wordpress/" rel="tag"># wordpress</a>
+            
+              <a href="/tags/熊掌号/" rel="tag"># 熊掌号</a>
+            
+              <a href="/tags/百度/" rel="tag"># 百度</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/11/11/mithell-ml-note/" rel="next" title="Mithell《机器学习》学习笔记 - Chapter 1&2">
+                  <i class="fa fa-chevron-left"></i> Mithell《机器学习》学习笔记 - Chapter 1&2
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/11/25/e5-8d-87-e7-b4-9a-e5-88-b0wordpress-4-9-8/" rel="prev" title="升級到Wordpress 4.9.8">
+                  升級到Wordpress 4.9.8 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Wordpress关联熊掌号"><span class="nav-number">1.</span> <span class="nav-text">Wordpress关联熊掌号</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#建立熊掌号"><span class="nav-number">1.2.</span> <span class="nav-text">建立熊掌号</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#申请熊掌号"><span class="nav-number">1.2.1.</span> <span class="nav-text">申请熊掌号</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#熊掌号装潢"><span class="nav-number">1.2.2.</span> <span class="nav-text">熊掌号装潢</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#提升熊掌号指数"><span class="nav-number">1.2.3.</span> <span class="nav-text">提升熊掌号指数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#绑定网站"><span class="nav-number">1.2.3.1.</span> <span class="nav-text">绑定网站</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#提升指数"><span class="nav-number">1.2.3.2.</span> <span class="nav-text">提升指数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Wordpress熊掌号H5页面改造"><span class="nav-number">1.3.</span> <span class="nav-text">Wordpress熊掌号H5页面改造</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#提交页面"><span class="nav-number">1.4.</span> <span class="nav-text">提交页面</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#历史数据提交"><span class="nav-number">1.4.1.</span> <span class="nav-text">历史数据提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#新增数据提交"><span class="nav-number">1.4.2.</span> <span class="nav-text">新增数据提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#增加Wordpress插件做数据提交"><span class="nav-number">1.4.3.</span> <span class="nav-text">增加Wordpress插件做数据提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网站自动源同步"><span class="nav-number">1.4.4.</span> <span class="nav-text">网站自动源同步</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">1.5.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

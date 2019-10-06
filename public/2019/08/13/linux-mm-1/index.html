@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="内存管理是Linux内核最为复杂且最为重要的部分，本文从原理及代码角度对Linux内存管理机制进行分析。内存的划分Linux将内存从大到小依次划分为Node（节点）-&amp;gt;Zone（内存域）-&amp;gt;Page（页）： 节点：在大型结算及系统中，内存有不同的簇，依据对处理器距离的不同，访问这些簇有不同的代价。而这些簇就可以成为节点。例：在PC系统中可以理解为实际挂载的物理内存；在嵌入式系统中，有两">
+<meta name="keywords" content="Linux,内存管理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理简析(1)">
+<meta property="og:url" content="http://l2h.site/2019/08/13/linux-mm-1/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="内存管理是Linux内核最为复杂且最为重要的部分，本文从原理及代码角度对Linux内存管理机制进行分析。内存的划分Linux将内存从大到小依次划分为Node（节点）-&amp;gt;Zone（内存域）-&amp;gt;Page（页）： 节点：在大型结算及系统中，内存有不同的簇，依据对处理器距离的不同，访问这些簇有不同的代价。而这些簇就可以成为节点。例：在PC系统中可以理解为实际挂载的物理内存；在嵌入式系统中，有两">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-06T00:33:00.770Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理简析(1)">
+<meta name="twitter:description" content="内存管理是Linux内核最为复杂且最为重要的部分，本文从原理及代码角度对Linux内存管理机制进行分析。内存的划分Linux将内存从大到小依次划分为Node（节点）-&amp;gt;Zone（内存域）-&amp;gt;Page（页）： 节点：在大型结算及系统中，内存有不同的簇，依据对处理器距离的不同，访问这些簇有不同的代价。而这些簇就可以成为节点。例：在PC系统中可以理解为实际挂载的物理内存；在嵌入式系统中，有两">
+  <link rel="canonical" href="http://l2h.site/2019/08/13/linux-mm-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理简析(1) | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/08/13/linux-mm-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理简析(1)
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-08-13 08:49:07" itemprop="dateCreated datePublished" datetime="2019-08-13T08:49:07+08:00">2019-08-13</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-06 08:33:00" itemprop="dateModified" datetime="2019-10-06T08:33:00+08:00">2019-10-06</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>内存管理是Linux内核最为复杂且最为重要的部分，本文从原理及代码角度对Linux内存管理机制进行分析。</p><h2 id="内存的划分"><a href="#内存的划分" class="headerlink" title="内存的划分"></a>内存的划分</h2><p>Linux将内存从大到小依次划分为Node（节点）-&gt;Zone（内存域）-&gt;Page（页）：</p><ul>
+<li>节点：在大型结算及系统中，内存有不同的簇，依据对处理器距离的不同，访问这些簇有不同的代价。而这些簇就可以成为节点。例：在PC系统中可以理解为实际挂载的物理内存；在嵌入式系统中，有两块内存芯片A和B，分别代表一个节点。</li>
+<li>内存域：内存域并不是物理存在的概念，是Linux系统对每个内存节点进行管理的单位，每个节点的内存域表示的是对该节点不同地址范围的划分。一般内存域有三种，分别为Normal、DMA和HighMem。</li>
+<li>页：在每个内存域中，内存被划分为大小固定的块（32位系统一般为4K大小），为内核进行内存分配的基本单位（当然内核内存管理机制其实更为复杂，“基本单位”不代表每次分配内存最小就要分到4K。后边可以看到，当需要获取小于4K大小的内存时，内核有Slab分配器来满足要求）</li>
+</ul><a id="more"></a>
+
+
+<p>一张图说明Node、Zone和Page的关系如下：</p>
+<figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">                  Node 1            Node 2           Node 3</span><br><span class="line">                       +----------+     +----------+     +----------+</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">Zone_High </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       +----------+     |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">Zone_Norm </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       +----------+     |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">                       |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">     page  page        |<span class="string">Zone_DMA  </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">+-+--+--+--+--+        |<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">|<span class="string"> </span>|<span class="string">  </span>|<span class="string">  </span>|<span class="string">  </span>|<span class="string">  </span>|<span class="string">  &lt;--------+       </span>|<span class="string">     </span>|<span class="string">          </span>|<span class="string">     </span>|<span class="string">          </span>|</span><br><span class="line">+-+--+--+--+--+        +----------+     +----------+     +----------+</span><br></pre></td></tr></table></figure>
+
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>构成上述三个内存划分的数据结构如下：</p>
+<h3 id="内存节点"><a href="#内存节点" class="headerlink" title="内存节点"></a>内存节点</h3><p>Node对应的结构为pglist_data_t，定义如下（为方便理解，省略部分结构体成员）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">pglist_data</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zone</span> <span class="title">node_zones_MAX_NR_ZONES</span>\];</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">zonelist</span> <span class="title">node_zonelists_MAX_ZONELISTS</span>\];</span></span><br><span class="line">    <span class="keyword">int</span> nr_zones;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_FLAT_NODE_MEM_MAP <span class="comment">/* means !SPARSEMEM */</span></span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">page</span> *<span class="title">node_mem_map</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_PAGE_EXTENSION</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">page_ext</span> *<span class="title">node_page_ext</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CONFIG_NO_BOOTMEM</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">bootmem_data</span> *<span class="title">bdata</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_MEMORY_HOTPLUG</span></span><br><span class="line">    <span class="keyword">spinlock_t</span> node_size_lock;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> node_start_pfn;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> node_present_pages; <span class="comment">/* total number of physical pages */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> node_spanned_pages; <span class="comment">/* total size of physical page  range, including holes */</span></span><br><span class="line">    <span class="keyword">int</span> node_id;</span><br><span class="line">    <span class="keyword">wait_queue_head_t</span> kswapd_wait;</span><br><span class="line">    <span class="keyword">wait_queue_head_t</span> pfmemalloc_wait;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">kswapd</span>;</span> <span class="comment">/* Protected by mem_hotplug_begin/end() */</span></span><br><span class="line">    <span class="keyword">int</span> kswapd_order;</span><br><span class="line">    <span class="keyword">enum</span> zone_type kswapd_classzone_idx;</span><br><span class="line">    <span class="keyword">int</span> kswapd_failures;        <span class="comment">/* Number of 'reclaimed == 0' runs */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_COMPACTION</span></span><br><span class="line">    <span class="keyword">int</span> kcompactd_max_order;</span><br><span class="line">    <span class="keyword">enum</span> zone_type kcompactd_classzone_idx;</span><br><span class="line">    <span class="keyword">wait_queue_head_t</span> kcompactd_wait;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">kcompactd</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_NUMA_BALANCING</span></span><br><span class="line">    <span class="comment">/* Lock serializing the migrate rate limiting window */</span></span><br><span class="line">    <span class="keyword">spinlock_t</span> numabalancing_migrate_lock;</span><br><span class="line">    <span class="comment">/* Rate limiting time interval */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> numabalancing_migrate_next_window;</span><br><span class="line">    <span class="comment">/* Number of pages migrated during the rate limiting time interval */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> numabalancing_migrate_nr_pages;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       totalreserve_pages;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_NUMA</span></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * zone reclaim becomes active if more unmapped pages exist.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       min_unmapped_pages;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       min_slab_pages;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_NUMA */</span></span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Write-intensive fields used by page reclaim */</span></span><br><span class="line">    ZONE_PADDING(_pad1_)</span><br><span class="line">    <span class="keyword">spinlock_t</span>      lru_lock;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_DEFERRED_STRUCT_PAGE_INIT</span></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * If memory initialisation on large machines is deferred then this</span></span><br><span class="line"><span class="comment">     * is the first PFN that needs to be initialised.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> first_deferred_pfn;</span><br><span class="line">    <span class="comment">/* Number of non-deferred pages */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> static_init_pgcnt;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_DEFERRED_STRUCT_PAGE_INIT */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_TRANSPARENT_HUGEPAGE</span></span><br><span class="line">    <span class="keyword">spinlock_t</span> split_queue_lock;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">split_queue</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> split_queue_len;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> inactive_ratio;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       flags;</span><br><span class="line">    ZONE_PADDING(_pad2_)</span><br><span class="line">    <span class="comment">/* Per-node vmstats */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">per_cpu_nodestat</span> __<span class="title">percpu</span> *<span class="title">per_cpu_nodestats</span>;</span></span><br><span class="line">    <span class="keyword">atomic_long_t</span>       vm_stat_NR_VM_NODE_STAT_ITEMS\];</span><br><span class="line">&#125; <span class="keyword">pg_data_t</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>node_zones</strong>: 内存节点上的内存域，分别为 ZONE_HIGHMEM, ZONE_NORMAL, ZONE_DMA。新版Linux还增加了ZONE_MOVABLE和ZONE_DEVICE。</li>
+<li><strong>node_zonelists:</strong> 对内存域进行类别指定的优先级顺序。例，当ZONE_HIGHMEM分配失败时，会u退到ZONE_DMA类型后ZONE_NORMAL类型</li>
+<li><strong>nr_zones:</strong> 该节点上的内存域数量</li>
+<li><strong>node_mem_map:</strong> 节点中页面的映射图</li>
+<li><strong>bdata:</strong> 与内核初始化内存分配器相关数据</li>
+<li><strong>node_size_lock</strong>： 与内存热拔插相关</li>
+<li><strong>node_start_pfn:</strong> 内存节点的起始页。</li>
+<li><strong>node_present_pages:</strong> 物理页面数量<strong>.</strong></li>
+<li><strong>node_spanned_pages:</strong> 内存节点物理页面的大小</li>
+<li><strong>node_id:</strong> 节点编号</li>
+<li><strong>kswapd_wait</strong>/<strong>pfmemalloc_wait</strong>/<strong>kswapd</strong>/<strong>kswapd_order</strong>/<strong>kswapd_classzone_idx/kswapd_failures:</strong> kswapd内核线程相关参数</li>
+<li><strong>……..</strong></li>
+</ul>
+<h3 id="内存区域"><a href="#内存区域" class="headerlink" title="内存区域"></a>内存区域</h3><p>内存区域对应的结构体为struct zone，定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">zone</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> watermark_NR_WMARK\];</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> nr_reserved_highatomic;</span><br><span class="line">    <span class="keyword">long</span> lowmem_reserve_MAX_NR_ZONES\];</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_NUMA</span></span><br><span class="line">    <span class="keyword">int</span> node;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pglist_data</span>  *<span class="title">zone_pgdat</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">per_cpu_pageset</span> __<span class="title">percpu</span> *<span class="title">pageset</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CONFIG_SPARSEMEM</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       *pageblock_flags;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_SPARSEMEM */</span></span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       zone_start_pfn;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       managed_pages;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       spanned_pages;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       present_pages;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span>      *name;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_MEMORY_ISOLATION</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       nr_isolate_pageblock;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_MEMORY_HOTPLUG</span></span><br><span class="line">    <span class="keyword">seqlock_t</span>       span_seqlock;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    <span class="keyword">int</span> initialized;</span><br><span class="line">    ZONE_PADDING(_pad1_)</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">free_area</span>    <span class="title">free_area_MAX_ORDER</span>\];</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span>       flags;</span><br><span class="line">    <span class="keyword">spinlock_t</span>      lock;</span><br><span class="line">    ZONE_PADDING(_pad2_)</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> percpu_drift_mark;</span><br><span class="line">    ........</span><br><span class="line">    <span class="keyword">atomic_long_t</span>       vm_stat_NR_VM_ZONE_STAT_ITEMS\];</span><br><span class="line">&#125; ____cacheline_internodealigned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>watermark</strong>: 内存域的水位</li>
+<li><strong>nr_reserved_highatomic:</strong> 紧急内存大小，</li>
+<li><strong>lowmem_reserve</strong>:内存域最少保留内存</li>
+<li><strong>zone_pgdat</strong>: 所在内存节点指针</li>
+<li><strong>pageset</strong>: 每个CPU维护的页面列表</li>
+<li><strong>zone_start_pfn</strong>:内存域第一个页的索引</li>
+<li><strong>managed_pages</strong>: 伙伴系统管理的所有页面数量</li>
+<li><strong>spanned_pages</strong>: 内存域所跨越所有内存页数量</li>
+<li><strong>present_pages</strong>: 内存域物理内存所有页数量(除去内存空洞后的部分)present_pages=spanned_pages-absent_pages</li>
+<li><strong>name</strong>: 区域名</li>
+<li><strong>free_area</strong>:所有空闲页面的数组</li>
+<li><strong>flags</strong>:内存域标识</li>
+<li><strong>lock</strong>:保护free_area的锁</li>
+<li><strong>vm_stat</strong>:虚拟内存统计信息</li>
+</ul>
+<p>特别说明一下内存域的水位（Watermark），它表示几个阈值，用来管理内核线程kswapd唤起与休眠的。当域内可用内存水位较高时，kswapd不用起来工作，而水位较低时，kswapd需要唤起来回收内存。如下图（来自深入理解Linux虚拟内存管理）：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/08/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2019-08-13-%E4%B8%8A%E5%8D%887.40.53.png"></p>
+<h3 id="页面"><a href="#页面" class="headerlink" title="页面"></a>页面</h3><p>系统中每个物理页面都有数据结构struct page与其关联，用于管理页面的使用。结构如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><span class="line">truct page &#123;</span><br><span class="line">    <span class="comment">/* First double word block */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> flags;       </span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">address_space</span> *<span class="title">mapping</span>;</span> </span><br><span class="line">        <span class="keyword">void</span> *s_mem;            <span class="comment">/* slab first object */</span></span><br><span class="line">        <span class="keyword">atomic_t</span> compound_mapcount; <span class="comment">/* first tail page */</span></span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Second double word */</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="keyword">pgoff_t</span> index;      <span class="comment">/* Our offset within mapping. */</span></span><br><span class="line">        <span class="keyword">void</span> *freelist;     <span class="comment">/* sl_aou\]b first free object */</span></span><br><span class="line">        <span class="comment">/* page_deferred_list().prev    -- second tail page */</span></span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_HAVE_CMPXCHG_DOUBLE) &amp;&amp; \</span></span><br><span class="line">    defined(CONFIG_HAVE_ALIGNED_STRUCT_PAGE)</span><br><span class="line">        <span class="comment">/* Used for cmpxchg_double in slub */</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> counters;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">        <span class="keyword">unsigned</span> counters;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">            <span class="keyword">union</span> &#123;</span><br><span class="line">                <span class="keyword">atomic_t</span> _mapcount;</span><br><span class="line">                <span class="keyword">unsigned</span> <span class="keyword">int</span> active;        <span class="comment">/* SLAB */</span></span><br><span class="line">                <span class="class"><span class="keyword">struct</span> &#123;</span>            <span class="comment">/* SLUB */</span></span><br><span class="line">                    <span class="keyword">unsigned</span> inuse:<span class="number">16</span>;</span><br><span class="line">                    <span class="keyword">unsigned</span> objects:<span class="number">15</span>;</span><br><span class="line">                    <span class="keyword">unsigned</span> frozen:<span class="number">1</span>;</span><br><span class="line">                &#125;;</span><br><span class="line">                <span class="keyword">int</span> units;          <span class="comment">/* SLOB */</span></span><br><span class="line">            &#125;;</span><br><span class="line">            <span class="keyword">atomic_t</span> _refcount;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*  Third double word block */</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">lru</span>;</span>   </span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">dev_pagemap</span> *<span class="title">pgmap</span>;</span> </span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span>        <span class="comment">/* slub per cpu partial pages */</span></span><br><span class="line">            <span class="class"><span class="keyword">struct</span> <span class="title">page</span> *<span class="title">next</span>;</span>  <span class="comment">/* Next partial slab */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_64BIT</span></span><br><span class="line">            <span class="keyword">int</span> pages;  <span class="comment">/* Nr of partial slabs left */</span></span><br><span class="line">            <span class="keyword">int</span> pobjects;   <span class="comment">/* Approximate # of objects */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">            <span class="keyword">short</span> <span class="keyword">int</span> pages;</span><br><span class="line">            <span class="keyword">short</span> <span class="keyword">int</span> pobjects;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu_head</span>;</span>   </span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">long</span> compound_head; </span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_64BIT</span></span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">int</span> compound_dtor;</span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">int</span> compound_order;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">short</span> <span class="keyword">int</span> compound_dtor;</span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">short</span> <span class="keyword">int</span> compound_order;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_TRANSPARENT_HUGEPAGE) &amp;&amp; USE_SPLIT_PMD_PTLOCKS</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">            <span class="keyword">unsigned</span> <span class="keyword">long</span> __pad;    </span><br><span class="line">            <span class="keyword">pgtable_t</span> pmd_huge_pte; <span class="comment">/* protected by page-&gt;ptl */</span></span><br><span class="line">        &#125;;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Remainder is not double word aligned */</span></span><br><span class="line">    <span class="keyword">union</span> &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">private</span>;      </span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> USE_SPLIT_PTE_PTLOCKS</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> ALLOC_SPLIT_PTLOCKS</span></span><br><span class="line">        <span class="keyword">spinlock_t</span> *ptl;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">        <span class="keyword">spinlock_t</span> ptl;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">kmem_cache</span> *<span class="title">slab_cache</span>;</span>  <span class="comment">/* SL_AU\]B: Pointer to slab */</span></span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_MEMCG</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">mem_cgroup</span> *<span class="title">mem_cgroup</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(WANT_PAGE_VIRTUAL)</span></span><br><span class="line">    <span class="keyword">void</span> *<span class="keyword">virtual</span>;          <span class="comment">/* Kernel virtual address (NULL if  not kmapped, ie. highmem) */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* WANT_PAGE_VIRTUAL */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_KMEMCHECK</span></span><br><span class="line">    <span class="keyword">void</span> *shadow;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> LAST_CPUPID_NOT_IN_PAGE_FLAGS</span></span><br><span class="line">    <span class="keyword">int</span> _last_cpupid;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>页面结构体使用双字块来划分：</p>
+<ul>
+<li><p>第一个双字</p>
+<ul>
+<li><p>flags: 页面状态，脏页、上锁等院子标记</p>
+</li>
+<li><p>联合体</p>
+<ul>
+<li><p>mapping：指向inode address_space</p>
+</li>
+<li><p>s_mem：slab首对象</p>
+</li>
+<li><p>compound_mapcount：</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>第二个双字：</p>
+<ul>
+<li><p>联合体</p>
+<ul>
+<li><p>index：页面偏移</p>
+</li>
+<li><p>freelist：slab/slob的首个可用对象</p>
+</li>
+</ul>
+</li>
+<li><p>联合体：slab/slub/slob相关的记数（取决于编译内核时选择的管理方式）</p>
+</li>
+</ul>
+</li>
+<li><p>第三个双字：</p>
+<ul>
+<li><p>lru：换出页列表</p>
+</li>
+<li><p>pgmap:</p>
+</li>
+<li><p>rcu_head</p>
+</li>
+<li><p>结构体，用于slub管理</p>
+</li>
+<li><p>结构体，用于复合页管理</p>
+</li>
+</ul>
+</li>
+<li><p>联合体(ptl/slab_cache): slab指针，或者PTE自旋锁</p>
+</li>
+<li><p>virtual: 内核虚拟地址。用于高端内存中的页，即无法直接映射到内核内存中的页</p>
+</li>
+</ul>
+<h2 id="页表"><a href="#页表" class="headerlink" title="页表"></a>页表</h2><p>Linux进行内存寻址时，往往不会直接内存物理地址，需要经过虚拟地址到物理地址的转化。使用虚拟地址的好处是可以避免进程与进程间互踩内存（除非特别指定共享内存），同时虚拟内存的换出换入使得进程使用超过物理内存大小的内存范围。</p>
+<p>CPU中内存管理单元（MMU）作用就是根据内存中特定的转化表格（不错，页表本身也是需要内存存储的），将虚拟地址转化为真正的物理地址。而这个表格就是我们所讲的页表。</p>
+<p>取决于体系结构，Linux采用三级或者四级页表机制：</p>
+<ul>
+<li>PGD：Page Global Directory，全局页表目录</li>
+<li>PUD：Page Upper Directory，上级页表目录</li>
+<li>PMD：Page Middle Directory，中级页表目录</li>
+<li>PTE：Page Table Entry，页表表项</li>
+</ul>
+<p>每级表项所占位数，取决于我们编译内核时的选择。一般情况下，取决于寻址宽度，以及CPU体系结构每级页表所占位数是有约定俗成的。</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/08/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2019-08-13-%E4%B8%8A%E5%8D%887.56.58.png"></p>
+<p>内核在arch/xxx/include/asm/page.h（其中xxx表示CPU体系结构）定义了一系列的类型、函数和宏来方便对每级页表进行操作。</p>
+<p>如上图我们看到的几个SHIFT宏定义，是为了方便通过位移操作来快速获取对应等级页表。</p>
+<p>在IA64中用来表示以上各级页表目录的数据结构定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span> <span class="keyword">unsigned</span> <span class="keyword">long</span> pte; &#125; <span class="keyword">pte_t</span>;</span><br><span class="line">  <span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span> <span class="keyword">unsigned</span> <span class="keyword">long</span> pmd; &#125; <span class="keyword">pmd_t</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> CONFIG_PGTABLE_LEVELS == 4</span></span><br><span class="line">  <span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span> <span class="keyword">unsigned</span> <span class="keyword">long</span> pud; &#125; <span class="keyword">pud_t</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">  <span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span> <span class="keyword">unsigned</span> <span class="keyword">long</span> pgd; &#125; <span class="keyword">pgd_t</span>;</span><br></pre></td></tr></table></figure>
+
+<p>与页表相关的宏或者函数定义有<a href="https://elixir.bootlin.com/linux/latest/ident/pmd_alloc" target="_blank" rel="noopener">pmd/pte/pgd_alloc</a>/free()等等，具体可以参考include/linux/mm.h。</p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>本文介绍了Linux内核内存管理的基本单位划分Node、Zone和Page及对应的数据结构，同时对页表的基本概念进行了介绍。将在下一文分析Linux初始化流程中对内存的管理。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\08\10\linux-vfs-2\" rel="bookmark">Linux虚拟文件系统（2）-- 初始化流程</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\03\06\linux-device-driver-kset-and-kobject\" rel="bookmark">Linux设备驱动模型-- 数据结构Kset/KObject</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\07\21\linux-interrupt-2\" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\01\06\linux-kernel-e-books\" rel="bookmark">Linux内核学习电子书</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\10\24\linux-low-power-1\" rel="bookmark">Linux电源管理介绍-1</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/08/02/linux-mtd-e5-ad-90-e7-b3-bb-e7-bb-9f/" rel="next" title="Linux MTD子系统">
+                  <i class="fa fa-chevron-left"></i> Linux MTD子系统
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/08/13/mac-mojave-e4-bf-ae-e6-94-b9-e5-b1-8f-e5-b9-95-e4-b8-bb-e9-a2-98-e8-89-b2/" rel="prev" title="Mac Mojave修改屏幕主题色">
+                  Mac Mojave修改屏幕主题色 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#内存的划分"><span class="nav-number">1.</span> <span class="nav-text">内存的划分</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据结构"><span class="nav-number">2.</span> <span class="nav-text">数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#内存节点"><span class="nav-number">2.1.</span> <span class="nav-text">内存节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存区域"><span class="nav-number">2.2.</span> <span class="nav-text">内存区域</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#页面"><span class="nav-number">2.3.</span> <span class="nav-text">页面</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#页表"><span class="nav-number">3.</span> <span class="nav-text">页表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结语"><span class="nav-number">4.</span> <span class="nav-text">结语</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

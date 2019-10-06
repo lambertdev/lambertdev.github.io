@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCU Linux内核同步之RCU（2） 系列四： 用法1. RCU的用法RCU最常用的目的是替换已有的机制，如下所示： 读写锁 受限制的引用计数机制 批量引用计">
+<meta name="keywords" content="Linux,内核同步,转载,RCU">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核同步之RCU（2）">
+<meta property="og:url" content="http://l2h.site/2019/01/19/linux-e5-86-85-e6-a0-b8-e5-90-8c-e6-ad-a5-e4-b9-8brcu-ef-bc-882-ef-bc-89/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCU Linux内核同步之RCU（2） 系列四： 用法1. RCU的用法RCU最常用的目的是替换已有的机制，如下所示： 读写锁 受限制的引用计数机制 批量引用计">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-06T00:33:12.603Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核同步之RCU（2）">
+<meta name="twitter:description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCU Linux内核同步之RCU（2） 系列四： 用法1. RCU的用法RCU最常用的目的是替换已有的机制，如下所示： 读写锁 受限制的引用计数机制 批量引用计">
+  <link rel="canonical" href="http://l2h.site/2019/01/19/linux-e5-86-85-e6-a0-b8-e5-90-8c-e6-ad-a5-e4-b9-8brcu-ef-bc-882-ef-bc-89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核同步之RCU（2） | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/01/19/linux-e5-86-85-e6-a0-b8-e5-90-8c-e6-ad-a5-e4-b9-8brcu-ef-bc-882-ef-bc-89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核同步之RCU（2）
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-01-19 09:34:01" itemprop="dateCreated datePublished" datetime="2019-01-19T09:34:01+08:00">2019-01-19</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-06 08:33:12" itemprop="dateModified" datetime="2019-10-06T08:33:12+08:00">2019-10-06</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内核同步/" itemprop="url" rel="index"><span itemprop="name">Linux内核同步</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_<strong>从如下文章转载</strong>_：欢迎大家留言交流<br>《<a href="https://mp.weixin.qq.com/s?__biz=MzAwMDUwNDgxOA==&mid=2652662265&idx=1&sn=4e0ec525316720553666482ec4bd9756&chksm=810f2f64b678a672f9573d0374786f5cb1acbb08fdfe3881fac6275145471ad5fc39aa4bb03e&scene=21#wechat_redirect" target="_blank" rel="noopener">谢宝友:深入理解RCU</a> 》，请尊重原文作者劳动成果</p>
+<p>本转载系列文章：<a href="https://l2h.site/2019/01/19/linux-rcu-zz-1/"><br>LINUX内核同步之RCU</a></p>
+<p>Linux内核同步之RCU（2）</p>
+</blockquote><h2 id="系列四：-用法"><a href="#系列四：-用法" class="headerlink" title="系列四： 用法"></a>系列四： 用法</h2><h3 id="1-RCU的用法"><a href="#1-RCU的用法" class="headerlink" title="1. RCU的用法"></a>1. RCU的用法</h3><p>RCU最常用的目的是替换已有的机制，如下所示：</p><ul>
+<li>读写锁</li>
+<li>受限制的引用计数机制</li>
+<li>批量引用计数机制</li>
+<li>穷人版的垃圾回收器</li>
+<li>存在担保</li>
+<li>类型安全的内存</li>
+<li>等待事物结束</li>
+</ul><h4 id="RCU是读写锁的替代者"><a href="#RCU是读写锁的替代者" class="headerlink" title="RCU是读写锁的替代者"></a>RCU是读写锁的替代者</h4><p>在Linux内核中，RCU最常见的用途是替换读写锁。在20世纪90年代初期，Paul在实现通用RCU之前，实现了一种轻量级的读写锁。后来，为这个轻量级读写锁原型所设想的每个用途，最终都使用RCU来实现了。</p><a id="more"></a>
+
+
+
+<p>RCU和读写锁最关键的相似之处，在于两者都有可以并行执行读端临界区。事实上，在某些情况下，完全可以用对应的读写锁API来替换RCU的API，反之亦然。</p>
+<p>RCU的优点在于：性能、不会死锁，以及良好的实时延迟。当然RCU也有一点缺点，比如：读者与更新者并发执行，低优先级RCU读者也可以阻塞正等待优雅周期(Grace Period)结束的高优先级线程，优雅周期的延迟可能达到好几毫秒。</p>
+<p><img alt data-src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bysdkXxFAH9NI7yIfJoXclytKTXOJibibV2WvaIaahuIdIRzAtDsczV7dibd2ur5hkPAQNGWxBeIy6Ysg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1"></p>
+<p>上图是不是略显奇怪，RCU读端延迟竟然小于一个CPU周期？这不是开玩笑，因为有某些实现中（例如，服务器Linux），RCU读端就完全是一个空操作。当然，在这样的实现中，它可能会包含一个编译屏障，因此也会对性能产生那么一点点影响。</p>
+<p>请注意，在单个CPU上读写锁比RCU慢一个数量级，在16个CPU上读写锁比RCU几乎要慢两个数量级。随着CPU数量的增加，RCU的扩展性优势越来越突出。可以这么说，RCU几乎就是水平扩展，这可以在上图中看出来。</p>
+<p>当内核配置了CONFIG_PREEMPT的时候，RCU仍然超过了读写锁一到三个数量级，如下图所示。请注意：读写锁在CPU数目很多时的陡峭曲线。</p>
+<p><img alt data-src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bysdkXxFAH9NI7yIfJoXclytfjgic2vaJ8wVbQ5XCibr8tAwnd8ibOd4SLXekbkyuyWDR1VZKZ2jYLNeQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1"></p>
+<p>当然，上图中的临界区长度为0，这夸大了读写锁的性能劣势。随着临界区的加大，RCU的性能优势也不再显著。在下图中，有16个CPU，y轴代表读端原语的总开销，x轴代表临界区长度。</p>
+<p><img alt data-src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bysdkXxFAH9NI7yIfJoXclytculGoibBmGCvgfupv1RYEfLquRyxZGANshHmhLtB7Qz3xtKmOOMcxMA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1"></p>
+<p>然而，一般说来，临界区都能在几个毫秒内完成，所以总的来说，在性能方面，测试结果对RCU是有利的。</p>
+<p>另外，RCU读端原语基本上是不会死锁的。因为它本身就属于无锁编程的范畴。</p>
+<p>这种免于死锁的能力来源于RCU的读端原语不阻塞、不自旋，甚至不存在向后跳转语句，所以RCU读端原语的执行时间是确定的。这使得RCU读端原语不可能形成死锁循环。</p>
+<p>RCU读端免于死锁的能力带来了一个有趣的后果：RCU读者可以恣意地升级为RCU更新者。在读写锁中尝试这种升级则会有可能造成死锁。进行RCU读者到更新者升级的代码片段如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  rcu_read_lock();</span><br><span class="line"><span class="number">2</span>  list_for_each_entry_rcu(p,  &amp;head,  list_field)  &#123;</span><br><span class="line"><span class="number">3</span>     do_something_with(p);</span><br><span class="line"><span class="number">4</span>     <span class="keyword">if</span>  (need_update(p))  &#123;</span><br><span class="line"><span class="number">5</span>         spin_lock(my_lock);</span><br><span class="line"><span class="number">6</span>         do_update(p);</span><br><span class="line"><span class="number">7</span>         spin_unlock(&amp;my_lock);</span><br><span class="line"><span class="number">8</span>     &#125;</span><br><span class="line"><span class="number">9</span>  &#125;</span><br><span class="line"><span class="number">10</span>  rcu_read_unlock();</span><br></pre></td></tr></table></figure>
+
+<p>请注意，do_update()是在锁的保护下执行，也是在RCU读端的保护下执行。</p>
+<p>RCU免于死锁的特性带来的另一个有趣后果是RCU不会受优先级反转问题影响。比如，低优先级的RCU读者无法阻止高优先级的RCU更新者获取更新端锁。类似地，低优先级的更新者也无法阻止高优先级的RCU读者进入RCU读端临界区。</p>
+<p>另一方面，因为RCU读端原语既不自旋也不阻塞，所以这些原语有着极佳的实时延迟。而自旋锁或者读写锁都存在不确定的实时延迟。</p>
+<p>但是，RCU还是会受到更隐晦的优先级反转问题影响，比如，在等待RCU优雅周期结束而阻塞的高优先级进程，会被-rt内核的低优先级RCU读者阻塞。这可以用RCU优先级提升来解决。</p>
+<p>再一方面，因为RCU读者既不自旋也不阻塞，RCU更新者也没有任何类似回滚或者中止的语义，所以RCU读者和更新者可以并发执行。这意味着RCU读者有可能访问旧数据，还有可能发现数据不一致，无论这两个问题中的哪一个，都让读写锁有卷土重来的机会。</p>
+<p>不过，令人吃惊的是，在大量情景中，数据不一致和旧数据都不是问题。网络路由表是一个经典例子。因为路由的更新可能要花相当长一段时间才能到达指定系统（几秒甚至几分钟），所以系统可能会在新数据到来后的一段时间内，仍然将报文发到错误的地址去。通常，在几毫秒内将报文发送到错误地址并不算什么问题。</p>
+<p>简单地说，读写锁和RCU提供了不同的保证。在读写锁中，任何在写者之后开始的读者都“保证”能看到新值。与之相反，在RCU中，在更新者完成后才开始的读者都“保证”能看见新值，在更新者开始后才完成的读者有可能看见新值，也有可能看见旧值，这取决于具体的时机。</p>
+<p>在实时RCU、SRCU或QRCU中，被抢占的读者将阻止正在进行中的优雅周期的完成，即使有高优先级的任务在等待优雅周期完成时也是如此。实时RCU可以通过用call_rcu()替换synchronize_rcu()来避免此问题，或者采用RCU优先级提升来避免。</p>
+<p>除了那些“玩具”RCU实现，RCU优雅周期可能会延续好几个毫秒。这使得RCU更适于使用在读数据占多数的情景。</p>
+<p>将读写锁转换成RCU非常简单，如下：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/01/rcu-zz-pic-0.png"></p>
+<h4 id="RCU是一种受限制的引用计数机制"><a href="#RCU是一种受限制的引用计数机制" class="headerlink" title="RCU是一种受限制的引用计数机制"></a>RCU是一种受限制的引用计数机制</h4><p>因为优雅周期不能在RCU读端临界区进行时结束，所以RCU读端原语可以像受限的引用计数机制一样使用。比如考虑下面的代码片段：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  rcu_read_lock();             <span class="comment">/*  acquire  reference.  */</span></span><br><span class="line"><span class="number">2</span>  p  =  rcu_dereference(head);</span><br><span class="line"><span class="number">3</span>  <span class="comment">/*  do  something  with  p.  */</span></span><br><span class="line"><span class="number">4</span>  rcu_read_unlock();            <span class="comment">/*  release  reference.  */</span></span><br></pre></td></tr></table></figure>
+
+<p>rcu_read_lock()原语可以看作是获取对p的引用，因为相应的优雅周期无法在配对的rcu_read_unlock()之前结束。这种引用计数机制是受限制的，因为我们不允许在RCU读端临界区中阻塞，也不允许将一个任务的RCU读端临界区传递给另一个任务。不管上述的限制，下列代码可以安全地删除p：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  spin_lock(&amp;mylock);</span><br><span class="line"><span class="number">2</span>  p  =  head;</span><br><span class="line"><span class="number">3</span>  rcu_assign_pointer(head,  <span class="literal">NULL</span>);</span><br><span class="line"><span class="number">4</span>  spin_unlock(&amp;mylock);</span><br><span class="line"><span class="number">5</span>  <span class="comment">/*  Wait  for  all  references  to  be  released.  */</span></span><br><span class="line"><span class="number">6</span>  synchronize_rcu();</span><br><span class="line"><span class="number">7</span>  kfree(p);</span><br></pre></td></tr></table></figure>
+
+<p>当然，RCU也可以与传统的引用计数结合。但是为什么不直接使用引用计数？部分原因是性能，如下图所示，图中显示了在16个3GHz CPU的Intel x86系统中采集的数据。</p>
+<p><img alt data-src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bysdkXxFAH9NI7yIfJoXclyturuKibwhGCPqgdNR2DbrW23QA8lbmKBh1dAg5FMq0OIS7rHI18BgCxQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1"></p>
+<p>和读写锁一样，RCU的性能优势主要来源于较短的临界区，如下图所示。</p>
+<p><img alt data-src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bysdkXxFAH9NI7yIfJoXclytdyoqTYlryHerSTloAcDWL1cTS383kH0ic8JiblPqibFVrQ2tXaBibCmsuA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1"></p>
+<h4 id="RCU是一种可大规模使用的引用计数机制"><a href="#RCU是一种可大规模使用的引用计数机制" class="headerlink" title="RCU是一种可大规模使用的引用计数机制"></a>RCU是一种可大规模使用的引用计数机制</h4><p>如前所述，传统的引用计数通常与某种或者一组数据结构有联系。然而，维护一组数据结构的全局引用计数，通常会导致包含引用计数的缓存行来回“乒乓”。这种缓存行“乒乓”会严重影响系统性能。</p>
+<p>相反，RCU的轻量级读端原语允许读端极其频繁地调用，却只带来微不足道的性能影响，这使得RCU可以作为一种几乎没有性能损失的“批量引用计数机制”。当某个任务需要在一大段代码中持有引用时，可以使用可睡眠RCU（SRCU）。但是，一个任务不能将引用锁引用传递给另一个任务。例如：在开始一次I/O时获取引用，然后当对应的I/O完成时在中断处理函数里释放该引用。</p>
+<h4 id="RCU是穷人版的垃圾回收器"><a href="#RCU是穷人版的垃圾回收器" class="headerlink" title="RCU是穷人版的垃圾回收器"></a>RCU是穷人版的垃圾回收器</h4><p>当人们刚开始学习RCU时，有种比较少见的感叹是“RCU有点像垃圾回收器！”。这种感叹有一部分是对的，不过还是会给学习造成误导。</p>
+<p>也许思考RCU与垃圾自动回收器（GC）之间关系的最好办法是，RCU类似自动决定回收时机的GC，但是RCU与GC有几点不同：（1）程序员必须手动指示何时可以回收指定数据结构，（2）程序员必须手动标出可以合法持有引用的RCU读端临界区。</p>
+<p>尽管存在这些差异，两者的相似程度仍然相当高，至少有一篇理论分析RCU的文献曾经分析过两者的相似度。</p>
+<h4 id="RCU是一种提供存在担保的方法"><a href="#RCU是一种提供存在担保的方法" class="headerlink" title="RCU是一种提供存在担保的方法"></a>RCU是一种提供存在担保的方法</h4><p>通过锁来提供存在担保有其不利之处。与锁类似，如果任何受RCU保护的数据元素在RCU读端临界区中被访问，那么数据元素在RCU读端临界区持续期间保证存在。</p>
+<figure class="highlight basic"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">1 </span> <span class="keyword">int</span>  <span class="keyword">delete</span>(<span class="keyword">int</span>  <span class="keyword">key</span>)</span><br><span class="line"><span class="symbol">2 </span> &#123;</span><br><span class="line"><span class="symbol">3 </span>    struct  element  *p;</span><br><span class="line"><span class="symbol">4 </span>    <span class="keyword">int</span>  b;</span><br><span class="line"><span class="symbol">5 </span>    </span><br><span class="line"><span class="symbol">6 </span>    b  =  hashfunction(<span class="keyword">key</span>);</span><br><span class="line"><span class="symbol">7 </span>    rcu_read_lock();</span><br><span class="line"><span class="symbol">8 </span>    p  =  rcu_dereference(hashtable[b]);</span><br><span class="line"><span class="symbol">9 </span>    <span class="keyword">if</span>  (p  ==  NULL  ||  p-&gt;<span class="keyword">key</span>  !=  <span class="keyword">key</span>)  &#123;</span><br><span class="line"><span class="symbol">10 </span>        rcu_read_unlock();</span><br><span class="line"><span class="symbol">11 </span>        <span class="keyword">return</span>  <span class="number">0</span>;</span><br><span class="line"><span class="symbol">12 </span>    &#125;</span><br><span class="line"><span class="symbol">13 </span>    spin_lock(&amp;p-&gt;lock);</span><br><span class="line"><span class="symbol">14 </span>    <span class="keyword">if</span>  (hashtable[b]  ==  p  &amp;&amp;  p-&gt;<span class="keyword">key</span>  ==  <span class="keyword">key</span>)  &#123;</span><br><span class="line"><span class="symbol">15 </span>        rcu_read_unlock();</span><br><span class="line"><span class="symbol">16 </span>        hashtable[b]  =  NULL;</span><br><span class="line"><span class="symbol">17 </span>        spin_unlock(&amp;p-&gt;lock);</span><br><span class="line"><span class="symbol">18 </span>        synchronize_rcu();</span><br><span class="line"><span class="symbol">19 </span>        kfree(p);</span><br><span class="line"><span class="symbol">20 </span>        <span class="keyword">return</span>  <span class="number">1</span>;</span><br><span class="line"><span class="symbol">21 </span>    &#125;</span><br><span class="line"><span class="symbol">22 </span>    spin_unlock(&amp;p-&gt;lock);</span><br><span class="line"><span class="symbol">23 </span>    rcu_read_unlock();</span><br><span class="line"><span class="symbol">24 </span>    <span class="keyword">return</span>  <span class="number">0</span>;</span><br><span class="line"><span class="symbol">25 </span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>上图展示了基于RCU的存在担保如何通过从哈希表删除元素的函数来实现每数据元素锁。第6行计算哈希函数，第7行进入RCU读端临界区。如果第9行发现哈希表对应的哈希项（bucket）为空，或者数据元素不是我们想要删除的那个，那么第10行退出RCU读端临界区，第11行返回错误。</p>
+<p>如果第9行判断为false，第13行获取更新端的自旋锁，然后第14行检查元素是否还是我们想要的。如果是，第15行退出RCU读端临界区，第16行从哈希表中删除找到的元素，第17行释放锁，第18行等待所有之前已经存在的RCU读端临界区退出，第19行释放刚被删除的元素，最后第20行返回成功。如果14行的判断发现元素不再是我们想要的，那么第22行释放锁，第23行退出RCU读端临界区，第24行返回错误以删除该关键字。</p>
+<h4 id="RCU是一种提供类型安全内存的方法"><a href="#RCU是一种提供类型安全内存的方法" class="headerlink" title="RCU是一种提供类型安全内存的方法"></a>RCU是一种提供类型安全内存的方法</h4><p>很多无锁算法并不需要数据元素在被RCU读端临界区引用时保持完全一致，只要数据元素的类型不变就可以了。换句话说，只要数据结构类型不变，无锁算法可以允许某个数据元素在被其他对象引用时被释放并重新分配，但是决不允许类型上的改变。这种“保证”，在学术文献中被称为“类型安全的内存”，它比前一节提到的存在担保要弱一些，因此处理起来也要困难一些。类型安全的内存算法在Linux内核中的应用是slab缓存，被SLAB_DESTROY_BY_RCU标记专门标出来的缓存通过RCU将已释放的slab返回给系统内存。在任何已有的RCU读端临界区持续期间，使用RCU可以保证所有带有SLAB_DESTROY_BY_RCU标记且正在使用的slab元素仍然在该slab中，类型保持一致。</p>
+<p>虽然基于类型安全的无锁算法在特定情景下非常有效，但是最好还是尽量使用存在担保。毕竟简单总是更好的。</p>
+<h4 id="RCU是一种等待事物结束的方式"><a href="#RCU是一种等待事物结束的方式" class="headerlink" title="RCU是一种等待事物结束的方式"></a>RCU是一种等待事物结束的方式</h4><p>RCU的一个强大之处，就是允许你在等待上千个不同事物结束的同时，又不用显式地去跟踪其中每一个事物，因此也就无需担心性能下降、扩展限制、复杂的死锁场景、内存泄露等显式跟踪机制本身的问题。</p>
+<p>下面展示如何实现与不可屏蔽中断（NMI）处理函数的交互，如果用锁来实现，这将极其困难。步骤如下：</p>
+<ul>
+<li>1．做出改变，比如，OS对一个NMI做出反应。在NMI中使用RCU读端原语。</li>
+<li>2．等待所有已有的读端临界区完全退出（比如使用synchronize_sched()原语）。</li>
+<li>3．扫尾工作，比如，返回表明改变成功完成的状态。</li>
+</ul>
+<p>下面是一个Linux内核中的例子。在这个例子中，timer_stop()函数使用synchronize_sched()确保在释放相关资源之前，所有正在处理的NMI处理函数已经完成。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="class"><span class="keyword">struct</span>  <span class="title">profile_buffer</span>  &#123;</span></span><br><span class="line"><span class="number">2</span>     <span class="keyword">long</span>  size;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">atomic_t</span>  entry[<span class="number">0</span>];</span><br><span class="line"><span class="number">4</span>  &#125;;</span><br><span class="line"><span class="number">5</span>  <span class="keyword">static</span>  <span class="class"><span class="keyword">struct</span>  <span class="title">profile_buffer</span>  *<span class="title">buf</span>  =  <span class="title">NULL</span>;</span></span><br><span class="line"><span class="number">6</span></span><br><span class="line"><span class="number">7</span>  <span class="function"><span class="keyword">void</span>  <span class="title">nmi_profile</span><span class="params">(<span class="keyword">unsigned</span>  <span class="keyword">long</span>  pcvalue)</span></span></span><br><span class="line"><span class="function">8  </span>&#123;</span><br><span class="line"><span class="number">9</span>     <span class="class"><span class="keyword">struct</span>  <span class="title">profile_buffer</span>  *<span class="title">p</span>  =   <span class="title">rcu_dereference</span>(<span class="title">buf</span>);</span></span><br><span class="line"><span class="number">10</span></span><br><span class="line"><span class="number">11</span>     <span class="keyword">if</span>  (p  ==  <span class="literal">NULL</span>)</span><br><span class="line"><span class="number">12</span>         <span class="keyword">return</span>;</span><br><span class="line"><span class="number">13</span>     <span class="keyword">if</span>  (pcvalue  &gt;=  p-&gt;size)</span><br><span class="line"><span class="number">14</span>         <span class="keyword">return</span>;</span><br><span class="line"><span class="number">15</span>     atomic_inc(&amp;p-&gt;entry[pcvalue]);</span><br><span class="line"><span class="number">16</span>  &#125;</span><br><span class="line"><span class="number">17</span></span><br><span class="line"><span class="number">18</span>  <span class="function"><span class="keyword">void</span>  <span class="title">nmi_stop</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">19  </span>&#123;</span><br><span class="line"><span class="number">20</span>     <span class="class"><span class="keyword">struct</span>  <span class="title">profile_buffer</span>  *<span class="title">p</span>  =  <span class="title">buf</span>;</span></span><br><span class="line"><span class="number">21</span></span><br><span class="line"><span class="number">22</span>     <span class="keyword">if</span>  (p  ==  <span class="literal">NULL</span>)</span><br><span class="line"><span class="number">23</span>         <span class="keyword">return</span>;</span><br><span class="line"><span class="number">24</span>     rcu_assign_pointer(buf,  <span class="literal">NULL</span>);</span><br><span class="line"><span class="number">25</span>     synchronize_sched();</span><br><span class="line"><span class="number">26</span>     kfree(p);</span><br><span class="line"><span class="number">27</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>第1到4行定义了profile_buffer结构，包含一个大小和一个变长数组的入口。第5行定义了指向profile_buffer的指针，这里假设别处对该指针进行了初始化，指向内存的动态分配区。</p>
+<p>第7至16行定义了nmi_profile()函数，供NMI中断处理函数调用。该函数不会被抢占，也不会被普通的中断处理函数打断，但是，该函数还是会受高速缓存未命中、ECC错误以及被同一个核的其他硬件线程抢占时钟周期等因素影响。第9行使用rcu_dereference()原语来获取指向profile_buffer的本地指针，这样做是为了确保在DECAlpha上的内存顺序执行，如果当前没有分配profile_buffer，第11行和12行退出，如果参数pcvalue超出范围，第13和14行退出。否则，第15行增加以参数pcvalue为下标的profile_buffer项的值。请注意，profile_buffer结构中的size保证了pcvalue不会超出缓冲区的范围，即使突然将较大的缓冲区替换成了较小的缓冲区也是如此。</p>
+<p>第18至27行定义了nmi_stop()函数，由调用者负责互斥访问（比如持有正确的锁）。第20行获取profile_buffer的指针，如果缓冲区为空，第22和23行退出。否则，第24行将profile_buffer的指针置NULL（使用rcu_assign_pointer()原语在弱顺序的机器中保证内存顺序访问），第25行等待RCU Sched的优雅周期结束，尤其是等待所有不可抢占的代码——包括NMI中断处理函数——结束。一旦执行到第26行，我们就可以保证所有获取到指向旧缓冲区指针的nmi_profile()实例都已经返回了。现在可以安全释放缓冲区，这时使用kfree()原语。</p>
+<p>简而言之，RCU让profile_buffer动态切换变得更简单，你可以试试原子操作，也可以用锁来折磨下自己。注意考虑到如下一点：在大多数CPU架构中，原子操作和锁都可能存在循环语句，在循环的过程中可能会被NMI中断。</p>
+<h3 id="RCU-API"><a href="#RCU-API" class="headerlink" title="RCU API"></a>RCU API</h3><p><img alt data-src="https://l2h.site/wp-content/uploads/2019/01/RCU-API.png"></p>
+<p>RCU API  </p>
+<p>“RCU Classic”一列对应的是RCU的原始实现，rcu_read_lock()和rcu_read_unlock()原语标示出RCU读端临界区，可以嵌套使用。对应的同步的更新端原语synchronize_rcu()和synchronize_net()都是等待当前正在执行的RCU读端临界区退出。等待时间被称为“优雅周期”。异步的更新端原语call_rcu()在后续的优雅周期结束后调用由参数指定的函数。比如，call_rcu(p, f);在优雅周期结束后执行RCU回调f(p)。</p>
+<p>想要利用基于RCU的类型安全的内存，要将SLAB_DESTROY_BY_RCU传递给kmem_cache_create()。有一点很重要，SLAB_DESTROY_BY_RCU不会阻止kmem_cache_alloc()立即重新分配刚被kmem_cache_free()释放的内存！事实上，由rcu_dereference返回的受SLAB_DESTROY_ BY_RCU标记保护的数据结构可能会释放——重新分配任意次，甚至在rcu_read_lock()保护下也是如此。但是，SLAB_DESTROY_BY_RCU可以阻止kmem_cache_free()在RCU优雅周期结束之前，它所返回数据结构的完全释放给SLAB。一句话，虽然数据元素可能被释放——重新分配N次，但是它的类型是保持不变的。</p>
+<h4 id="订阅和版本维护API"><a href="#订阅和版本维护API" class="headerlink" title="订阅和版本维护API"></a>订阅和版本维护API</h4><p><img alt data-src="https://l2h.site/wp-content/uploads/2019/01/rcu-api-2.png"></p>
+<p>表中的第一类API作用于Linux的struct list_head循环双链表。list_for_each_ entry_rcu()原语以类型安全的方式遍历受RCU保护的链表。在非Alpha的平台上，该原语相较于list_for_each_entry()原语不产生或者只带来极低的性能惩罚。list_add_rcu()、list_add_tail_rcu()和list_replace_rcu()原语都是对非RCU版本的模拟，但是在弱顺序的机器上回带来额外的内存屏障开销。list_del_rcu()原语同样是非RCU版本的模拟，但是奇怪的是它要比非RCU版本快一点，这是由于list_del_rcu()只毒化prev指针，而list_del()会同时毒化prev和next指针。最后，list_splice_init_rcu()原语和它的非RCU版本类似，但是会带来一个完整的优雅周期的延迟。</p>
+<p>表中的第二类API直接作用于Linux的struct hlist_head线性哈希表。struct hlist_head比structlist_head高级一点的地方是前者只需要一个单指针的链表头部，这在大型哈希表中将节省大量内存。表中的struct hlist_head原语与非RCU版本的关系同struct list_head原语的类似关系一样。</p>
+<p>表中的最后一类API直接作用于指针，这对创建受RCU保护的非链表数据元素非常有用，比如受RCU保护的数组和树。rcu_assign_pointer()原语确保在弱序机器上，任何在给指针赋值之前进行的初始化都将按照顺序执行。同样，rcu_dereferece()原语确保后续指针解引用的代码可以在Alpha CPU上看见对应的rcu_assign_pointer()之前进行的初始化的结果。 </p>
+<h2 id="系列五：玩具式实现"><a href="#系列五：玩具式实现" class="headerlink" title="系列五：玩具式实现"></a>系列五：玩具式实现</h2><h3 id="基于锁的RCU"><a href="#基于锁的RCU" class="headerlink" title="基于锁的RCU"></a>基于锁的RCU</h3><p>也许最简单的RCU实现就是用锁了，如下图所示。在该实现中，rcu_read_lock()获取一把全局自旋锁，rcu_read_unlock()释放锁，而synchronize_rcu()获取自旋锁，随后将其释放。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">4</span>  &#125;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">7  </span>&#123;</span><br><span class="line"><span class="number">8</span>     spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">9</span>  &#125;</span><br><span class="line"><span class="number">10</span></span><br><span class="line"><span class="number">11</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">12  </span>&#123;</span><br><span class="line"><span class="number">13</span>     spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">14</span>     spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">15</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为synchronize_rcu()只有在获取锁（然后释放）以后才会返回，所以在所有之前发生的RCU读端临界区完成前，synchronize_rcu()是不会返回的，因此这符合RCU的语义，特别是存在担保方面的语义。</p>
+<p>但是，在这样的实现中，一个读端临界区同时只能有一个RCU读者进入，这基本上可以说是和RCU的目的相反。而且，rcu_read_lock()和rcu_read_unlock()中的锁操作开销是极大的，读端的开销从Power5单核CPU上的100纳秒到64核系统上的17微秒不等。更糟的是，使用同一把锁使得rcu_read_lock()，可能会使得系统形成自旋锁死锁。这是因为：RCU的语义允许RCU读端嵌套。所以，在这样的实现中，RCU读端临界区不能嵌套。最后一点，原则上并发的RCU更新操作可以共享一个公共的优雅周期，但是该实现将优雅周期串行化了，因此无法共享优雅周期。</p>
+<p>问题：这样的死锁情景会不会出现其他RCU实现中？</p>
+<p>问题：为什么不直接用读写锁来实现这个RCU？</p>
+<p>很难想象这种实现能用在任何一个产品中，但是这种实现有一点好处：可以用在几乎所有的用户态程序上。不仅如此，类似的使用每CPU锁或者读写锁的实现还曾经用于Linux 2.4内核中。</p>
+<h3 id="基于每线程锁的RCU"><a href="#基于每线程锁的RCU" class="headerlink" title="基于每线程锁的RCU"></a>基于每线程锁的RCU</h3><p>下图显示了一种基于每线程锁的实现。rcu_read_lock()和rcu_read_unlock()分别获取和释放当前线程的锁。synchronize_rcu()函数按照次序逐一获取和释放每个线程的锁。这样，所有在synchronize_rcu()开始时就已经执行的RCU读端临界区，必须在synchronize_rcu()结束前返回。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>    spin_lock(&amp;__get_thread_var(rcu_gp_lock));</span><br><span class="line"><span class="number">4</span>  &#125;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">7  </span>&#123;</span><br><span class="line"><span class="number">8</span>     spin_unlock(&amp;__get_thread_var(rcu_gp_lock));</span><br><span class="line"><span class="number">9</span>  &#125;</span><br><span class="line"><span class="number">10</span></span><br><span class="line"><span class="number">11</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">12  </span>&#123;</span><br><span class="line"><span class="number">13</span>     <span class="keyword">int</span> t;</span><br><span class="line"><span class="number">14</span></span><br><span class="line"><span class="number">15</span>     for_each_running_thread(t)  &#123;</span><br><span class="line"><span class="number">16</span>        spin_lock(&amp;per_thread(rcu_gp_lock, t));</span><br><span class="line"><span class="number">17</span>        spin_unlock(&amp;per_thread(rcu_gp_lock, t));</span><br><span class="line"><span class="number">18</span>     &#125;</span><br><span class="line"><span class="number">19</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>该实现的优点在于：允许并发的RCU读者，同时避免了使用单个全局锁可能造成的死锁。不仅如此，读端开销虽然高达大概140纳秒，但是不管CPU数目为多少，始终保持在140纳秒。不过，更新端的开销则在从Power5单核上的600纳秒到64核系统上的超过100微秒不等。</p>
+<p><strong>问题</strong>：如果在第15至18行看，先获取所有锁，然后再释放所有锁，这样是不是更清晰一点呢？</p>
+<p><strong>问题</strong>：该实现能够避免死锁吗？如果能，为什么能？如果不能，为什么不能？</p>
+<p>本方法在某些情况下是很有效的，尤其是类似的方法曾在Linux 2.4内核中使用。</p>
+<p>下面提到的基于计数的RCU实现，克服了基于锁实现的某些缺点。</p>
+<h3 id="基于计数的简单RCU实现"><a href="#基于计数的简单RCU实现" class="headerlink" title="基于计数的简单RCU实现"></a>基于计数的简单RCU实现</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="keyword">atomic_t</span> rcu_refcnt;</span><br><span class="line"><span class="number">2</span></span><br><span class="line"><span class="number">3</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">4  </span>&#123;</span><br><span class="line"><span class="number">5</span>     atomic_inc(&amp;rcu_refcnt);</span><br><span class="line"><span class="number">6</span>     smp_mb();</span><br><span class="line"><span class="number">7</span>  &#125;</span><br><span class="line"><span class="number">8</span></span><br><span class="line"><span class="number">9</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">10  </span>&#123;</span><br><span class="line"><span class="number">11</span>     smp_mb();</span><br><span class="line"><span class="number">12</span>     atomic_dec(&amp;rcu_refcnt);</span><br><span class="line"><span class="number">13</span>  &#125;</span><br><span class="line"><span class="number">14</span></span><br><span class="line"><span class="number">15</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">16  </span>&#123;</span><br><span class="line"><span class="number">17</span>     smp_mb();</span><br><span class="line"><span class="number">18</span>     <span class="keyword">while</span> (atomic_read(&amp;rcu_refcnt) !=  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">19</span>         poll(<span class="literal">NULL</span>,  <span class="number">0</span>, <span class="number">10</span>);</span><br><span class="line"><span class="number">20</span>     &#125;</span><br><span class="line"><span class="number">21</span>     smp_mb();</span><br><span class="line"><span class="number">22</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一种稍微复杂一点的RCU实现。本方法在第1行定义了一个全局引用计数rcu_refcnt。rcu_read_lock()原语自动增加计数，然后执行一个内存屏障，确保在原子自增之后才进入RCU读端临界区。同样，rcu_read_unlock()先执行一个内存屏障，划定RCU读端临界区的结束点，然后再原子自减计数。synchronize_rcu()原语不停自旋，等待引用计数的值变为0，语句前后用内存屏障保护正确的顺序。第19行的poll()只是纯粹的延时，从纯RCU语义的角度上看是可以省略的。等synchronize_rcu()返回后，所有之前发生的RCU读端临界区都已经完成了。</p>
+<p>与基于锁的实现相比，我们欣喜地发现：这种实现可以让读者并发进入RCU读端临界区。与基于每线程锁的实现相比，我们又欣喜地发现：本节的实现可以让RCU读端临界区嵌套。另外，rcu_read_lock()原语不会进入死锁循环，因为它既不自旋也不阻塞。</p>
+<p>问题：但是如果你在调用synchronize_rcu()时持有一把锁，然后又在RCU读端临界区中获取同一把锁，会发生什么呢？</p>
+<p>当然，这个实现还是存在一些严重的缺点。首先，rcu_read_lock()和rcu_read_unlock()中的原子操作开销是非常大的，读端开销从Power5单核CPU上的100纳秒到64核系统上的40微秒不等。这意味着RCU读端临界区必须非常长，才能够满足现实世界中的读端并发请求。但是从另一方面来说，当没有读者时，优雅周期只有差不多40纳秒，这比Linux内核中的产品级实现要快上很多个数量级。</p>
+<p>其次，如果存在多个并发的rcu_read_lock()和rcu_read_unlock()操作，因为出现大量高速缓冲未命中，对rcu_refcnt的内存访问竞争将会十分激烈。</p>
+<p>以上这两个缺点极大地影响RCU的目标，即提供一种读端低开销的同步原语。</p>
+<p>最后，在很长的读端临界区中的大量RCU读者甚至会让synchronize_rcu()无法完成，因为全局计数可能永远不为0。这会导致RCU更新端的饥饿，这一点在产品级应用里肯定是不可接受的。</p>
+<p>问题：当synchronize_rcu()等待时间过长了以后，为什么不能简单地让rcu_read_lock()暂停一会儿呢？这种做法不能防止synchronize_rcu()饥饿吗？</p>
+<p>通过上述内容，很难想象本节的实现可以在产品级应用中使用，虽然它比基于锁的实现更有这方面的潜力，比如，作为一种高负荷调试环境中的RCU实现。下面我们将介绍一种对写者更有利的引用计数RCU变体。</p>
+<h3 id="不会让更新者饥饿的引用计数RCU"><a href="#不会让更新者饥饿的引用计数RCU" class="headerlink" title="不会让更新者饥饿的引用计数RCU"></a>不会让更新者饥饿的引用计数RCU</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  DEFINE_SPINLOCK(rcu_gp_lock);</span><br><span class="line"><span class="number">2</span>  <span class="keyword">atomic_t</span> rcu_refcnt[<span class="number">2</span>];</span><br><span class="line"><span class="number">3</span>  <span class="keyword">atomic_t</span> rcu_idx;</span><br><span class="line"><span class="number">4</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>,  rcu_nesting);</span><br><span class="line"><span class="number">5</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>,  rcu_read_idx);</span><br></pre></td></tr></table></figure>
+
+<p>下图展示了一种RCU实现的读端原语，使用一对引用计数（rcu_refcnt[]），通过一个全局索引（rcu_idx）从这对计数中选出一个计数，一个每线程的嵌套计数rcu_nesting，一个每线程的全局索引快照（rcu_read_idx），以及一个全局锁（rcu_gp_lock），上图给出了上述定义。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span> n;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>     n =  __get_thread_var(rcu_nesting);</span><br><span class="line"><span class="number">7</span>     <span class="keyword">if</span> (n  ==  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">8</span>         i =  atomic_read(&amp;rcu_idx);</span><br><span class="line"><span class="number">9</span>         __get_thread_var(rcu_read_idx)  =  i;</span><br><span class="line"><span class="number">10</span>         atomic_inc(&amp;rcu_refcnt[i]);</span><br><span class="line"><span class="number">11</span>     &#125;</span><br><span class="line"><span class="number">12</span>     __get_thread_var(rcu_nesting)  = n  +  <span class="number">1</span>;</span><br><span class="line"><span class="number">13</span>     smp_mb();</span><br><span class="line"><span class="number">14</span>  &#125;</span><br><span class="line"><span class="number">15</span></span><br><span class="line"><span class="number">16</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">17  </span>&#123;</span><br><span class="line"><span class="number">18</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">19</span>     <span class="keyword">int</span> n;</span><br><span class="line"><span class="number">20</span></span><br><span class="line"><span class="number">21</span>     smp_mb();</span><br><span class="line"><span class="number">22</span>     n =  __get_thread_var(rcu_nesting);</span><br><span class="line"><span class="number">23</span>     <span class="keyword">if</span> (n  ==  <span class="number">1</span>)  &#123;</span><br><span class="line"><span class="number">24</span>         i =  __get_thread_var(rcu_read_idx);</span><br><span class="line"><span class="number">25</span>        atomic_dec(&amp;rcu_refcnt[i]);</span><br><span class="line"><span class="number">26</span>     &#125;</span><br><span class="line"><span class="number">27</span>     __get_thread_var(rcu_nesting)  = n  -  <span class="number">1</span>;</span><br><span class="line"><span class="number">28</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>拥有两个元素的rcu_refcnt[]数组让更新者免于饥饿。这里的关键点是synchronize_rcu()只需要等待已存在的读者。如果在给定实例的synchronize_rcu()正在执行时，出现一个新的读者，那么synchronize_rcu()不需要等待那个新的读者。在任意时刻，当给定的读者通过通过rcu_read_lock()进入其RCU读端临界区时，它增加rcu_refcnt[]数组中由rcu_idx变量所代表下标的元素。当同一个读者通过rcu_read_unlock()退出其RCU读端临界区，它减去其增加的元素，忽略对rcu_idx值任何可能的后续更改。</p>
+<p>这种安排意味着synchronize_rcu()可以通过修改rcu_idx的值来避免饥饿。假设rcu_idx的旧值为零，因此修改后的新值为1。在修改操作之后到达的新读者将增加rcu_idx[1]，而旧的读者先前递增的rcu_idx [0]将在它们退出RCU读端临界区时递减。这意味着rcu_idx[0]的值将不再增加，而是单调递减。这意味着所有synchronize_rcu()需要做的是等待rcu_refcnt[0]的值达到零。</p>
+<p>有了背景，我们来好好看看实际的实现原语。</p>
+<p>实现rcu_read_lock()原语自动增加由rcu_idx标出的rcu_refcnt[]成员的值，然后将索引保存在每线程变量rcu_read_idx中。rcu_read_unlock()原语自动减少对应的rcu_read_lock()增加的那个计数的值。不过，因为rcu_idx每个线程只能设置为rcu_idx设置一个值，所以还需要一些手段才能允许嵌套。方法是用每线程的rcu_nesting变量跟踪嵌套。</p>
+<p>为了让这种方法能够工作，rcu_read_lock()函数的第6行获取了当前线程的rcu_nesting，如果第7行的检查发现当前处于最外层的rcu_read_lock()，那么第8至10行获取变量rcu_idx的当前值，将其存到当前线程的rcu_read_idx中，然后增加被rcu_idx选中的rcu_refcnt元素的值。第12行不管现在的rcu_nesting值是多少，直接对其加1。第13行执行一个内存屏障，确保RCU读端临界区不会在rcu_read_lock()之前开始。</p>
+<p>同样，rcu_read_unlock()函数在第21行也执行一个内存屏障，确保RCU读端临界区不会在rcu_read_unlock()代码之后还未完成。第22行获取当前线程的rcu_nesting，如果第23行的检查发现当前处于最外层的rcu_read_unlock()，那么第24至25行获取当前线程的rcu_read_idx（由最外层的rcu_read_lock()保存）并且原子减少被rcu_read_idx选择的rcu_refcnt元素。无论当前嵌套了多少层，第27行都直接减少本线程的rcu_nesting值。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用全局引用计数对的RCU更新端原语</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">4</span></span><br><span class="line"><span class="number">5</span>     smp_mb();</span><br><span class="line"><span class="number">6</span>     spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">7</span>     i =  atomic_read(&amp;rcu_idx);</span><br><span class="line"><span class="number">8</span>     atomic_set(&amp;rcu_idx,  !i);</span><br><span class="line"><span class="number">9</span>     smp_mb();</span><br><span class="line"><span class="number">10</span>     <span class="keyword">while</span> (atomic_read(&amp;rcu_refcnt[i) !=  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">11</span>         poll(<span class="literal">NULL</span>,  <span class="number">0</span>, <span class="number">10</span>);</span><br><span class="line"><span class="number">12</span>     &#125;</span><br><span class="line"><span class="number">13</span>     smp_mb();</span><br><span class="line"><span class="number">14</span>     atomic_set(&amp;rcu_idx,  i);</span><br><span class="line"><span class="number">15</span>     smp_mb();</span><br><span class="line"><span class="number">16</span>     <span class="keyword">while</span> (atomic_read(&amp;rcu_refcnt[!i]) !=  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">17</span>         poll(<span class="literal">NULL</span>,  <span class="number">0</span>, <span class="number">10</span>);</span><br><span class="line"><span class="number">18</span>     &#125;</span><br><span class="line"><span class="number">19</span>     spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">20</span>     smp_mb();</span><br><span class="line"><span class="number">21</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>上图实现了对应的synchronize_rcu()。第6行和第19行获取并释放rcu_gp_lock，因为这样可以防止多于一个的并发synchronize_rcu()实例。第7至8行分别获取rcu_idx的值，并对其取反，这样后续的rcu_read_lock()实例将使用与之前的实例不同的rcu_idx值。然后第10至12行等待之前的由rcu_idx选出的元素变成0，第9行的内存屏障是为了保证对rcu_idx的检查不会被优化到对rcu_idx取反操作之前。第13至18行重复这一过程，第20行的内存屏障是为了保证所有后续的回收操作不会被优化到对rcu_refcnt的检查之前执行。</p>
+<p><strong>问题</strong>：为什么上图中，在获得自旋锁之前，synchronize_rcu()第5行还有一个内存屏障？</p>
+<p><strong>问题</strong>：为什么上图的计数要检查两次？难道检查一次还不够吗？</p>
+<p>本节的实现避免了简单计数实现可能发生的更新端饥饿问题。</p>
+<p>讨论不过这种实现仍然存在一些严重问题。首先，rcu_read_lock()和rcu_read_unlock()中的原子操作开销很大。事实上，它们比上一个实现中的单个计数要复杂很多，读端原语的开销从Power5单核处理器上的150纳秒到64核处理器上的40微秒不等。更新端synchronize_rcu()原语的开销也变大了，从Power5单核CPU中的200纳秒到64核处理器中的40微秒不等。这意味着RCU读端临界区必须非常长，才能够满足现实世界的读端并发请求。</p>
+<p>其次，如果存在很多并发的rcu_read_lock()和rcu_read_unlock()操作，那么对rcu_refcnt的内存访问竞争将会十分激烈，这将导致耗费巨大的高速缓存未命中。这一点进一步延长了提供并发读端访问所需要的RCU读端临界区持续时间。这两个缺点在很多情况下都影响了RCU的目标。</p>
+<p>第三，需要检查rcu_idx两次这一点为更新操作增加了开销，尤其是线程数目很多时。</p>
+<p>最后，尽管原则上并发的RCU更新可以共用一个公共优雅周期，但是本节的实现串行化了优雅周期，使得这种共享无法进行。</p>
+<p>问题：既然原子自增和原子自减的开销巨大，为什么不第10行使用非原子自增，在第25行使用非原子自减呢？</p>
+<p>尽管有这样那样的缺点，这种RCU的变体还是可以运用在小型的多核系统上，也许可以作为一种节省内存实现，用于维护与更复杂实现之间的API兼容性。但是，这种方法在CPU增多时可扩展性不佳。</p>
+<p>另一种基于引用计数机制的RCU变体极大地改善了读端性能和可扩展性。</p>
+<h3 id="可扩展的基于计数RCU实现"><a href="#可扩展的基于计数RCU实现" class="headerlink" title="可扩展的基于计数RCU实现"></a>可扩展的基于计数RCU实现</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//RCU每线程引用计数对的数据定义</span></span><br><span class="line"><span class="number">1</span>  DEFINE_SPINLOCK(rcu_gp_lock);</span><br><span class="line"><span class="number">2</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>  [<span class="number">2</span>], rcu_refcnt);</span><br><span class="line"><span class="number">3</span>  <span class="keyword">atomic_t</span> rcu_idx;</span><br><span class="line"><span class="number">4</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>,  rcu_nesting);</span><br><span class="line"><span class="number">5</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>,  rcu_read_idx);</span><br></pre></td></tr></table></figure>
+
+<p>下图是一种RCU实现的读端原语，其中使用了每线程引用计数。本实现与前一个实现十分类似，唯一的区别在于rcu_refcnt成了一个每线程变量。使用这个两元素数组是为了防止读者导致写者饥饿。使用每线程rcu_refcnt[]数组的另一个好处是，rcu_read_lock()和rcu_read_unlock()原语不用再执行原子操作。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用每线程引用计数对的RCU读端原语</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span> n;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>     n =  __get_thread_var(rcu_nesting);</span><br><span class="line"><span class="number">7</span>     <span class="keyword">if</span> (n  ==  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">8</span>         i =  atomic_read(&amp;rcu_idx);</span><br><span class="line"><span class="number">9</span>         __get_thread_var(rcu_read_idx)  =  i;</span><br><span class="line"><span class="number">10</span>         __get_thread_var(rcu_refcnt)[i]++;</span><br><span class="line"><span class="number">11</span>     &#125;</span><br><span class="line"><span class="number">12</span>     __get_thread_var(rcu_nesting)  = n  +  <span class="number">1</span>;</span><br><span class="line"><span class="number">13</span>     smp_mb();</span><br><span class="line"><span class="number">14</span>  &#125;</span><br><span class="line"><span class="number">15</span></span><br><span class="line"><span class="number">16</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">17  </span>&#123;</span><br><span class="line"><span class="number">18</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">19</span>     <span class="keyword">int</span> n;</span><br><span class="line"><span class="number">20</span></span><br><span class="line"><span class="number">21</span>     smp_mb();</span><br><span class="line"><span class="number">22</span>     n =  __get_thread_var(rcu_nesting);</span><br><span class="line"><span class="number">23</span>     <span class="keyword">if</span> (n  ==  <span class="number">1</span>)  &#123;</span><br><span class="line"><span class="number">24</span>         i  = __get_thread_var(rcu_read_idx);</span><br><span class="line"><span class="number">25</span>         __get_thread_var(rcu_refcnt)[i]–;</span><br><span class="line"><span class="number">26</span>     &#125;</span><br><span class="line"><span class="number">27</span>     __get_thread_var(rcu_nesting)  = n  –  <span class="number">1</span>;</span><br><span class="line"><span class="number">28</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>问题：别忽悠了！我在rcu_read_lock()里看见atomic_read()原语了！为什么你想假装rcu_read_lock()里没有原子操作？</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用每线程引用计数对的RCU更新端原语</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">flip_counter_and_wait</span><span class="params">(<span class="keyword">int</span>  i)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span> t;</span><br><span class="line"><span class="number">4</span></span><br><span class="line"><span class="number">5</span>     atomic_set(&amp;rcu_idx,  !i);</span><br><span class="line"><span class="number">6</span>     smp_mb();</span><br><span class="line"><span class="number">7</span>     for_each_thread(t)  &#123;</span><br><span class="line"><span class="number">8</span>         <span class="keyword">while</span> (per_thread(rcu_refcnt, t)[i]  !=  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">9</span>               poll(<span class="literal">NULL</span>,  <span class="number">0</span>, <span class="number">10</span>);</span><br><span class="line"><span class="number">10</span>         &#125;</span><br><span class="line"><span class="number">11</span>     &#125;</span><br><span class="line"><span class="number">12</span>     smp_mb();</span><br><span class="line"><span class="number">13</span>  &#125;</span><br><span class="line"><span class="number">14</span></span><br><span class="line"><span class="number">15</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">16  </span>&#123;</span><br><span class="line"><span class="number">17</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">18</span></span><br><span class="line"><span class="number">19</span>     smp_mb();</span><br><span class="line"><span class="number">20</span>     spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">21</span>     i =  atomic_read(&amp;rcu_idx);</span><br><span class="line"><span class="number">22</span>     flip_counter_and_wait(i);</span><br><span class="line"><span class="number">23</span>     flip_counter_and_wait(!i);</span><br><span class="line"><span class="number">24</span>     spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">25</span>     smp_mb();</span><br><span class="line"><span class="number">26</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>下图是synchronize_rcu()的实现，还有一个辅助函数flip_counter_ and_wait()。synchronize_rcu()函数和前一个实现基本一样，除了原来的重复检查计数过程被替换成了第22至23行的辅助函数。</p>
+<p>新的flip_counter_and_wait()函数在第5行更新rcu_idx变量，第6行执行内存屏障，然后第7至11行循环检查每个线程对应的rcu_refcnt元素，等待该值变为0。一旦所有元素都变为0，第12行执行另一个内存屏障，然后返回。</p>
+<p>本RCU实现对软件环境有所要求，（1）能够声明每线程变量，（2）每个线程都可以访问其他线程的每线程变量，（3）能够遍历所有线程。绝大多数软件环境都满足上述要求，但是通常对线程数的上限有所限制。更复杂的实现可以避开这种限制，比如，使用可扩展的哈希表。这种实现能够动态地跟踪线程，比如，在线程第一次调用rcu_read_lock()时将线程加入哈希表。</p>
+<p>问题：好极了，如果我有N个线程，那么我要等待2N*10毫秒（每个flip_counter_and_wait()调用消耗的时间，假设我们每个线程只等待一次）。我们难道不能让优雅周期再快一点完成吗？</p>
+<p>不过本实现还有一些缺点。首先，需要检查rcu_idx两次，这为更新端带来一些开销，特别是线程数很多时。</p>
+<p>其次，synchronize_rcu()必须检查的变量数随着线程增多而线性增长，这给线程数很多的应用程序带来一定的开销。</p>
+<p>第三，和之前一样，虽然原则上并发的RCU更新可以共用一个公共优雅周期，但是本节的实现串行化了优雅周期，使得这种共享无法进行。</p>
+<p>最后，本节曾经提到的软件环境需求，在某些环境下每线程变量和遍历线程可能存在问题。</p>
+<p>读端原语的扩展性非常好，不管是在单核系统还是64核系统都只需要115纳秒左右。Synchronize_rcu()原语的扩展性不佳，开销在单核Power5系统上的1微秒到64核系统上的200微秒不等。总体来说，本节的方法可以算是一种初级的产品级用户态RCU实现了。</p>
+<p>下面介绍一种能够让并发的RCU更新更有效的算法。</p>
+<h3 id="可扩展的基于计数RCU实现，可以共享优雅周期"><a href="#可扩展的基于计数RCU实现，可以共享优雅周期" class="headerlink" title="可扩展的基于计数RCU实现，可以共享优雅周期"></a>可扩展的基于计数RCU实现，可以共享优雅周期</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用每线程引用计数对和共享更新数据的数据定义</span></span><br><span class="line"><span class="number">1</span>  DEFINE_SPINLOCK(rcu_gp_lock);</span><br><span class="line"><span class="number">2</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>  [<span class="number">2</span>], rcu_refcnt);</span><br><span class="line"><span class="number">3</span>  <span class="keyword">long</span> rcu_idx;</span><br><span class="line"><span class="number">4</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>,  rcu_nesting);</span><br><span class="line"><span class="number">5</span>  DEFINE_PER_THREAD(<span class="keyword">int</span>,  rcu_read_idx);</span><br></pre></td></tr></table></figure>
+
+<p>下图是一种使用每线程引用计数RCU实现的读端原语，但是该实现允许更新端共享优雅周期。本节的实现和前面的实现唯一的区别是，rcu_idx现在是一个long型整数，可以自由增长，所以第8行用了一个掩码屏蔽了最低位。我们还将atomic_read()和atomic_set()改成了ACCESS_ONCE()。上图中的数据定义和前例也很相似，只是rcu_idx现在是long类型而非之前的atomic_t类型。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用每线程引用计数对和共享更新数据的RCU读端原语</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span> n;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>     n =  __get_thread_var(rcu_nesting);</span><br><span class="line"><span class="number">7</span>     <span class="keyword">if</span> (n  ==  <span class="number">0</span>)  &#123;</span><br><span class="line"><span class="number">8</span>         i =  ACCESS_ONCE(rcu_idx)  &amp; <span class="number">0x1</span>;</span><br><span class="line"><span class="number">9</span>         __get_thread_var(rcu_read_idx)  =  i;</span><br><span class="line"><span class="number">10</span>         __get_thread_var(rcu_refcnt)[i]++;</span><br><span class="line"><span class="number">11</span>     &#125;</span><br><span class="line"><span class="number">12</span>     __get_thread_var(rcu_nesting)  = n  +  <span class="number">1</span>;</span><br><span class="line"><span class="number">13</span>     smp_mb();</span><br><span class="line"><span class="number">14</span>  &#125;</span><br><span class="line"><span class="number">15</span></span><br><span class="line"><span class="number">16</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">17  </span>&#123;</span><br><span class="line"><span class="number">18</span>     <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">19</span>     <span class="keyword">int</span> n;</span><br><span class="line"><span class="number">20</span></span><br><span class="line"><span class="number">21</span>     smp_mb();</span><br><span class="line"><span class="number">22</span>     n =  __get_thread_var(rcu_nesting);</span><br><span class="line"><span class="number">23</span>     <span class="keyword">if</span> (n  ==  <span class="number">1</span>)  &#123;</span><br><span class="line"><span class="number">24</span>      i  = __get_thread_var(rcu_read_idx);</span><br><span class="line"><span class="number">25</span>         __get_thread_var(rcu_refcnt)[i]–;</span><br><span class="line"><span class="number">26</span>     &#125;</span><br><span class="line"><span class="number">27</span>     __get_thread_var(rcu_nesting)  = n  –  <span class="number">1</span>;</span><br><span class="line"><span class="number">28</span>  &#125;</span><br><span class="line">```C</span><br></pre></td></tr></table></figure>
+
+<p>//使用每线程引用计数对的RCU共享更新端原语<br>1  static void flip_counter_and_wait(int  ctr)<br>2  {<br>3     int i;<br>4     int t;<br>5<br>6     ACCESS_ONCE(rcu_idx)  = ctr  +  1;<br>7     i =  ctr  &amp; 0x1;<br>8     smp_mb();<br>9     for_each_thread(t)  {<br>10         while (per_thread(rcu_refcnt, t)[i]  !=  0)<br>{<br>11              poll(NULL,  0, 10);<br>12         }<br>13     }<br>14     smp_mb();<br>15  }<br>16<br>17  void synchronize_rcu(void)<br>18  {<br>19     int ctr;<br>20     int oldctr;<br>21<br>22     smp_mb();<br>23     oldctr =  ACCESS_ONCE(rcu_idx);<br>24     smp_mb();<br>25     spin_lock(&amp;rcu_gp_lock);<br>26     ctr =  ACCESS_ONCE(rcu_idx);<br>27     if (ctr  –  oldctr &gt;=  3)  {<br>28         spin_unlock(&amp;rcu_gp_lock);<br>29         smp_mb();<br>30         return;<br>31     }<br>32     flip_counter_and_wait(ctr);<br>33     if (ctr  –  oldctr &lt;  2)<br>34         flip_counter_and_wait(ctr  +  1);<br>35     spin_unlock(&amp;rcu_gp_lock);<br>36     smp_mb();<br>37  }</p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">上图是synchronize_rcu()及其辅助函数flip_counter_and_wait()的实现。flip_counter_and_wait()的变化在于：</span><br><span class="line"></span><br><span class="line">*   <span class="number">1</span>．第<span class="number">6</span>行使用ACCESS_ONCE()代替了atomic_set()，用自增替代取反。</span><br><span class="line">*   <span class="number">2</span>．新增了第<span class="number">7</span>行，将计数的最低位掩去。</span><br><span class="line"></span><br><span class="line">synchronize_rcu()的区别要多一些：</span><br><span class="line"></span><br><span class="line">*   <span class="number">1</span>．新增了一个局部变量oldctr，存储第<span class="number">23</span>行的获取每线程锁之前的rcu_idx值。</span><br><span class="line">*   <span class="number">2</span>．第<span class="number">26</span>行用ACCESS_ONCE()代替atomic_read()。</span><br><span class="line">*   <span class="number">3</span>．第<span class="number">27</span>至<span class="number">30</span>行检查在锁已获取时，其他线程此时是否在循环检查<span class="number">3</span>个以上的计数，如果是，释放锁，执行一个内存屏障然后返回。在本例中，有两个线程在等待计数变为<span class="number">0</span>，所以其他的线程已经做了所有必做的工作。</span><br><span class="line">*   <span class="number">4</span>．在第<span class="number">33</span>至<span class="number">34</span>行，在锁已被获取时，如果当前检查计数是否为<span class="number">0</span>的线程不足<span class="number">2</span>个，那么flip_counter_and_wait()会被调用两次。另一方面，如果有两个线程，另一个线程已经完成了对计数的检查，那么只需再有一个就可以。</span><br><span class="line"></span><br><span class="line">在本方法中，如果有任意多个线程并发调用synchronize_rcu()，一个线程对应一个CPU，那么最多只有<span class="number">3</span>个线程在等待计数变为<span class="number">0</span>。</span><br><span class="line"></span><br><span class="line">尽管有这些改进，本节的RCU实现仍然存在一些缺点。首先，和上一节一样，需要检查rcu_idx两次为更新端带来开销，尤其是线程很多时。</span><br><span class="line"></span><br><span class="line">其次，本实现需要每CPU变量和遍历所有线程的能力，这在某些软件环境可能是有问题的。</span><br><span class="line"></span><br><span class="line">最后，在<span class="number">32</span>位机器上，由于rcu_idx溢出而导致需要做一些额外的检查。</span><br><span class="line"></span><br><span class="line">本实现的读端原语扩展性极佳，不管CPU数为多少，开销大概为<span class="number">115</span>纳秒。synchronize_rcu()原语的开销仍然昂贵，从<span class="number">1</span>微秒到<span class="number">15</span>微秒不等。然而这比前面的<span class="number">200</span>微秒的开销已经好多了。所以，尽管存在这些缺点，本节的RCU实现已经可以在真实世界中的产品中使用了。</span><br><span class="line"></span><br><span class="line">问题：所有这些玩具式的RCU实现都要么在rcu_read_lock()和rcu_read_ unlock()中使用了原子操作，要么让synchronize_rcu()的开销与线程数线性增长。那么究竟在哪种环境下，RCU的实现既可以让上述三个原语的实现简单，又能拥有O(<span class="number">1</span>)的开销和延迟呢？</span><br><span class="line"></span><br><span class="line">重新审视代码，我们看到了对一个全局变量的访问和对不超过<span class="number">4</span>个每线程变量的访问。考虑到在POSIX线程中访问每线程变量的开销相对较高，我们可以将三个每线程变量放进单个结构体中，让rcu_read_lock()和rcu_read_unlock()用单个每线程变量存储类来访问各自的每线程变量。</span><br><span class="line"></span><br><span class="line">但是，下面将会介绍一种更好的办法，可以减少访问每线程变量的次数到一次。</span><br><span class="line"></span><br><span class="line">### 基于自由增长计数的RCU</span><br><span class="line">```C</span><br><span class="line"><span class="comment">//使用自由增长计数的数据定义</span></span><br><span class="line"><span class="number">1</span>  DEFINE_SPINLOCK(rcu_gp_lock);</span><br><span class="line"><span class="number">2</span>  long rcu_gp_ctr  =  <span class="number">0</span>;</span><br><span class="line"><span class="number">3</span>  DEFINE_PER_THREAD(long,  rcu_reader_gp);</span><br><span class="line"><span class="number">4</span>  DEFINE_PER_THREAD(long,  rcu_reader_gp_snap);</span><br></pre></td></tr></table></figure>
+
+<p>下图是一种基于单个全局free-running计数的RCU实现，该计数只对偶数值进行计数，相关的数据定义见上图。rcu_read_lock()的实现极其简单。第3行向全局free-running变量rcu_gp_ctr加1，将相加后的奇数值存储在每线程变量rcu_reader_gp中。第4行执行一个内存屏障，防止后续的RCU读端临界区内容“泄漏”。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用自由增长计数的RCU实现</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     __get_thread_var(rcu_reader_gp)  = rcu_gp_ctr  +  <span class="number">1</span>;</span><br><span class="line"><span class="number">4</span>     smp_mb();</span><br><span class="line"><span class="number">5</span>  &#125;</span><br><span class="line"><span class="number">6</span></span><br><span class="line"><span class="number">7</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">8  </span>&#123;</span><br><span class="line"><span class="number">9</span>     smp_mb();</span><br><span class="line"><span class="number">10</span>     __get_thread_var(rcu_reader_gp)  = rcu_gp_ctr;</span><br><span class="line"><span class="number">11</span>  &#125;</span><br><span class="line"><span class="number">12</span></span><br><span class="line"><span class="number">13</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">14  </span>&#123;</span><br><span class="line"><span class="number">15</span>     <span class="keyword">int</span> t;</span><br><span class="line"><span class="number">16</span></span><br><span class="line"><span class="number">17</span>     smp_mb();</span><br><span class="line"><span class="number">18</span>     spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">19</span>     rcu_gp_ctr +=  <span class="number">2</span>;</span><br><span class="line"><span class="number">20</span>     smp_mb();</span><br><span class="line"><span class="number">21</span>     for_each_thread(t)  &#123;</span><br><span class="line"><span class="number">22</span>         <span class="keyword">while</span> ((per_thread(rcu_reader_gp, t)  &amp;  <span class="number">0x1</span>) &amp;&amp;</span><br><span class="line"><span class="number">23</span> ((per_thread(rcu_reader_gp,  t)  –</span><br><span class="line"><span class="number">24</span>      rcu_gp_ctr)  &lt; <span class="number">0</span>))  &#123;</span><br><span class="line"><span class="number">25</span>              poll(<span class="literal">NULL</span>,  <span class="number">0</span>, <span class="number">10</span>);</span><br><span class="line"><span class="number">26</span>         &#125;</span><br><span class="line"><span class="number">27</span>     &#125;</span><br><span class="line"><span class="number">28</span>     spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">29</span>     smp_mb();</span><br><span class="line"><span class="number">30</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>rcu_read_unlock()实现也很类似。第9行执行一个内存屏障，防止前一个RCU读端临界区“泄漏”。第10行将全局变量rcu_gp_ctr的值复制给每线程变量rcu_reader_gp，将此每线程变量的值变为偶数值，这样当前并发的synchronize_rcu()实例就知道忽略该每线程变量了。</p>
+<p>问题：如果任何偶数值都可以让synchronize_rcu()忽略对应的任务，那么第10行为什么不直接给rcu_reader_gp赋值为0？</p>
+<p>synchronize_rcu()会等待所有线程的rcu_reader_gp变量变为偶数值。但是，因为synchronize_rcu()只需要等待“在调用synchronize_rcu()之前就已存在的”RCU读端临界区，所以完全可以有更好的方法。第17行执行一个内存屏障，防止之前操纵的受RCU保护的数据结构被乱序（由编译器或者是CPU）放到第17行之后执行。为了防止多个synchronize_rcu()实例并发执行，第18行获取rcu_gp_lock锁（第28释放锁）。然后第19行给全局变量rcu_gp_ctr加2。回忆一下，rcu_reader_gp的值为偶数的线程不在RCU读端临界区里，所以第21至27行扫描rcu_reader_gp的值，直到所有值要么是偶数（第22行），要么比全局变量rcu_gp_ctr的值大（第23至24行）。第25行阻塞一小段时间，等待一个之前已经存在的RCU读端临界区退出，如果对优雅周期的延迟很敏感的话，也可以用自旋锁来代替。最后，第29行的内存屏障保证所有后续的销毁工作不会被乱序到循环之前进行。</p>
+<p>问题：为什么需要第17和第29行的内存屏障？难道第18行和第28行的锁原语自带的内存屏障还不够吗？</p>
+<p>本节方法的读端性能非常好，不管CPU数目多少，带来的开销大概是63纳秒。更新端的开销稍大，从Power5单核的500纳秒到64核的超过100微秒不等。</p>
+<p>这个实现除了刚才提到的更新端的开销较大以外，还有一些严重缺点。首先，该实现不允许RCU读端临界区嵌套。其次如果读者在第3行获取rcu_gp_ctr之后，存储到rcu_reader_gp之前被抢占，并且如果rcu_gp_ctr计数的值增长到最大值的一半以上，但没有达到最大值时，那么synchronize_rcu()将会忽略后续的RCU读端临界区。第三也是最后一点，本实现需要软件环境支持每线程变量和对所有线程遍历。</p>
+<p>问题：第3行的读者被抢占问题是一个真实问题吗？换句话说，这种导致问题的事件序列可能发生吗？如果不能，为什么不能？如果能，事件序列是什么样的，我们该怎样处理这个问题？</p>
+<h3 id="基于自由增长计数的可嵌套RCU"><a href="#基于自由增长计数的可嵌套RCU" class="headerlink" title="基于自由增长计数的可嵌套RCU"></a>基于自由增长计数的可嵌套RCU</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//基于自由增长计数的可嵌套RCU的数据定义</span></span><br><span class="line"><span class="number">1</span> DEFINE_SPINLOCK(rcu_gp_lock);</span><br><span class="line"><span class="number">2</span>  <span class="meta">#<span class="meta-keyword">define</span>  RCU_GP_CTR_SHIFT  7</span></span><br><span class="line"><span class="number">3</span>  <span class="meta">#<span class="meta-keyword">define</span>  RCU_GP_CTR_BOTTOM_BIT  (1 &lt;&lt;RCU_GP_CTR_SHIFT)</span></span><br><span class="line"><span class="number">4</span>  <span class="meta">#<span class="meta-keyword">define</span>  RCU_GP_CTR_NEST_MASK (RCU_GP_CTR_BOTTOM_BIT  –  1)</span></span><br><span class="line"><span class="number">5</span>  <span class="keyword">long</span>  rcu_gp_ctr =  <span class="number">0</span>;</span><br><span class="line"><span class="number">6</span> DEFINE_PER_THREAD(<span class="keyword">long</span>, rcu_reader_gp);</span><br></pre></td></tr></table></figure>
+
+<p>下图是一种基于单个全局free-running计数的RCU实现，但是允许RCU读端临界区的嵌套。这种嵌套能力是通过让全局变量rcu_gp_ctr的低位记录嵌套次数实现的，定义在上图中。该方法保留低位来记录嵌套深度。为了做到这一点，定义了两个宏，RCU_GP_CTR_NEST_MASK和RCU_GP_CTR_BOTTOM_BIT。两个宏之间的关系是：RCU_GP_CTR_NEST_MASK=RCU_GP_ CTR_BOTTOM_BIT - 1。RCU_GP_CTR_BOTTOM_BIT宏是用于记录嵌套那一位之前的一位，RCU_GP_CTR_NEST_MASK宏则包含rcu_gp_ctr中所有用于记录嵌套的位。显然，这两个宏必须保留足够多的位来记录允许的最大RCU读端临界区嵌套深度，在本实现中保留了7位，这样，允许最大RCU读端临界区嵌套深度为127，这足够绝大多数应用使用。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用自由增长计数的可嵌套RCU实现</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">long</span>  tmp;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">long</span>  *rrgp;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>     rrgp  = &amp;__get_thread_var(rcu_reader_gp);</span><br><span class="line"><span class="number">7</span>     tmp  = *rrgp;</span><br><span class="line"><span class="number">8</span>     <span class="keyword">if</span>  ((tmp &amp;  RCU_GP_CTR_NEST_MASK)  ==  <span class="number">0</span>)</span><br><span class="line"><span class="number">9</span>        tmp  =  rcu_gp_ctr;</span><br><span class="line"><span class="number">10</span>     tmp++;</span><br><span class="line"><span class="number">11</span>    *rrgp  =  tmp;</span><br><span class="line"><span class="number">12</span>    smp_mb();</span><br><span class="line"><span class="number">13</span>  &#125;</span><br><span class="line"><span class="number">14</span></span><br><span class="line"><span class="number">15</span>  <span class="function"><span class="keyword">static</span>  <span class="keyword">void</span> <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">16  </span>&#123;</span><br><span class="line"><span class="number">17</span>    <span class="keyword">long</span>  tmp;</span><br><span class="line"><span class="number">18</span></span><br><span class="line"><span class="number">19</span>    smp_mb();</span><br><span class="line"><span class="number">20</span>    __get_thread_var(rcu_reader_gp)–;</span><br><span class="line"><span class="number">21</span>  &#125;</span><br><span class="line"><span class="number">22</span></span><br><span class="line"><span class="number">23</span>  <span class="function"><span class="keyword">void</span>  <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">24  </span>&#123;</span><br><span class="line"><span class="number">25</span>     <span class="keyword">int</span>  t;</span><br><span class="line"><span class="number">26</span></span><br><span class="line"><span class="number">27</span>    smp_mb();</span><br><span class="line"><span class="number">28</span>    spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">29</span>     rcu_gp_ctr  += RCU_GP_CTR_BOTTOM_BIT;</span><br><span class="line"><span class="number">30</span>    smp_mb();</span><br><span class="line"><span class="number">31</span>    for_each_thread(t)  &#123;</span><br><span class="line"><span class="number">32</span>        <span class="keyword">while</span>  (rcu_gp_ongoing(t)  &amp;&amp;</span><br><span class="line"><span class="number">33</span>               ((per_thread(rcu_reader_gp,  t)  –</span><br><span class="line"><span class="number">34</span>       rcu_gp_ctr) &lt;  <span class="number">0</span>))  &#123;</span><br><span class="line"><span class="number">35</span>               poll(<span class="literal">NULL</span>, <span class="number">0</span>,  <span class="number">10</span>);</span><br><span class="line"><span class="number">36</span>         &#125;</span><br><span class="line"><span class="number">37</span>     &#125;</span><br><span class="line"><span class="number">38</span>     spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">39</span>    smp_mb();</span><br><span class="line"><span class="number">40</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>rcu_read_lock()的实现仍然十分简单。第6行将指向本线程rcu_reader_gp实例的指针放入局部变量rrgp中，将代价昂贵的访问phtread每线程变量API的数目降到最低。第7行记录rcu_reader_gp的值放入另一个局部变量tmp中，第8行检查低位字节是否为0，表明当前的rcu_read_lock()是最外层的。如果是，第9行将全局变量rcu_gp_ctr的值存入tmp，因为第7行之前存入的值可能已经过期了。如果不是，第10行增加嵌套深度，如果你能记得，它存放在计数的最低7位。第11行将更新后的计数值重新放入当前线程的rcu_reader_gp实例中，然后，也是最后，第12行执行一个内存屏障，防止RCU读端临界区泄漏到rcu_read_lock()之前的代码里。</p>
+<p>换句话说，除非当前调用的rcu_read_lock()的代码位于RCU读端临界区中，否则本节实现的rcu_read_lock()原语会获取全局变量rcu_gp_ctr的一个副本，而在嵌套环境中，rcu_read_lock()则去获取rcu_reader_gp在当前线程中的实例。在两种情况下，rcu_read_lock()都会增加获取到的值，表明嵌套深度又增加了一层，然后将结果储存到当前线程的rcu_reader_gp实例中。</p>
+<p>有趣的是，rcu_read_unlock()的实现和前面的实现一模一样。第19行执行一个内存屏障，防止RCU读端临界区泄漏到rcu_read_unlock()之后的代码中去，然后第20行减少当前线程的rcu_reader_gp实例，这将减少rcu_reader_gp最低几位包含的嵌套深度。rcu_read_unlock()原语的调试版本将会在减少嵌套深度之前检查rcu_reader_gp的最低几位是否为0。</p>
+<p>synchronize_rcu()的实现与前面十分类似。不过存在两点不同。第一，第29行将RCU_GP_CTR_BOTTOM_BIT增加到全局变量rcu_gp_ctr，而不是直接加常数2。第二，第32行的比较被剥离成一个函数，检查RCU_GP_CTR_BOTTOM_BIT指示的位，而非无条件地检查最低位。</p>
+<p>本节方法的读端性能与前面的实现几乎一样，不管CPU数目多少，开销大概为65纳秒。更新端的开销仍然较大，从Power5单核的600纳秒到64核的超过100微秒。</p>
+<p>问题：为什么不像上一节那样，直接用一个单独的每线程变量来表示嵌套深度，反而用复杂的位运算来表示？</p>
+<p>除了解决了RCU读端临界区嵌套问题以外，本节的实现有着和前面实现一样的缺点。另外，在32位系统上，本方法会减少全局变量rcu_gp_ctr变量溢出所需的时间。随后将介绍一种能大大延长溢出所需时间，同时又极大地降低了读端开销的方法。</p>
+<p>问题：怎样才能将全局变量rcu_gp_ctr溢出的时间延长一倍？</p>
+<p>问题：溢出是致命的吗？为什么？为什么不是？如果是致命的，有什么办法可以解决它？</p>
+<h3 id="基于静止状态的RCU"><a href="#基于静止状态的RCU" class="headerlink" title="基于静止状态的RCU"></a>基于静止状态的RCU</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//基于quiescent-state的RCU的数据定义</span></span><br><span class="line"><span class="number">1</span> DEFINE_SPINLOCK(rcu_gp_lock);</span><br><span class="line"><span class="number">2</span> <span class="keyword">long</span>  rcu_gp_ctr =  <span class="number">0</span>;</span><br><span class="line"><span class="number">3</span> DEFINE_PER_THREAD(<span class="keyword">long</span>, rcu_reader_qs_gp);</span><br></pre></td></tr></table></figure>
+
+<p>下图是一种基于静止状态的用户态级RCU实现的读端原语。数据定义在上图。从图中第1至7行可以看出，rcu_read_lock()和rcu_read_unlock()原语不做任何事情，就和Linux内核一样，这种空函数会成为内联函数，然后被编译器优化掉。之所以是空函数，是因为基于静止状态的RCU实现用之前提到的静止状态来大致的作为RCU读端临界区的长度，这种状态包括第9至15行的rcu_quiescent_state()调用。进入扩展的静止状态（比如当发生阻塞时）的线程可以分别用thread_offline()和thread_online() API，来标记扩展的静止状态的开始和结尾。这样，thread_online()就成了对rcu_read_lock()的模仿，thread_offline()就成了对rcu_read_unlock()的模仿。此外，rcu_quiescent_state()可以被认为是一个rcu_thread_online()紧跟一个rcu_thread_offline()。从RCU读端临界区中调用rcu_quiescent_state()、rcu_thread_offline()或rcu_thread_online()是非法的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//基于静止状态的RCU读端原语</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">static</span> <span class="keyword">void</span>  <span class="title">rcu_read_lock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>  &#125;</span><br><span class="line"><span class="number">4</span></span><br><span class="line"><span class="number">5</span>  <span class="function"><span class="keyword">static</span>  <span class="keyword">void</span> <span class="title">rcu_read_unlock</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">6  </span>&#123;</span><br><span class="line"><span class="number">7</span>  &#125;</span><br><span class="line"><span class="number">8</span></span><br><span class="line"><span class="number">9</span> rcu_quiescent_state(<span class="keyword">void</span>)</span><br><span class="line"><span class="number">10</span>  &#123;</span><br><span class="line"><span class="number">11</span>    smp_mb();</span><br><span class="line"><span class="number">12</span>    __get_thread_var(rcu_reader_qs_gp) =</span><br><span class="line"><span class="number">13</span>        ACCESS_ONCE(rcu_gp_ctr)  +  <span class="number">1</span>;</span><br><span class="line"><span class="number">14</span>    smp_mb();</span><br><span class="line"><span class="number">15</span>  &#125;</span><br><span class="line"><span class="number">16</span></span><br><span class="line"><span class="number">17</span>  <span class="function"><span class="keyword">static</span>  <span class="keyword">void</span> <span class="title">rcu_thread_offline</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">18  </span>&#123;</span><br><span class="line"><span class="number">19</span>     smp_mb();</span><br><span class="line"><span class="number">20</span>    __get_thread_var(rcu_reader_qs_gp) =</span><br><span class="line"><span class="number">21</span>        ACCESS_ONCE(rcu_gp_ctr);</span><br><span class="line"><span class="number">22</span>    smp_mb();</span><br><span class="line"><span class="number">23</span>  &#125;</span><br><span class="line"><span class="number">24</span></span><br><span class="line"><span class="number">25</span>  <span class="function"><span class="keyword">static</span>  <span class="keyword">void</span> <span class="title">rcu_thread_online</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">26  </span>&#123;</span><br><span class="line"><span class="number">27</span>    rcu_quiescent_state();</span><br><span class="line"><span class="number">28</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>在rcu_quiescent_state()中，第11行执行一个内存屏障，防止在静止状态之前的代码乱序到静止状态之后执行。第12至13行获取全局变量rcu_gp_ctr的副本，使用ACCESS_ONCE()来保证编译器不会启用任何优化措施让rcu_gp_ctr被读取超过一次。然后对取来的值加1，储存到每线程变量rcu_reader_qs_gp中，这样任何并发的synchronize_rcu()实例都只会看见奇数值，因此就知道新的RCU读端临界区开始了。正在等待老的读端临界区的synchronize_rcu()实例因此也知道忽略新产生的读端临界区。最后，第14行执行一个内存屏障，这会阻止后续代码（包括可能的RCU读端临界区）对第12至13行的重新排序。</p>
+<p>问题：第14行多余的内存屏障会不会显著增加rcu_quiescent_state()的开销？</p>
+<p>有些应用程序可能只是偶尔需要用RCU，但是一旦它们开始用，那一定是到处都在用。这种应用程序可以在开始用RCU时调用rcu_thread_online()，在不再使用RCU时调用rcu_thread_offline()。在调用rcu_thread_offline()和下一个调用rcu_thread_ online()之间的时间成为扩展的静止状态，在这段时间RCU不会显式地注册静止状态。</p>
+<p>rcu_thread_offline()函数直接将每线程变量rcu_reader_qs_gp赋值为rcu_gp_ctr的当前值，该值是一个偶数。这样所有并发的synchronize_rcu()实例就知道忽略这个线程。</p>
+<p>问题：为什么需要第19行和第22行的内存屏障？</p>
+<p>rcu_thread_online()函数直接调用rcu_quiescent_state()，这也表示延长静止状态的结束。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//基于静止状态的RCU更新端原语</span></span><br><span class="line"><span class="number">1</span>  <span class="function"><span class="keyword">void</span> <span class="title">synchronize_rcu</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function">2  </span>&#123;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span>  t;</span><br><span class="line"><span class="number">4</span></span><br><span class="line"><span class="number">5</span>     smp_mb();</span><br><span class="line"><span class="number">6</span>    spin_lock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">7</span>    rcu_gp_ctr  +=  <span class="number">2</span>;</span><br><span class="line"><span class="number">8</span>     smp_mb();</span><br><span class="line"><span class="number">9</span>    for_each_thread(t)  &#123;</span><br><span class="line"><span class="number">10</span>        <span class="keyword">while</span>  (rcu_gp_ongoing(t)  &amp;&amp;</span><br><span class="line"><span class="number">11</span> ((per_thread(rcu_reader_qs_gp,  t)  –</span><br><span class="line"><span class="number">12</span> rcu_gp_ctr) &lt;  <span class="number">0</span>))  &#123;</span><br><span class="line"><span class="number">13</span> poll(<span class="literal">NULL</span>, <span class="number">0</span>,  <span class="number">10</span>);</span><br><span class="line"><span class="number">14</span>         &#125;</span><br><span class="line"><span class="number">15</span>     &#125;</span><br><span class="line"><span class="number">16</span>    spin_unlock(&amp;rcu_gp_lock);</span><br><span class="line"><span class="number">17</span>    smp_mb();</span><br><span class="line"><span class="number">18</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>下图是synchronize_rcu()的实现，和前一个实现很相像。</p>
+<p>本节实现的读端原语快得惊人，调用rcu_read_lock()和rcu_read_unlock()的开销一共大概50皮秒（10的负12次方秒）。synchronize_rcu()的开销从Power5单核上的600纳秒到64核上的超过100微秒不等。</p>
+<p>问题：可以确定的是，ca-2008Power系统的时钟频率相当高，可是即使是5GHz的时钟频率，也不足以让读端原语在50皮秒执行完毕。这里究竟发生了什么？</p>
+<p>不过，本节的实现要求每个线程要么周期性地调用rcu_quiescent_state()，要么为扩展的静止状态调用rcu_thread_offline()。周期性调用这些函数的要求在某些情况下会让实现变得困难，比如某种类型的库函数。</p>
+<p>另外，本节的实现不允许并发的synchronize_rcu()调用来共享同一个优雅周期。不过，完全可以基于这个RCU版本写一个产品级的RCU实现。</p>
+<h3 id="关于玩具式RCU实现的总结"><a href="#关于玩具式RCU实现的总结" class="headerlink" title="关于玩具式RCU实现的总结"></a>关于玩具式RCU实现的总结</h3><p>如果你看到这里，恭喜！你现在不仅对RCU本身有了更清晰的了解，而且对其所需要的软件和应用环境也更熟悉了。想要更进一步了解RCU的读者，请自行阅读在各种产品中大量采用的RCU实现。</p>
+<p>之前的章节列出了各种RCU原语的理想特性。下面我们将整理一个列表，供有意实现自己的RCU实现的读者做参考。</p>
+<ul>
+<li>1．必须有读端原语（比如rcu_read_lock()和rcu_read_unlock()）和优雅周期原语（比如synchronize_rcu()和call_rcu()），任何在优雅周期开始前就存在的RCU读端临界区必须在优雅周期结束前执行完毕。</li>
+<li>2．RCU读端原语应该有最小的开销。特别是应该避免如高速缓存未命中、原子操作、内存屏障和条件分支之类的操作。</li>
+<li>3．RCU读端原语应该有O(1)的时间复杂度，可以用于实时用途。（这意味着读者可以与更新者并发运行。）</li>
+<li>4．RCU读端原语应该在所有上下文中都可以使用（在Linux内核中，只有空的死循环时不能使用RCU读端原语）。一个重要的特例是RCU读端原语必须可以在RCU读端临界区中使用，换句话说，必须允许RCU读端临界区嵌套。</li>
+<li>5．RCU读端原语不应该有条件判断，不会返回失败。这个特性十分重要，因为错误检查会增加复杂度，让测试和验证变得更复杂。</li>
+<li>6．除了静止状态以外的任何操作都能在RCU读端原语里执行。比如像I/O这样的操作也该允许。</li>
+<li>7．应该允许在RCU读端临界区中执行的同时更新一个受RCU保护的数据结构。</li>
+<li>8．RCU读端和更新端的原语应该在内存分配器的设计和实现上独立。</li>
+<li>9．RCU优雅周期不应该被在RCU读端临界区之外阻塞的线程而阻塞。</li>
+</ul>
+<p>所有这些目标，都被Linux内核RCU实现所满足。后续将分析Linux内核中RCU实现代码。</p>
+<h2 id="分级RCU基础"><a href="#分级RCU基础" class="headerlink" title="分级RCU基础"></a>分级RCU基础</h2><p><a href="https://blog.csdn.net/juS3Ve/article/details/80248793" target="_blank" rel="noopener">待续</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\01\19\linux-rcu-zz-1\" rel="bookmark">Linux内核同步之RCU</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\03\06\linux-device-driver-kset-and-kobject\" rel="bookmark">Linux设备驱动模型-- 数据结构Kset/KObject</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\07\21\linux-interrupt-2\" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\01\06\linux-kernel-e-books\" rel="bookmark">Linux内核学习电子书</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\10\24\linux-low-power-1\" rel="bookmark">Linux电源管理介绍-1</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内核同步/" rel="tag"># 内核同步</a>
+            
+              <a href="/tags/转载/" rel="tag"># 转载</a>
+            
+              <a href="/tags/RCU/" rel="tag"># RCU</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/01/19/linux-rcu-zz-1/" rel="next" title="Linux内核同步之RCU">
+                  <i class="fa fa-chevron-left"></i> Linux内核同步之RCU
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/01/29/linux-memory-init-repost/" rel="prev" title="Linux內存初始化过程(ZZ)">
+                  Linux內存初始化过程(ZZ) <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#系列四：-用法"><span class="nav-number">1.</span> <span class="nav-text">系列四： 用法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-RCU的用法"><span class="nav-number">1.1.</span> <span class="nav-text">1. RCU的用法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是读写锁的替代者"><span class="nav-number">1.1.1.</span> <span class="nav-text">RCU是读写锁的替代者</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是一种受限制的引用计数机制"><span class="nav-number">1.1.2.</span> <span class="nav-text">RCU是一种受限制的引用计数机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是一种可大规模使用的引用计数机制"><span class="nav-number">1.1.3.</span> <span class="nav-text">RCU是一种可大规模使用的引用计数机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是穷人版的垃圾回收器"><span class="nav-number">1.1.4.</span> <span class="nav-text">RCU是穷人版的垃圾回收器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是一种提供存在担保的方法"><span class="nav-number">1.1.5.</span> <span class="nav-text">RCU是一种提供存在担保的方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是一种提供类型安全内存的方法"><span class="nav-number">1.1.6.</span> <span class="nav-text">RCU是一种提供类型安全内存的方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU是一种等待事物结束的方式"><span class="nav-number">1.1.7.</span> <span class="nav-text">RCU是一种等待事物结束的方式</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RCU-API"><span class="nav-number">1.2.</span> <span class="nav-text">RCU API</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#订阅和版本维护API"><span class="nav-number">1.2.1.</span> <span class="nav-text">订阅和版本维护API</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系列五：玩具式实现"><span class="nav-number">2.</span> <span class="nav-text">系列五：玩具式实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基于锁的RCU"><span class="nav-number">2.1.</span> <span class="nav-text">基于锁的RCU</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基于每线程锁的RCU"><span class="nav-number">2.2.</span> <span class="nav-text">基于每线程锁的RCU</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基于计数的简单RCU实现"><span class="nav-number">2.3.</span> <span class="nav-text">基于计数的简单RCU实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不会让更新者饥饿的引用计数RCU"><span class="nav-number">2.4.</span> <span class="nav-text">不会让更新者饥饿的引用计数RCU</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#可扩展的基于计数RCU实现"><span class="nav-number">2.5.</span> <span class="nav-text">可扩展的基于计数RCU实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#可扩展的基于计数RCU实现，可以共享优雅周期"><span class="nav-number">2.6.</span> <span class="nav-text">可扩展的基于计数RCU实现，可以共享优雅周期</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基于自由增长计数的可嵌套RCU"><span class="nav-number">2.7.</span> <span class="nav-text">基于自由增长计数的可嵌套RCU</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基于静止状态的RCU"><span class="nav-number">2.8.</span> <span class="nav-text">基于静止状态的RCU</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关于玩具式RCU实现的总结"><span class="nav-number">2.9.</span> <span class="nav-text">关于玩具式RCU实现的总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分级RCU基础"><span class="nav-number">3.</span> <span class="nav-text">分级RCU基础</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

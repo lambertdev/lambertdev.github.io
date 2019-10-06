@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="词嵌入可以算是无监督机器学习最成功的应用之一。它不要求对数据标注，就可以从未标注预料里产生标注。单词嵌入可以从输入的字符产生量更小的向量标签，可以使得被使用到后续的其他学习任务中。词嵌入的概念简言之，词嵌入是指将文本转化为数字表示的方法。为什么需要词嵌入呢？众所周知，许多机器学习算法，甚至几乎所有的深度学习算法，是无法直接处理字符串或者纯文本形式的输入。相反，他们需要数字作为各种任务的输入（例如分">
+<meta name="keywords" content="Embedding,嵌入">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Word Embedding（词嵌入）模型介绍">
+<meta property="og:url" content="http://l2h.site/2019/07/19/word-embedding-model/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="词嵌入可以算是无监督机器学习最成功的应用之一。它不要求对数据标注，就可以从未标注预料里产生标注。单词嵌入可以从输入的字符产生量更小的向量标签，可以使得被使用到后续的其他学习任务中。词嵌入的概念简言之，词嵌入是指将文本转化为数字表示的方法。为什么需要词嵌入呢？众所周知，许多机器学习算法，甚至几乎所有的深度学习算法，是无法直接处理字符串或者纯文本形式的输入。相反，他们需要数字作为各种任务的输入（例如分">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-05T11:04:33.171Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Word Embedding（词嵌入）模型介绍">
+<meta name="twitter:description" content="词嵌入可以算是无监督机器学习最成功的应用之一。它不要求对数据标注，就可以从未标注预料里产生标注。单词嵌入可以从输入的字符产生量更小的向量标签，可以使得被使用到后续的其他学习任务中。词嵌入的概念简言之，词嵌入是指将文本转化为数字表示的方法。为什么需要词嵌入呢？众所周知，许多机器学习算法，甚至几乎所有的深度学习算法，是无法直接处理字符串或者纯文本形式的输入。相反，他们需要数字作为各种任务的输入（例如分">
+  <link rel="canonical" href="http://l2h.site/2019/07/19/word-embedding-model/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Word Embedding（词嵌入）模型介绍 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/07/19/word-embedding-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Word Embedding（词嵌入）模型介绍
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-07-19 10:08:13" itemprop="dateCreated datePublished" datetime="2019-07-19T10:08:13+08:00">2019-07-19</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-05 19:04:33" itemprop="dateModified" datetime="2019-10-05T19:04:33+08:00">2019-10-05</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/机器学习/" itemprop="url" rel="index"><span itemprop="name">机器学习</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>词嵌入可以算是无监督机器学习最成功的应用之一。它不要求对数据标注，就可以从未标注预料里产生标注。单词嵌入可以从输入的字符产生量更小的向量标签，可以使得被使用到后续的其他学习任务中。</p><h2 id="词嵌入的概念"><a href="#词嵌入的概念" class="headerlink" title="词嵌入的概念"></a>词嵌入的概念</h2><p>简言之，词嵌入是指将文本转化为数字表示的方法。为什么需要词嵌入呢？</p><p>众所周知，许多机器学习算法，甚至几乎所有的深度学习算法，是无法直接处理字符串或者纯文本形式的输入。相反，他们需要数字作为各种任务的输入（例如分类、回归等）。不过，通常任务（例，网站评论中的情感分析）中大量的数据字段都是文本格式的，因此在需要学习前必须从这些文本输入中提取出数字表示的信息。因此，我们可以给词嵌入一个正式的定义：</p><blockquote>
+<p>词嵌入方法，是将字典中的单词转化为向量的方法。</p>
+</blockquote><a id="more"></a>
+
+
+
+<p>例如，我们对如下句子做词嵌入：</p>
+<blockquote>
+<p>Word Embeddings are Word converted into numbers</p>
+</blockquote>
+<p>“词”指的是类似句子中的“Embedding”、“numbers”等</p>
+<p>“字典”指的是句子中所有不重复单词的列表。所以，上述句子的词典是[‘Word’,’Embeddings’,’are’,’Converted’,’into’,’numbers’]</p>
+<h2 id="词嵌入的不同方法"><a href="#词嵌入的不同方法" class="headerlink" title="词嵌入的不同方法"></a>词嵌入的不同方法</h2><p>我们当然可以使用本博客&lt;<a href="https://l2h.site/2019/07/09/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%bf%e7%94%a8%e7%8b%ac%e7%83%adone-hot-encoding%e7%bc%96%e7%a0%81/">机器学习为什么使用独热(ONE-HOT ENCODING)编码</a>&gt;介绍的独热编码进行词嵌入，这是一种较为简单的处理方式。除此之外，还有许多不同的词嵌入方法。这些词嵌入方法可以大概分为如下两类：</p>
+<ul>
+<li>基于频率的嵌入（简称“词频嵌入”）</li>
+<li>基于预测的嵌入</li>
+</ul>
+<p>我们本节会深入介绍这两类方法。</p>
+<h3 id="词频嵌入"><a href="#词频嵌入" class="headerlink" title="词频嵌入"></a>词频嵌入</h3><p>现行流行的词频嵌入方法包括如下几类的嵌入向量：</p>
+<ul>
+<li>Count Vector</li>
+<li>TF_IDF Vector</li>
+<li>Co-Occurence Vector</li>
+</ul>
+<h4 id="Count-Vector"><a href="#Count-Vector" class="headerlink" title="Count Vector"></a>Count Vector</h4><p>考虑包括如下D个文档[latex]{d_1,d_2,…..,d_D}[/latex]的语料库及从C中提取的N个唯一单词。这N个唯一单词组成我们的字典，对应Count Vector矩阵M的大小为[latex]D*N[/latex]。矩阵M的每一行为[latex]d_i[/latex]文档中的单词频率。</p>
+<p>举个简单的例子：</p>
+<ul>
+<li>[latex]d_1[/latex]: He is a lazy boy. She is also lazy</li>
+<li>[latex]d_2[/latex]: Neeraj is a lazy person</li>
+</ul>
+<p>这两个文档形成字典：[‘He’,’She’,’lazy’,’boy’,’Neeraj’,’person’]，这里D=2，N=6，则该2*6矩阵M可作如下表示：</p>
+<p>He</p>
+<p>She</p>
+<p>lazy</p>
+<p>boy</p>
+<p>Neeraj</p>
+<p>person</p>
+<p>[latex]d_1[/latex]</p>
+<p>1</p>
+<p>1</p>
+<p>2</p>
+<p>1</p>
+<p>0</p>
+<p>0</p>
+<p>[latex]d_2[/latex]</p>
+<p>0</p>
+<p>0</p>
+<p>1</p>
+<p>0</p>
+<p>1</p>
+<p>1</p>
+<p>这里，每一行代表的是文档集合中的一个文档，每一列代表的是单词。这样，矩阵中的一列就代表对应单词的词向量。例如，“lazy”的词向量为[2,1]。</p>
+<p>很简单不是吗。不过这里有很多不同的形成矩阵M的变种方法。主要有两大类：</p>
+<ul>
+<li>字典的形成方式。以上为一个理想的例子，但一个现实问题往往有成千上万个文本作为语料。所以向量往往是成千上万列。而一种替代的表示方法是取其中10000个单词作为字典。</li>
+<li>每个单词数量的表示方式。我们可以用单词出现的数量或者是单词是否出现来表示（一般是采用前者）。</li>
+</ul>
+<p>下图帮忙理解矩阵M的形式：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/count-vector.png"></p>
+<h4 id="TF-IDF-Vector"><a href="#TF-IDF-Vector" class="headerlink" title="TF-IDF Vector"></a>TF-IDF Vector</h4><p>TF-IDF是另外一种基于词频的方法，但是计算词频时不仅仅考虑单个文档而是整个预料。这其中的原理是什么呢？</p>
+<p>常用词‘is’、‘the’、‘a’等词在英文文档中通常出现的频率超过文档的主要词汇。例如，描述梅西的文档中会比其他文档更常出现‘Messi’一词。但是诸如‘the’一词在所有文档（当然是英文文档）都以很高频率出现。</p>
+<p>理想状态下，我们更希望降低这些在所有文档中都会出现的词，相反提升其他文档相关性更高单词的频率。TF-IDF的工作原理，便是给这些常现词一些惩罚，赋予更低的权重。我们以如下两个文档范例看TF-IDF的工作方式：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/Tf-IDF.png"></p>
+<p>与TF-IDF相关的定义有如下：</p>
+<p>[latex]f()=TF =\frac{t单词出现在文档的次数}{文档中单词的总数量}[/latex]</p>
+<p>因此 TF(This, Document1) = 1/8, TF(This, Document2) = 1/5</p>
+<p>TF代表了单词对文档的“贡献”。即，与文档相关的单词应该出现频率更高。例，关于梅西的文档里，“梅西”单词出现的频率一定很高。</p>
+<p>[latex]IDF=log(N/n)[/latex]</p>
+<p>其中N代表文档的数量，n代表t单词有出现的文档的数量。因此IDF(This)=log(2/2)=0</p>
+<p>因此如何解释IDF背后的原理？一般情况下，如果一个单词在所有的单词中都出现，那么很有可能这个单词与某一个特定的文档关联不大。如果单词只在一部分文档中出现，那么该单词与其所出现的文档关联的可能性就较大。我们可以计算上例中“Messi”一词的IDF为：</p>
+<p>[latex]IDF(Messi)=log(2/1)=0.301[/latex]</p>
+<p>现在，让我们来对比“This”和“Messi”对Document1的关联性。</p>
+<blockquote>
+<p>TF-IDF(This, Document1) = (1/8)*(0)=0</p>
+<p>TF-IDF(This, Document2)=(1/5)*(0)=0</p>
+<p>TF-IDF(Messi, Document1) = (4/8)*0.301 = 0.15  </p>
+</blockquote>
+<p>因此我们可以看到，对Document1，TF-IDF方法对“This”赋予较小的权重，远小于单词“Messi”。因此在整个语料库里，“Messi”对Document1是非常重要的单词。</p>
+<h4 id="固定上下文窗口的Co-Occurence矩阵"><a href="#固定上下文窗口的Co-Occurence矩阵" class="headerlink" title="固定上下文窗口的Co-Occurence矩阵"></a>固定上下文窗口的Co-Occurence矩阵</h4><p>该方法主要思想为：类似的单词有一起出现的倾向，也有相同的上下文。例，苹果是一种水果，芒果也是一种水果。苹果和芒果倾向于有相同的上下文。即，水果。</p>
+<p>我们先理解一下Co-Occurence和上下文窗口的含义，再具体介绍该方法。</p>
+<p>Co-Occurence：给定语料，一对单词W1和W2的Co-Occurence指的是他们在一个上下文窗口一起出现的次数。</p>
+<p>Context Window: 上下文窗口由一个数字和方向指定。让我们看如下例子：</p>
+<p>Quick</p>
+<p>Brown</p>
+<p>Fox</p>
+<p>Jump</p>
+<p>Over</p>
+<p>The</p>
+<p>Lazy</p>
+<p>Dog</p>
+<p>紫色框字体是“Fox”的大小为2的上下文窗口，当计算co-occurence时，只有这些单词会算在内。同理，对单词“Over”的上下文窗口为：</p>
+<p>Quick</p>
+<p>Brown</p>
+<p>Fox</p>
+<p>Jump</p>
+<p>Over</p>
+<p>The</p>
+<p>Lazy</p>
+<p>Dog</p>
+<p>因此，让我们使用一个范例语料来描述Co-Occurence矩阵。语料为： He is not lazy. He is intelligent. He is smart。则语料矩阵为：</p>
+<p><strong>He</strong></p>
+<p><strong>is</strong></p>
+<p><strong>not</strong></p>
+<p><strong>lazy</strong></p>
+<p><strong>intelligent</strong></p>
+<p><strong>smart</strong></p>
+<p><strong>He</strong></p>
+<p>0</p>
+<p>4</p>
+<p>2</p>
+<p>1</p>
+<p>2</p>
+<p>1</p>
+<p><strong>is</strong></p>
+<p>4</p>
+<p>0</p>
+<p>1</p>
+<p>2</p>
+<p>2</p>
+<p>1</p>
+<p><strong>not</strong></p>
+<p>2</p>
+<p>1</p>
+<p>0</p>
+<p>1</p>
+<p>0</p>
+<p>0</p>
+<p><strong>lazy</strong></p>
+<p>1</p>
+<p>2</p>
+<p>1</p>
+<p>0</p>
+<p>0</p>
+<p>0</p>
+<p><strong>intelligent</strong></p>
+<p>2</p>
+<p>2</p>
+<p>0</p>
+<p>0</p>
+<p>0</p>
+<p>0</p>
+<p><strong>smart</strong></p>
+<p>1</p>
+<p>1</p>
+<p>0</p>
+<p>0</p>
+<p>0</p>
+<p>0</p>
+<p>上图中红色的单元表示”He”和”is”在2长度的上下文窗口的值为4，而“lazy”和“intelligent”的上下文窗口值为0。</p>
+<p>但是真实的语料库往往有很多单词，如果构建像上表一样的N*N矩阵，对计算机处理起来复杂度过高。因此这个矩阵往往是N*M大小的矩阵，其中M为N的子集。即选择字典中的最重要的一些单词作为矩阵的其一维度。选择的方法有SVD，PCA分析等方法。</p>
+<p>Co-Occurence矩阵的优势：</p>
+<ul>
+<li>保留了单词间的语义关系。例如“男人”和“女人”的距离近过“男人”和“苹果”</li>
+<li>使用SVD作为其核心，比现有其他方法来输出更为精确的单词向量。</li>
+<li>只需要做一次计算，之后可直接使用。</li>
+</ul>
+<p>Co-Occurence矩阵的缺点：</p>
+<ul>
+<li>使用大量的内存来存储Co-Occurence矩阵。当然，有一些现有的方法可以减轻该问题。</li>
+</ul>
+<h3 id="基于预测的嵌入"><a href="#基于预测的嵌入" class="headerlink" title="基于预测的嵌入"></a>基于预测的嵌入</h3><p>上述基于词频的计算单词嵌入方法的应用范围有限。直到word2vec这种基于预测的嵌入方法被提出并广泛应用到现有的各种场景中。而Wordvec并不是一个单独的算法，而是两种算法模型：CBOW（Continuous bag of words）和Skip-gram的组合。这两种方法均是浅神经网络，可以接受单词作为输入，同样使用单词作为输出，并映射为向量。下面分别进行介绍。</p>
+<h4 id="CBOW-Continuous-Bag-of-words"><a href="#CBOW-Continuous-Bag-of-words" class="headerlink" title="CBOW(Continuous Bag of words)"></a>CBOW(Continuous Bag of words)</h4><p>CBOW模型工作的原理是根据输入的上下文来预测输出单词的概率。上下文可能为一个单词，或者是一组单词。为了描述方便，我们以一个单词作为输入来预测一个单词输出。</p>
+<p>假设我们的语料为 C = “Hey, this is sample corpus using only one context word.”同时定义上下文窗口为1。输入语料可以以如下<a href="https://l2h.site/2019/07/09/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ba%e4%bb%80%e4%b9%88%e4%bd%bf%e7%94%a8%e7%8b%ac%e7%83%adone-hot-encoding%e7%bc%96%e7%a0%81/">独热编码</a>方式呈现：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/cbow1-1024x289.png"></p>
+<p>上述矩阵被送到一个三层神经网络来训练：包含输入层，隐层和输出层。其中输出层是一个softmax层，用来呈现输出层为某个单词的可能性。</p>
+<p>下图呈现了CBOW的网络模型：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/Screenshot-from-2017-06-04-22-40-29.png"></p>
+<p>上面架构的矩阵表示如下图：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/Screenshot-from-2017-06-04-22-19-202-1024x154.png"></p>
+<p>计算方法如下：</p>
+<ul>
+<li>输入层和输出均为[1*V]的独热向量，V表示上述语料的字典大小</li>
+<li>输入层和隐层，以及隐层和输出层分别有节点间权重矩阵大小为[V*N]，以及[N*V]。N为隐层神经元的数量，这里N=4</li>
+<li>层与层之间没有激活函数</li>
+<li>用“隐层激活(Hidden Activation)”表示输入数据乘以输入层-隐层间权重（矩阵乘法）</li>
+<li>隐藏输出乘以隐层-输出层权重得到输出</li>
+<li>根据输出使用逆传播算法来调整权重</li>
+<li>隐藏-输出层权重被用作最后的词向量</li>
+</ul>
+<p>以上为一个输入的例子，假如是多个输入呢？</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/1-1.png"></p>
+<p>上述为多个输入的神经网络架构，而下图为其矩阵表示：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/2-3-1024x150.png"></p>
+<p>输入三个上下文单词预测一个目标单词。输入可以用三个独热向量表示。上述输入层有3个[1*V]向量作为输入，以及一个[1*V]向量作为输出。</p>
+<p>以上计算方法与单输入的CBOW模型类似。只不过最终的输出为多个权重矩阵的算术平均值</p>
+<p>上述算法与一般神经网络类似，主要差异在于：</p>
+<ul>
+<li>不同于计算算术平方误差作为损失，CBOW是计算最小化选中单词的负对数似然</li>
+<li>CBOW每层神经元未使用激活函数做非线性化激活</li>
+</ul>
+<h4 id="Skip-–-Gram模型"><a href="#Skip-–-Gram模型" class="headerlink" title="Skip – Gram模型"></a>Skip – Gram模型</h4><p>Skip-gram模型与CBOW架构类似。不过其核心思想与CBOW正好相反，是给定单词预测期上下文。架构如图：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/3-1.png"></p>
+<p>其矩阵形式架构如图：</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2019/07/4-1024x223.png"></p>
+<p>输入层大小为[1*V]，输入-隐层权重矩阵大小[V*N]，输出-权重矩阵[N*V]，输出层大小[1*V]</p>
+<p>计算方法如下：</p>
+<ul>
+<li>上图红色输入为独热编码</li>
+<li>中间桔黄色矩阵为隐层-输出层权重矩阵。</li>
+<li>用“隐层激活(Hidden Activation)”表示输入数据乘以输入层-隐层间权重（矩阵乘法）， 桔黄色矩阵乘以 “隐层激活(Hidden Activation)” 得到蓝色矩阵</li>
+<li>图右蓝色矩阵的每行使用Softmax进行计算得到图右绿色矩阵。</li>
+<li>图右灰色矩阵为输入单词上下文的2两个单词的独热编码。使用绿色矩阵逐行减去灰色矩阵，得到误差向量</li>
+<li>对所有的输入计算误差向量后求和得到损失，并进行逆传播优化。</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了基于词频和基于预测的两种嵌入方式，并对其中的常用模型进行了介绍。其中基于预测的嵌入方式是现行较为常用且有效的方式。其模型CBOW和Skip-Gram分别为使用上下文预测单词和使用单词预测上下文的两种不同模型，均为广泛使用。</p>
+
+    </div>
+
+    
+    
+    
+      
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Embedding/" rel="tag"># Embedding</a>
+            
+              <a href="/tags/嵌入/" rel="tag"># 嵌入</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/07/15/machine-learning-terms/" rel="next" title="机器学习术语归纳">
+                  <i class="fa fa-chevron-left"></i> 机器学习术语归纳
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/07/19/e4-bb-8e-e9-9b-b6-e5-bc-80-e5-a7-8b-e7-88-ac-e8-8d-89-e6-a6-b4-e6-88-90-e4-ba-ba-e6-96-87-e5-ad-a6-3-e8-81-9a-e7-b1-bb-e5-92-8cpca/" rel="prev" title="从零开始爬草榴成人文学 (3) – 聚类和PCA">
+                  从零开始爬草榴成人文学 (3) – 聚类和PCA <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#词嵌入的概念"><span class="nav-number">1.</span> <span class="nav-text">词嵌入的概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#词嵌入的不同方法"><span class="nav-number">2.</span> <span class="nav-text">词嵌入的不同方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#词频嵌入"><span class="nav-number">2.1.</span> <span class="nav-text">词频嵌入</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Count-Vector"><span class="nav-number">2.1.1.</span> <span class="nav-text">Count Vector</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#TF-IDF-Vector"><span class="nav-number">2.1.2.</span> <span class="nav-text">TF-IDF Vector</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#固定上下文窗口的Co-Occurence矩阵"><span class="nav-number">2.1.3.</span> <span class="nav-text">固定上下文窗口的Co-Occurence矩阵</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基于预测的嵌入"><span class="nav-number">2.2.</span> <span class="nav-text">基于预测的嵌入</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#CBOW-Continuous-Bag-of-words"><span class="nav-number">2.2.1.</span> <span class="nav-text">CBOW(Continuous Bag of words)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Skip-–-Gram模型"><span class="nav-number">2.2.2.</span> <span class="nav-text">Skip – Gram模型</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

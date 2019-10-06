@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.1">
+  <link rel="mask-icon" href="/images/favicon.ico?v=7.4.1" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.1">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.1',
+    exturl: false,
+    sidebar: {"position":"left","display":"always","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: true,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="前言神经网络和深度学习(1)中，我们从代码中看到机器学习使用了Back Propagation，但是并未介绍到其工作原理。本文则着重介绍Back Propagation算法(以下简称BP算法)的工作原理。本文大部分内容引用、整理或翻译自Michael Nielsen的《Neural Networks and Deep Learning 》，已征得原作者许可，转载此文请先与我联系。作者原声明如下：">
+<meta name="keywords" content="机器学习,神经网络,Machine Learning">
+<meta property="og:type" content="article">
+<meta property="og:title" content="神经网络和深度学习(2) -- 后向传播算法原理">
+<meta property="og:url" content="http://l2h.site/2019/02/05/machine-learning-neural-network-2/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="前言神经网络和深度学习(1)中，我们从代码中看到机器学习使用了Back Propagation，但是并未介绍到其工作原理。本文则着重介绍Back Propagation算法(以下简称BP算法)的工作原理。本文大部分内容引用、整理或翻译自Michael Nielsen的《Neural Networks and Deep Learning 》，已征得原作者许可，转载此文请先与我联系。作者原声明如下：">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2019-10-05T14:54:00.694Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="神经网络和深度学习(2) -- 后向传播算法原理">
+<meta name="twitter:description" content="前言神经网络和深度学习(1)中，我们从代码中看到机器学习使用了Back Propagation，但是并未介绍到其工作原理。本文则着重介绍Back Propagation算法(以下简称BP算法)的工作原理。本文大部分内容引用、整理或翻译自Michael Nielsen的《Neural Networks and Deep Learning 》，已征得原作者许可，转载此文请先与我联系。作者原声明如下：">
+  <link rel="canonical" href="http://l2h.site/2019/02/05/machine-learning-neural-network-2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>神经网络和深度学习(2) -- 后向传播算法原理 | L&H SITE</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-首页">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-关于">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-归档">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="GitHub" aria-label="GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="en">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/02/05/machine-learning-neural-network-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">神经网络和深度学习(2) -- 后向传播算法原理
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-02-05 19:56:23" itemprop="dateCreated datePublished" datetime="2019-02-05T19:56:23+08:00">2019-02-05</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-10-05 22:54:00" itemprop="dateModified" datetime="2019-10-05T22:54:00+08:00">2019-10-05</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/机器学习/" itemprop="url" rel="index"><span itemprop="name">机器学习</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><a href="http://neuralnetworksanddeeplearning.com/chap1.html" target="_blank" rel="noopener">神经网络和深度学习(1)</a>中，我们从代码中看到机器学习使用了Back Propagation，但是并未介绍到其工作原理。本文则着重介绍Back Propagation算法(以下简称<strong>BP算法</strong>)的工作原理。本文大部分内容引用、整理或翻译自<a href="http://michaelnielsen.org/" target="_blank" rel="noopener">Michael Nielsen</a>的《<a href="http://neuralnetworksanddeeplearning.com/index.html" target="_blank" rel="noopener">Neural Networks and Deep Learning</a> 》，已征得原作者许可，转载此文请先与我联系。作者原声明如下：</p><blockquote>
+<p>This work is licensed under a <a href="http://creativecommons.org/licenses/by-nc/3.0/deed.en_GB" target="_blank" rel="noopener">Creative Commons Attribution-NonCommercial 3.0 Unported License</a>. This means you’re free to copy, share, and build on this book, but not to sell it. If you’re interested in<br>commercial use, please <a href="mailto:mn@michaelnielsen.org" target="_blank" rel="noopener">contact me</a>.</p>
+</blockquote><a id="more"></a>
+
+<p>BP算法最早于1970年代提出，但是直到1986年<a href="http://en.wikipedia.org/wiki/David_Rumelhart" target="_blank" rel="noopener">David Rumelhart</a>、<a href="http://www.cs.toronto.edu/~hinton/" target="_blank" rel="noopener">Geoffrey Hinton</a>和 <a href="http://en.wikipedia.org/wiki/Ronald_J._Williams" target="_blank" rel="noopener">Ronald Williams</a>的著名论文才开始获得重视。论文中描述了多个神经网络，而BP神经网络比更早的方法学习得快的多，这为神经网络解决之前无法解决的问题提供了可能。而到了今天，BP算法则成为了神经网络中的“劳模”。</p>
+<p>跟其他章节相比，本文数学分析较多。若您对数学分析不是特别感冒，可以跳过本文，把数学原理当成一个黑盒子来看。这样，只要了解本文中的结论就可以，后续的章节学习也并不会受到影响。需要说明的是，BP算法的核心是误差函数(Cost函数）对w的偏导数[latex]∂C/∂w[/latex]。这个表达式说明了在w和b变化下，Cost的变化速度及其中的细节。因此，BP算法的原理也是非常值得学习的。</p>
+<p><img alt data-src="https://l2h.site/wp-content/uploads/2018/11/Machine-Learning-Book.jpg"></p>
+<h2 id="热身：一个快速的基于矩阵的计算神经网络输出方法"><a href="#热身：一个快速的基于矩阵的计算神经网络输出方法" class="headerlink" title="热身：一个快速的基于矩阵的计算神经网络输出方法"></a>热身：一个快速的基于矩阵的计算神经网络输出方法</h2><p>我们使用[latex]w_{jk}^l[/latex] 来表示l-1层的第k个神经元到l层的第j个神经元的连接权重。例，下图表示了神经网络第二层的第四个神经元到第三层的第二个神经元的连接:</p>
+<p><img alt data-src="http://neuralnetworksanddeeplearning.com/images/tikz16.png"></p>
+<p>该定义初看比较麻烦，需要一些时间来理解，掌握之后则发现它比较自然。有人可能比较奇怪j和k的含义：j当做输入层下标，而k为输出的下标不是更直觉更合理吗？之后再做解释。</p>
+<p>我们对神经网络的bias（也就是负的阈值）和activation（即输出）也可以采用同样的标识。如下图，[latex]b_j^l[/latex] 表示第l层第j个感知器的bias，而[latex]a_j^l[/latex] 表示第l层第j个感知器的activation。</p>
+<p><img alt data-src="http://neuralnetworksanddeeplearning.com/images/tikz17.png"></p>
+<p>由上述表示法，可以得到[latex]b_j^l[/latex] 第l层的第j个神经元的输出，可由第l-1层的输出表示如下：</p>
+<p>[latex]\begin{eqnarray} a^{l}<em>j = \sigma\left( \sum_k w^{l}</em>{jk} a^{l-1}_k + b^l_j \right), \tag{1}\end{eqnarray} [/latex]</p>
+<p>可以把上述公式写成向量形式：</p>
+<p>[latex]\begin{eqnarray} a^{l} = \sigma(w^l a^{l-1}+b^l). \tag{2}\end{eqnarray} [/latex]</p>
+<p>从该公式不难看出，第l层的神经元输出，由前一层的所有神经元输出作为矩阵乘以对应的权重矩阵加上bias之后，代入σ函数即可。该公式非常简洁，在实际使用中也非常有用（有许多库提供了快速计算向量的积、求和等方法）。</p>
+<p>在计算[latex]a^l[/latex]过程中，有先计算中间变量[latex]z^l\equiv\sigma(w^l a^{l-1}+b^l)[/latex]。该变量在后续章节中非常有用，我们给其命名为<em>带权输入（weight input）_。需要注意[latex]z^l[/latex]也是向量，由如下向量元素组成：[latex]z^l_j = \sum_k w^l</em>{jk} a^{l-1}_k+b^l_j[/latex]，其中[latex]z^l_j[/latex]是第l层第j个元素的带权输入。</p>
+<h2 id="误差函数（Cost-Function）"><a href="#误差函数（Cost-Function）" class="headerlink" title="误差函数（Cost Function）"></a>误差函数（Cost Function）</h2><p>本章我们仍然使用<a href="https://l2h.site/2019/02/02/machine-learning-neural-network-1/">前一章</a>的误差函数：</p>
+<p>[latex]\begin{eqnarray} C(w,b) \equiv \frac{1}{2n} \sum_x \| y(x) - a\|^2 \nonumber\end{eqnarray}[/latex]</p>
+<p>另[latex]C_x = \frac{1}{2} \|y-a^L \|^2[/latex]，上述误差函数可重写为：[latex]C = \frac{1}{n} \sum_x C_x[/latex]。同时，误差函数也可以写成对输出[latex]a^L[/latex]的函数（其也显然是），如下图：</p>
+<p><img alt data-src="http://neuralnetworksanddeeplearning.com/images/tikz18.png"></p>
+<h2 id="哈达马积（The-Hadamard-product）"><a href="#哈达马积（The-Hadamard-product）" class="headerlink" title="哈达马积（The Hadamard product）"></a>哈达马积（The Hadamard product）</h2><p>与一般矩阵求积不同，哈达马积（表示为[latex]{s}\odot{t }[/latex]）为求向量见对应元素位置的乘积，例：</p>
+<p>[latex]\begin{eqnarray} \left[\begin{array}{c} 1 \\ 2 \end{array}\right] \odot \left[\begin{array}{c} 3 \\ 4\end{array} \right] = \left[ \begin{array}{c} 1 * 3 \\ 2 * 4 \end{array} \right] = \left[ \begin{array}{c} 3 \\ 8 \end{array} \right]. \end{eqnarray} [/latex]</p>
+<p>哈达马积也被称为_Schur product_。</p>
+<h2 id="BP算法的四个基本公式"><a href="#BP算法的四个基本公式" class="headerlink" title="BP算法的四个基本公式"></a>BP算法的四个基本公式</h2><p>BP算法的核心主要是理解网络中的权重和bias是怎么对误差函数进行影响的。说到底，是为了计算网络中的偏导数[latex]\partial C / \partial w^l_{jk}和 \partial C / \partial b^l_j[/latex]。为了计算这些偏导数，我们首先介绍一个中间数，[latex]delta^l_j[/latex]，它表示第l层第j个神经元的_error（误差）_。</p>
+<p>BP算法首先计算[latex]delta^l_j[/latex]，然后将它与[latex]\partial C / \partial w^l_{jk} 和 \partial C / \partial b^l_j[/latex]相关联。</p>
+<p>为了理解_error_是如何定义的，我们先想象神经网络中有一个小怪兽，位于l层的第j个神经元。当神经元的输入层有输入时，小怪兽对神经元的操作进行破坏–对神经元的带权输入产生[latex]\Delta z^l_j[/latex]的变化。这样神经元的输出由原来的[latex]\sigma(z^l_j)[/latex]变为了[latex]\sigma(z^l_j+\Delta z^l_j)[/latex]。这个变化向网络中的后边层传播，最后导致误差函数的结果产生[latex]\frac{\partial C}{\partial z^l_j} \Delta z^l_j[/latex]大小的变化。</p>
+<p>倘若小怪兽是做好事的小怪兽，希望找到[latex]\Delta z^l_j [/latex]以帮助我们优化误差函数的结果：假设[latex]\frac{\partial C}{\partial z^l_j} [/latex] 很大，小怪兽会仔细挑选[latex]\Delta z^l_j[/latex]，让它和[latex]\frac{\partial C}{\partial z^l_j} [/latex]的正负值相反，以此很大程度地降低误差。相反，如果[latex]\frac{\partial C}{\partial z^l_j}[/latex]接近为0，小怪兽是没办法通过影响带权输入[latex]z^l_j[/latex]的值来优化误差函数。也就是说，该神经元已经接近最优了。因此，给我们的直觉，[latex]\frac{\partial C}{\partial z^l_j}[/latex]就是表示神经元误差的一个度量方式。</p>
+<p>因此，我们定义误差[latex]\begin{eqnarray} \delta^l_j \equiv \frac{\partial C}{\partial z^l_j}. \tag{29}\end{eqnarray} [/latex]。</p>
+<p>根据本文惯例，我们使用[latex]\delta^l[/latex]表示第l层的误差向量。BP算法将会用一些公式来计算每一层的[latex]\delta^l[/latex]，并将这些误差与[latex]\partial C / \partial w^l_{jk} 和 \partial C / \partial b^l_j[/latex]相关联。</p>
+<p>言归正传，我们来看看BP公式的算法：</p>
+<h3 id="BP1"><a href="#BP1" class="headerlink" title="BP1"></a>BP1</h3><p>[latex]\begin{eqnarray} \delta^L_j = \frac{\partial C}{\partial a^L_j} \sigma’(z^L_j). \tag{BP1}\end{eqnarray} [/latex]</p>
+<p>公式BP1为微积分里一个基本的导数公式，比较容易理解。写成哈达马积形式如下：</p>
+<p>[latex]\begin{eqnarray} \delta^L = \nabla_a C \odot \sigma’(z^L). \end{eqnarray}[/latex]</p>
+<p>其中[latex]\nabla_a C[/latex] 为误差函数对所有[latex]a[/latex] 的偏导数组成的向量。其中，[latex]\nabla_a C=(a^L-y)[/latex].</p>
+<h3 id="BP2"><a href="#BP2" class="headerlink" title="BP2"></a>BP2</h3><p>[latex]\begin{eqnarray} \delta^l = ((w^{l+1})^T \delta^{l+1}) \odot \sigma’(z^l), \tag{BP2}\end{eqnarray} [/latex]</p>
+<p>证明如下：</p>
+<p>[latex]\begin{eqnarray} \delta^l_j &amp; = &amp; \frac{\partial C}{\partial z^l_j} \\ &amp; = &amp; \sum_k \frac{\partial C}{\partial z^{l+1}_k} \frac{\partial z^{l+1}_k}{\partial z^l_j} \\ &amp; = &amp; \sum_k \frac{\partial z^{l+1}_k}{\partial z^l_j} \delta^{l+1}_k, \end{eqnarray}[/latex]</p>
+<p>其中：</p>
+<p>[latex]\begin{eqnarray} z^{l+1}<em>k = \sum_j w^{l+1}</em>{kj} a^l_j +b^{l+1}<em>k = \sum_j w^{l+1}</em>{kj} \sigma(z^l_j) +b^{l+1}_k. \end{eqnarray} [/latex]</p>
+<p>求导得到：</p>
+<p>[latex]\begin{eqnarray} \frac{\partial z^{l+1}<em>k}{\partial z^l_j} = w^{l+1}</em>{kj} \sigma’(z^l_j). \end{eqnarray}[/latex]</p>
+<p>合并以上公式得到BP2：</p>
+<p>[latex]\begin{eqnarray} \delta^l_j = \sum_k w^{l+1}_{kj} \delta^{l+1}_k \sigma’(z^l_j). \end{eqnarray} [/latex]</p>
+<h3 id="BP3和BP4"><a href="#BP3和BP4" class="headerlink" title="BP3和BP4"></a>BP3和BP4</h3><p>[latex]\begin{eqnarray} \frac{\partial C}{\partial b^l_j} = \delta^l_j. \tag{BP3}\\ \frac{\partial C}{\partial w^l_{jk}} = a^{l-1}_k \delta^l_j. \tag{BP4}\end{eqnarray} [/latex]</p>
+<p>证明BP4如下：</p>
+<p>[latex]\begin{eqnarray}\frac{\partial C}{\partial w^l_{jk}} = \frac{\partial C}{\partial z^l_j} \frac{\partial z^l_j}{\partial w^l_{jk}}. \end{eqnarray}[/latex]</p>
+<p>其中：</p>
+<p>[latex]\frac{\partial C}{\partial z^l_j}=\delta^l_j\\ z^l_j = \sum_k w^l_{jk}a^{l-1}<em>k\\\frac{\partial z^l_j}{\partial w^l</em>{jk}}=a^{l-1}_k[/latex]</p>
+<p>而BP3的证明类同</p>
+<p>有了BP1到BP4四个公式，我们就能根据输入数据一步步来更新各层的w和b（注意：这里是输出层先计算，然后输入层再计算。这也是BP算法中back的意义）。算法对应代码可在<a href="https://l2h.site/2019/02/02/machine-learning-neural-network-1/#i-7">上一章代码实例</a>处查阅。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这里主要介绍BP算法的数学原理。下一章节会介绍算法中各个初始化参数以及误差函数（cost function）的选择对结果的影响。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\10\e5-8d-b7-e7-a7-af-e7-a5-9e-e7-bb-8f-e7-bd-91-e7-bb-9ccnn-e7-9a-84-e7-90-86-e8-a7-a3\" rel="bookmark">卷积神经网络(CNN)的理解</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\14\e6-9c-ba-e5-99-a8-e5-ad-a6-e4-b9-a0-e5-87-a0-e4-b8-aa-e8-a6-81-e7-b4-a0\" rel="bookmark">机器学习几个要素</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2018\11\11\mithell-ml-note\" rel="bookmark">Mithell《机器学习》学习笔记 - Chapter 1&2</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\02\02\machine-learning-neural-network-1\" rel="bookmark">神经网络和深度学习(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="\2019\07\09\e6-9c-ba-e5-99-a8-e5-ad-a6-e4-b9-a0-e4-b8-ba-e4-bb-80-e4-b9-88-e4-bd-bf-e7-94-a8-e7-8b-ac-e7-83-adone-hot-encoding-e7-bc-96-e7-a0-81\" rel="bookmark">机器学习为什么使用独热(One-hot Encoding)编码</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/机器学习/" rel="tag"># 机器学习</a>
+            
+              <a href="/tags/神经网络/" rel="tag"># 神经网络</a>
+            
+              <a href="/tags/Machine-Learning/" rel="tag"># Machine Learning</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/02/02/machine-learning-neural-network-1/" rel="next" title="神经网络和深度学习(1)">
+                  <i class="fa fa-chevron-left"></i> 神经网络和深度学习(1)
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/02/09/mac-os-scp-ssh-file-transfer/" rel="prev" title="MAC OS使用SCP命令进行SSH文件传输">
+                  MAC OS使用SCP命令进行SSH文件传输 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#热身：一个快速的基于矩阵的计算神经网络输出方法"><span class="nav-number">2.</span> <span class="nav-text">热身：一个快速的基于矩阵的计算神经网络输出方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#误差函数（Cost-Function）"><span class="nav-number">3.</span> <span class="nav-text">误差函数（Cost Function）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#哈达马积（The-Hadamard-product）"><span class="nav-number">4.</span> <span class="nav-text">哈达马积（The Hadamard product）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BP算法的四个基本公式"><span class="nav-number">5.</span> <span class="nav-text">BP算法的四个基本公式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#BP1"><span class="nav-number">5.1.</span> <span class="nav-text">BP1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BP2"><span class="nav-number">5.2.</span> <span class="nav-text">BP2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BP3和BP4"><span class="nav-number">5.3.</span> <span class="nav-text">BP3和BP4</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives">
+        
+          <span class="site-state-item-count">120</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">109</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://weibo.com/lambertdev" title="Weibo &rarr; https://weibo.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i>Weibo</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.dmgroup.site/" title="https://www.dmgroup.site/" rel="noopener" target="_blank">格岩志</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.wangshidi.com/" title="http://www.wangshidi.com/" rel="noopener" target="_blank">汪诗迪博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.1"></script><script src="/js/motion.js?v=7.4.1"></script>
+<script src="/js/schemes/muse.js?v=7.4.1"></script>
+<script src="/js/next-boot.js?v=7.4.1"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
