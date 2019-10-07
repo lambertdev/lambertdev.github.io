@@ -5,7 +5,7 @@ id: 354
 date: 2018-01-20 15:30:53
 ---
 
-![](http://l2h.site/wp-content/uploads/2017/01/Theme-Pic-4-300x199.jpg)
+![](http://pic.l2h.site/Theme-Pic-4-300x199.jpg)
 
 我们是谁？
 =====
