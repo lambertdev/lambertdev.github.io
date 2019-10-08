@@ -24,7 +24,7 @@ mathjax: true
 
 1.  安装并重启VS Code
 
-![Markdown+Math](http://pic.www.l2h.site/l2hsiteMarkdown-Math-1.png "Markdown+Math")
+![Markdown+Math](http://pic.l2h.site/l2hsiteMarkdown-Math-1.png "Markdown+Math")
 
 ### 工具使用
 
@@ -36,12 +36,12 @@ mathjax: true
 
 $${\\tilde V} = w_0+x_1w_1+x_2w_2+...+x_nw_n$$
 
-    更多LaTeX数学公式可以参考[LaTex简介文档](http://pic.www.l2h.site/l2hsitelatex-short-cn.pdf "http://pic.www.l2h.site/l2hsitelatex-short-cn.pdf")的"数学公式"一节。
+    更多LaTeX数学公式可以参考[LaTex简介文档](http://pic.l2h.site/l2hsitelatex-short-cn.pdf "http://pic.l2h.site/l2hsitelatex-short-cn.pdf")的"数学公式"一节。
 
 发布到Wordpress
 ------------
 
-    由于没有对应的CSS档，如果将上文里的公式直接拷贝到Wordpress编辑器，漂亮的数学公式立马失效。 ![WP-KaTex](http://pic.www.l2h.site/l2hsiteMarkdown-Math-2.png "WP-KaTex")
+    由于没有对应的CSS档，如果将上文里的公式直接拷贝到Wordpress编辑器，漂亮的数学公式立马失效。 ![WP-KaTex](http://pic.l2h.site/l2hsiteMarkdown-Math-2.png "WP-KaTex")
 
           这时候需要Wordpress插件出场。
 
@@ -51,7 +51,7 @@ $${\\tilde V} = w_0+x_1w_1+x_2w_2+...+x_nw_n$$
 
 *   建议在插件设置页面勾选上“Use jsDelivr to load files”，使用CDN加速公式显示公式的脚本加载
 
-![WP-KaTex](http://pic.www.l2h.site/l2hsiteMarkdown-Math-3.png "WP-KaTex")
+![WP-KaTex](http://pic.l2h.site/l2hsiteMarkdown-Math-3.png "WP-KaTex")
 
 *   数学公式的左右增加“(latex)”和“(/latex)”，()换成[]例如：
 
@@ -67,7 +67,7 @@ $${\\tilde V} = w_0+x_1w_1+x_2w_2+...+x_nw_n$$
 
 *   参考下图
 
-![正则替换](http://pic.www.l2h.site/l2hsiteMarkdown-Math-4.png)
+![正则替换](http://pic.l2h.site/l2hsiteMarkdown-Math-4.png)
 
     查找样式表示查找由两边各两个美元符号包含的任意样式，圆括号表示要标记的字段，接下来会引用。因为美元符号在正则表达式有特殊含义，查找其必须使用斜杠做转义。 替换样式中最关键的就是红色字体\\1了，表示刚刚查找样式的第一个圆括号标记。 更多正则表达式语法可以参考[这里](http://www.runoob.com/regexp/regexp-tutorial.html "http://www.runoob.com/regexp/regexp-tutorial.html")。
 

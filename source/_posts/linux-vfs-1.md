@@ -15,7 +15,7 @@ date: 2018-07-28 23:21:45
 VFS简介
 =====
 
-说明：本系列文章均以Linux 4.4为原型进行分析 Linux将系统中很多资源都抽象成文件，如Socket、设备节点、以及内存。可以如此做，归功于Linux操作系统的虚拟文件系统（VFS）。 有了VFS，无论底层文件系统格式是FAT、ext格式甚至是内存，（一般情况下）上层应用无论关心底层这些文件系统的实现细节，可以按照统一的方式对文件进行操作。 ![Linux虚拟文件系统（1）](http://pic.www.l2h.site/l2hsite屏幕快照 2018-07-28 下午10.54.04.png "Linux虚拟文件系统（1）") 如上图，用户态应用通过glibc提供的API对文件进行操作，如open()、read()、 write()等。Glibc将这些函数转换成Linux提供的系统调用，操作系统根据系统调用号执行对应的操作函数，如__syscall_open/__syscall_read/__syscall_write等。这样就走到了Linux的虚拟文件系统层（上图VFS）。 
+说明：本系列文章均以Linux 4.4为原型进行分析 Linux将系统中很多资源都抽象成文件，如Socket、设备节点、以及内存。可以如此做，归功于Linux操作系统的虚拟文件系统（VFS）。 有了VFS，无论底层文件系统格式是FAT、ext格式甚至是内存，（一般情况下）上层应用无论关心底层这些文件系统的实现细节，可以按照统一的方式对文件进行操作。 ![Linux虚拟文件系统（1）](http://pic.l2h.site/l2hsite屏幕快照 2018-07-28 下午10.54.04.png "Linux虚拟文件系统（1）") 如上图，用户态应用通过glibc提供的API对文件进行操作，如open()、read()、 write()等。Glibc将这些函数转换成Linux提供的系统调用，操作系统根据系统调用号执行对应的操作函数，如__syscall_open/__syscall_read/__syscall_write等。这样就走到了Linux的虚拟文件系统层（上图VFS）。 
 
 Linux文件系统模型
 ===========
@@ -27,7 +27,7 @@ Linux VFS最重要的数据结构包括
 *   **dentry**：文件系统目录描述符，用来关联文件系统中的目录
 *   **file**：与特定进程锁打开文件相关的结构体
 
-下图（引自<[Understanding the Linux Kernel](http://johnchukwuma.com/training/UnderstandingTheLinuxKernel3rdEdition.pdf)>）描述了这些数据结构间的关系。三个进程打开同一个文件，其中进程3通过不同的文件硬链接访问这个文件。可以看出进程打开一个文件后，通过对应的文件描述符关联了到文件对象。相同的硬链接文件，它对应的dentry对象也是相同的（虽然是同一个文件，不同硬链接的dentry对象也是不同的）。注：f_dentry目前已经由struct path **f_path**成员取代。不同的dentry对象最终指向的是同一个在某个超级块上的inode节点，最终指向磁盘文件。 注意到其中process 1访问对应dentry有一个dentry cache，这是Linux的一种缓存机制。可以将最近加载或者使用的dentry节点缓存到内存中，加速访问。 ![Linux虚拟文件系统（1）](http://pic.www.l2h.site/l2hsite图片 1.png "Linux虚拟文件系统（1）") 下边看一下具体的数据结构。
+下图（引自<[Understanding the Linux Kernel](http://johnchukwuma.com/training/UnderstandingTheLinuxKernel3rdEdition.pdf)>）描述了这些数据结构间的关系。三个进程打开同一个文件，其中进程3通过不同的文件硬链接访问这个文件。可以看出进程打开一个文件后，通过对应的文件描述符关联了到文件对象。相同的硬链接文件，它对应的dentry对象也是相同的（虽然是同一个文件，不同硬链接的dentry对象也是不同的）。注：f_dentry目前已经由struct path **f_path**成员取代。不同的dentry对象最终指向的是同一个在某个超级块上的inode节点，最终指向磁盘文件。 注意到其中process 1访问对应dentry有一个dentry cache，这是Linux的一种缓存机制。可以将最近加载或者使用的dentry节点缓存到内存中，加速访问。 ![Linux虚拟文件系统（1）](http://pic.l2h.site/l2hsite图片 1.png "Linux虚拟文件系统（1）") 下边看一下具体的数据结构。
 
 Super Block
 -----------
@@ -336,4 +336,4 @@ struct file_operations {
 #endif
 };
 ```
-一张图说明这几个VFS重要结构体的指向关系 ![Linux虚拟文件系统（1）](http://pic.www.l2h.site/l2hsitevfs_struct_relation2.png "Linux虚拟文件系统（1）")
+一张图说明这几个VFS重要结构体的指向关系 ![Linux虚拟文件系统（1）](http://pic.l2h.site/l2hsitevfs_struct_relation2.png "Linux虚拟文件系统（1）")

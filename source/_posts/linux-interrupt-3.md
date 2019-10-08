@@ -120,7 +120,7 @@ Linux/
 
 IRQ Domain，顾名思义，即中断控制域。每个中断控制器都有自己的struct irq_domain结构体，以及自己下属的物理中断号，也不用担心物理中断号重复无法区分的问题。以“硬件连接”一节的图片为例，IRQ Controller 1及其下属的几根中断输入线作为一个中断控制域，而IRQ Controller 2作为另外一个中断控制域。
 
-![Linux中断控制域](http://pic.www.l2h.site/l2hsiteLinux-interrupt-3-irq-domain.png)
+![Linux中断控制域](http://pic.l2h.site/l2hsiteLinux-interrupt-3-irq-domain.png)
 
 **Figure 1. Linux中断控制域图例**
 

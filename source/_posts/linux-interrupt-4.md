@@ -19,7 +19,7 @@ date: 2019-01-05 23:50:57
 1.  初始化流程
 2.  中断处理流程
 
-![](http://pic.www.l2h.site/l2hsiteLinux Interrupt-2.png)
+![](http://pic.l2h.site/l2hsiteLinux Interrupt-2.png)
 
 初始化流程
 -----
@@ -31,7 +31,7 @@ Linux中断的初始化分为以下几个部分：
 
 ### 中断子系统初始化
 
-![](http://pic.www.l2h.site/l2hsiteirq_start_kernel3.jpg)
+![](http://pic.l2h.site/l2hsiteirq_start_kernel3.jpg)
 
 中断初始化流程如上图，初始化从start_kernel()开始：
 

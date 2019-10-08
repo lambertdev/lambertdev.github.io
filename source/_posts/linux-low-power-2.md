@@ -14,7 +14,7 @@ date: 2018-10-29 12:57:22
 前篇文章
 ====
 
-http://www.l2h.site/2018/10/24/linux-low-power-1/ ![LINUX电源管理介绍-2](http://pic.www.l2h.site/l2hsiteLinux-low-power-2.png "LINUX电源管理介绍-2")
+http://www.l2h.site/2018/10/24/linux-low-power-1/ ![LINUX电源管理介绍-2](http://pic.l2h.site/l2hsiteLinux-low-power-2.png "LINUX电源管理介绍-2")
 
 电源管理相关状态设置流程
 ============

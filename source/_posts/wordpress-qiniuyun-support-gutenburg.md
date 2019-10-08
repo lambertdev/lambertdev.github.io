@@ -22,7 +22,7 @@ date: 2018-12-09 13:25:37
 呈现效果
 ----
 
-![](http://pic.www.l2h.site/l2hsiteqiniuyun-gutenberg.png)
+![](http://pic.l2h.site/l2hsiteqiniuyun-gutenberg.png)
 
 修改方法
 ----
