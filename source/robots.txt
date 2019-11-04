@@ -11,5 +11,5 @@ Disallow: /fonts/
 Disallow: /vendors/
 Disallow: /fancybox/
 
-Sitemap: https://mrain22.cn/sitemap.xml
-Sitemap: https://mrain22.cn/baidusitemap.xml
+Sitemap: https://l2h.site/sitemap.xml
+Sitemap: https://l2h.site/baidusitemap.xml
