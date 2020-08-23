@@ -69,18 +69,18 @@
 <meta name="keywords" content="Linux,中断">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux中断(1)">
-<meta property="og:url" content="http://l2h.site/2018/12/31/linux-interrupt-3/index.html">
+<meta property="og:url" content="http://l2h.site/2019/01/01/linux-interrupt-3/index.html">
 <meta property="og:site_name" content="L&amp;H SITE">
 <meta property="og:description" content="前言之前LINUX中断学习笔记(1)和LINUX中断学习笔记(2)介绍了Linux中断的一些基础知识，但是不够深入。最近公司所在团队逐渐在往内核进一步深入，仅有前边文章的浅显知识已不足以覆盖工作的需求，也无法和部门同事做深入的技术讨论。本文是在工作之余，进行代码的研究和资料的查找，希望可以将中断子系统尽量整理清楚。本文内容会不定期补充更新，也希望能对访问到本站的朋友有所帮助。">
 <meta property="og:locale" content="en">
 <meta property="og:image" content="http://pic.l2h.site/Linux-Interrupt.png">
 <meta property="og:image" content="http://pic.l2h.site/l2hsiteLinux-interrupt-3-irq-domain.png">
-<meta property="og:updated_time" content="2020-08-23T05:00:44.000Z">
+<meta property="og:updated_time" content="2020-08-23T06:17:20.521Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Linux中断(1)">
 <meta name="twitter:description" content="前言之前LINUX中断学习笔记(1)和LINUX中断学习笔记(2)介绍了Linux中断的一些基础知识，但是不够深入。最近公司所在团队逐渐在往内核进一步深入，仅有前边文章的浅显知识已不足以覆盖工作的需求，也无法和部门同事做深入的技术讨论。本文是在工作之余，进行代码的研究和资料的查找，希望可以将中断子系统尽量整理清楚。本文内容会不定期补充更新，也希望能对访问到本站的朋友有所帮助。">
 <meta name="twitter:image" content="http://pic.l2h.site/Linux-Interrupt.png">
-  <link rel="canonical" href="http://l2h.site/2018/12/31/linux-interrupt-3/">
+  <link rel="canonical" href="http://l2h.site/2019/01/01/linux-interrupt-3/">
 
 
 <script id="page-configurations">
@@ -255,7 +255,7 @@
   
   
   <div class="post-block post">
-    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/12/31/linux-interrupt-3/">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/01/01/linux-interrupt-3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Lambert">
@@ -283,7 +283,7 @@
                 
               
 
-              <time title="Created: 2018-12-31 16:12:17" itemprop="dateCreated datePublished" datetime="2018-12-31T16:12:17+00:00">2018-12-31</time>
+              <time title="Created: 2019-01-01 00:12:17" itemprop="dateCreated datePublished" datetime="2019-01-01T00:12:17+00:00">2019-01-01</time>
             </span>
           
             <span class="post-meta-item">
@@ -319,7 +319,7 @@
       <span class="post-meta-item-text">Changyan: </span>
     
     
-      <a title="changyan" href="/2018/12/31/linux-interrupt-3/#SOHUCS" itemprop="discussionUrl"><span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2018/12/31/linux-interrupt-3/" itemprop="commentCount"></span></a>
+      <a title="changyan" href="/2019/01/01/linux-interrupt-3/#SOHUCS" itemprop="discussionUrl"><span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2019/01/01/linux-interrupt-3/" itemprop="commentCount"></span></a>
     
   </span>
   
@@ -433,6 +433,13 @@
     <li class="popular-posts-item">
       
       
+      <div class="popular-posts-title"><a href="/2018/07/15/linux-interrupt-1/" rel="bookmark">Linux中断学习笔记(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
       <div class="popular-posts-title"><a href="/2019/01/05/linux-interrupt-4/" rel="bookmark">Linux中断(2)</a></div>
       
     </li>
@@ -440,21 +447,14 @@
     <li class="popular-posts-item">
       
       
-      <div class="popular-posts-title"><a href="/2019/08/02/linux-mtd-e5-ad-90-e7-b3-bb-e7-bb-9f/" rel="bookmark">Linux MTD子系统</a></div>
+      <div class="popular-posts-title"><a href="/2018/07/28/linux-vfs-1/" rel="bookmark">Linux虚拟文件系统（1）</a></div>
       
     </li>
   
     <li class="popular-posts-item">
       
       
-      <div class="popular-posts-title"><a href="/2019/03/06/linux-device-driver-kset-and-kobject/" rel="bookmark">Linux设备驱动模型-- 数据结构Kset/KObject</a></div>
-      
-    </li>
-  
-    <li class="popular-posts-item">
-      
-      
-      <div class="popular-posts-title"><a href="/2019/01/06/linux-kernel-e-books/" rel="bookmark">Linux内核学习电子书</a></div>
+      <div class="popular-posts-title"><a href="/2018/10/24/linux-low-power-1/" rel="bookmark">Linux电源管理介绍-1</a></div>
       
     </li>
   
@@ -568,7 +568,7 @@
         
           <a href="/archives/">
         
-          <span class="site-state-item-count">128</span>
+          <span class="site-state-item-count">129</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

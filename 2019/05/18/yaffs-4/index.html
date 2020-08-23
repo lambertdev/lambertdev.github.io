@@ -66,14 +66,14 @@
 </script>
 
   <meta name="description" content="垃圾回收(Garbage Collection。 注：其实“垃圾回收”比较像是直译，叫“块回收”似乎比较恰当 )机制的主要作用是为了回收空闲或接近空闲的Nand块（Block），供文件系统后续使用（例如，创建文件、扩展文件大小、修改文件内容）。第一章《概述》启动代码分析 yaffs_bg_start函数，其作用就是启用Linux内核线程，专门用来做垃圾回收。因为是内核线程做垃圾回收，后台工作找到可">
-<meta name="keywords" content="Linux,文件系统,YAFFS">
+<meta name="keywords" content="Linux,YAFFS,文件系统">
 <meta property="og:type" content="article">
 <meta property="og:title" content="YAFFS文件系统(4)– 垃圾回收(GC)机制">
 <meta property="og:url" content="http://l2h.site/2019/05/18/yaffs-4/index.html">
 <meta property="og:site_name" content="L&amp;H SITE">
 <meta property="og:description" content="垃圾回收(Garbage Collection。 注：其实“垃圾回收”比较像是直译，叫“块回收”似乎比较恰当 )机制的主要作用是为了回收空闲或接近空闲的Nand块（Block），供文件系统后续使用（例如，创建文件、扩展文件大小、修改文件内容）。第一章《概述》启动代码分析 yaffs_bg_start函数，其作用就是启用Linux内核线程，专门用来做垃圾回收。因为是内核线程做垃圾回收，后台工作找到可">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2020-08-23T05:00:44.000Z">
+<meta property="og:updated_time" content="2020-08-23T06:17:20.525Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="YAFFS文件系统(4)– 垃圾回收(GC)机制">
 <meta name="twitter:description" content="垃圾回收(Garbage Collection。 注：其实“垃圾回收”比较像是直译，叫“块回收”似乎比较恰当 )机制的主要作用是为了回收空闲或接近空闲的Nand块（Block），供文件系统后续使用（例如，创建文件、扩展文件大小、修改文件内容）。第一章《概述》启动代码分析 yaffs_bg_start函数，其作用就是启用Linux内核线程，专门用来做垃圾回收。因为是内核线程做垃圾回收，后台工作找到可">
@@ -280,7 +280,7 @@
                 
               
 
-              <time title="Created: 2019-05-18 02:02:59" itemprop="dateCreated datePublished" datetime="2019-05-18T02:02:59+00:00">2019-05-18</time>
+              <time title="Created: 2019-05-18 10:02:59" itemprop="dateCreated datePublished" datetime="2019-05-18T10:02:59+00:00">2019-05-18</time>
             </span>
           
             <span class="post-meta-item">
@@ -413,9 +413,9 @@
             
               <a href="/tags/Linux/" rel="tag"># Linux</a>
             
-              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
-            
               <a href="/tags/YAFFS/" rel="tag"># YAFFS</a>
+            
+              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
             
           </div>
         
@@ -510,7 +510,7 @@
         
           <a href="/archives/">
         
-          <span class="site-state-item-count">128</span>
+          <span class="site-state-item-count">129</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

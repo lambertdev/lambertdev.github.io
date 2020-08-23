@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<script>
+  (adsbygoogle = window.adsbygoogle || []).push({
+    google_ad_client: "ca-pub-3852401481783193",
+    enable_page_level_ads: true
+  });
+</script>
+
+  <meta name="description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流 《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCULinux内核同步之RCU（2） 系列一：从硬件说起1. 来自于霍金的难题">
+<meta name="keywords" content="Linux,内核同步,转载,RCu">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核同步之RCU">
+<meta property="og:url" content="http://l2h.site/2019/01/19/linux-rcu-zz-1/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流 《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCULinux内核同步之RCU（2） 系列一：从硬件说起1. 来自于霍金的难题">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsmF7fTKuFia1pPYReacibAibz1UmDAq4VlrBOrVHwouwQ4tb7mf1zenSUQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsoa5ounjwogQJO0STXuIdpwjvFiaS80Z8mjB6laKvwlM7YJicSAdElaFA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqse5qBW0XEncBicW5dZw9XpQk1BQhSsXa1ibpcLxAZwKw7vx1c4ICUGLlg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsiauM3g6UrUbIlSwpiaKATgK6SrjKkLcLE8b3fVTiaDwAIXQJtBbA8DmJA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsRbyibhP3RlRhbmUjqMrnMetV5B6iaU0Fiahjdzvia9Gic1hjgnmCd2g87kA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqseU5B5jSbMhjn1GlicWxpUFZqnU1I67j6WnjhsM0oZ12EicSOK0HZXyqQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqs96SnuRicjvOIX3Aap5IXTx16wSUz2bciacQhVHWttg5qnnPiaHyzkTHKw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKZYK0ticYUbtnCXAicuooM6jUaicuJJnGlE18fWrTAFa9YthfQHSBicenAA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKhtcDw4A3k4eiaKhJwL8LIjZTNaicaEwmEgiakK63Ldff9f3MRsFDUgzoQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKXRbVr6MNkyYxDrWhEhKAxhHhBke0KPVnh9xITIT6hndARqjldHRWmQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKVaIcE4niciclcQDUZfFT2zNff1ukT3xC3IaZSnPmdRa0hZevyS1SibIBA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CibcLM8KpS817AhIUP9My6jtHialWk6H6ZdXfNkmuDJND71PsRmvUFy1A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CqkeScQFG8acKnfmJjmZLVRVHJicad7xpGiaEgw7y6mCEiazhQSfoYibn3A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CbnHHm2R3ibOviaSz7hOGXLpOqj2Zo3Ny9Yf8gl4ZYqrSlwneO09P0WxQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CMdqUcPO5DTs2Kqw0uxrAPfDe6J6UicdOV3ItiaIiabodDJBhwbotCHyeA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CZa3rglOfibAmxaSickQbKevzZUvSUhDIFaQLibIrgYbvj9eMeF0RGPq4w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CUPwibSIAu08bAmGBwPq3nUY0Kpq7xJTBxgh5tzAMJ4lXhTOOt6JQUfg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:updated_time" content="2020-08-23T06:17:20.525Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核同步之RCU">
+<meta name="twitter:description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流 《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCULinux内核同步之RCU（2） 系列一：从硬件说起1. 来自于霍金的难题">
+<meta name="twitter:image" content="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsmF7fTKuFia1pPYReacibAibz1UmDAq4VlrBOrVHwouwQ4tb7mf1zenSUQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1">
+  <link rel="canonical" href="http://l2h.site/2019/01/19/linux-rcu-zz-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核同步之RCU | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/01/19/linux-rcu-zz-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核同步之RCU
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-01-19 09:30:45" itemprop="dateCreated datePublished" datetime="2019-01-19T09:30:45+00:00">2019-01-19</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内核同步/" itemprop="url" rel="index"><span itemprop="name">Linux内核同步</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Changyan: </span>
+    
+    
+      <a title="changyan" href="/2019/01/19/linux-rcu-zz-1/#SOHUCS" itemprop="discussionUrl"><span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2019/01/19/linux-rcu-zz-1/" itemprop="commentCount"></span></a>
+    
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_<strong>从如下文章转载</strong>_：欢迎大家留言交流</p>
+<p>《<a href="https://mp.weixin.qq.com/s?__biz=MzAwMDUwNDgxOA==&mid=2652662265&idx=1&sn=4e0ec525316720553666482ec4bd9756&chksm=810f2f64b678a672f9573d0374786f5cb1acbb08fdfe3881fac6275145471ad5fc39aa4bb03e&scene=21#wechat_redirect" target="_blank" rel="noopener">谢宝友:深入理解RCU</a> 》，请尊重原文作者劳动成果</p>
+<p>本转载系列文章：<br>LINUX内核同步之RCU<br><a href="https://www.l2h.site/2019/01/19/linux-rcu-zz-2/" target="_blank" rel="noopener">Linux内核同步之RCU（2）</a></p>
+</blockquote><h2 id="系列一：从硬件说起"><a href="#系列一：从硬件说起" class="headerlink" title="系列一：从硬件说起"></a>系列一：从硬件说起</h2><h3 id="1-来自于霍金的难题"><a href="#1-来自于霍金的难题" class="headerlink" title="1. 来自于霍金的难题"></a>1. <strong>来自于霍金的难题</strong></h3><a id="more"></a>
+<p>据说斯蒂芬·霍金曾经声称半导体制造商面临两个基本问题：</p>
+<ol>
+<li>有限的光速</li>
+<li>物质的原子本质</li>
+</ol>
+<p>第一个难题，决定了在一个CPU周期内，<strong>电信号无法在整个系统所有CPU中广播。换句话说，某个CPU指令对一个内存地址的写操作，不会在这条指令执行完毕后，马上被其他CPU识别到操作结果</strong>。例如：CPU0对全局变量foo执行foo = 1，当CPU 0执行完相应的汇编代码后，其他CPU核仍然看到foo赋值前的值。刚接触操作系统的读者，需要注意这一点。</p>
+<p>第二个难题，导致我们至少需要一个原子来存储二进制位。没有办法在一个原子中存储一个字、一段内存、一个完整的寄存器内容……最终的结果是，硬件工程师没有办法缩小芯片流片面积。当CPU核心增加时，核间通信的负担会变得更加沉重。</p>
+<p>当然，作为理论物理学家，霍金的这两个问题都是理论性的。半导体制造商很有可能已经逼近这两个限制。虽然如此，还是有一些研发报告关注于如何规避这两个基本限制。</p>
+<p>其中一个绕开物质原子本质的办法是一种称为“high-K绝缘体”的材料，这种材料允许较大的器件模拟超小型器件的电气属性。这种材料存在一些重大的生产困难，但是总算能将研究的前沿再推进一步。另一个比较奇异的解决方法是在单个电子上存储多个比特位，这是建立在单个电子可以同时存在于多个能级的现象之上。不过这种方法还有待观察，才能确定能否在产品级的半导体设备中稳定工作。</p>
+<p>还有一种称为“量子点”的解决方法，使得可以制造体积小得多的半导体设备，不过该方法还处于研究阶段。</p>
+<p>第一个限制不容易被绕过，虽然量子技术、甚至弦论，理论上允许通信速度超过光速。但是这仅仅是理论研究，实际工程中还未应用。</p>
+<h3 id="2-原子操作有多慢？"><a href="#2-原子操作有多慢？" class="headerlink" title="2. 原子操作有多慢？"></a>2. <strong>原子操作有多慢？</strong></h3><p>这里的原子操作，是特指Linux内核中，类似于atomic_long_add_return这样的API。简单的说，就是当某个原子操作完成时，确保所有CPU核已经识别到对原子变量的修改，并且在原子操作期间，其他CPU核不会同步对该变量进行修改。这必然要求相应的电信号在所有的CPU之间广播。如下图：</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsmF7fTKuFia1pPYReacibAibz1UmDAq4VlrBOrVHwouwQ4tb7mf1zenSUQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>对于普通变量操作（非原子操作）来说，电信号则不必在所有CPU核之间传播并来回传递：</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsoa5ounjwogQJO0STXuIdpwjvFiaS80Z8mjB6laKvwlM7YJicSAdElaFA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>不能忘记一点：Linux操作系统可以运行在超过1024个CPU的大型系统中。在这些大型系统中，在所有CPU之间广播传递电信号，需要花费“很长”的时间。但是，很长究竟是多长？</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqse5qBW0XEncBicW5dZw9XpQk1BQhSsXa1ibpcLxAZwKw7vx1c4ICUGLlg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>在上表中，一次“CAS cache miss”的CPU周期是266，够长了吧？而这个测试结果，是在比较新的、4核CPU的多核系统中进行的。在老一点的系统中，或者在更多CPU核心的系统中，这个时间更长。</p>
+<h3 id="3-变量可以拥有多个值"><a href="#3-变量可以拥有多个值" class="headerlink" title="3.变量可以拥有多个值"></a>3.<strong>变量可以拥有多个值</strong></h3><p>这不是天方夜谭。</p>
+<p>假设CPU 0向全局变量foo写入一个值1，我们会很自然的认为：其他CPU会立即识别到foo的值为1。即使有所疑惑，我们可能也会退一步认为，在稍后某个时刻，其他“所有”CPU都会“同时”识别到foo的值为1。而不会出现一种奇怪的现象：在某个时刻，CPU 1识别到其值为1，而CPU 2识别到其值为0。不幸的是，是时候告别这种想法了。并行计算就是这么神奇和反直觉。如果不能理解这一点，就没办法真正理解RCU。</p>
+<p>要明白这一点，考虑下面的代码片段。它被几个CPU并行的执行。第 1行设置共享变量的值为当前CPU的ID，第2行调用gettb()函数对几个值进行初始化，该函数读取硬件时间计数，这个计数值由SOC硬件给出，并且在所有CPU之间共享。当然，这个硬件计数值主要是在power架构上有效，笔者在powerpce500架构上经常使用它。第3-8行的循环，记录变量在当前CPU上保持的时间长度。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> state.variable = mycpu;</span><br><span class="line"><span class="number">2</span> lasttb = oldtb = firsttb = gettb();</span><br><span class="line"><span class="number">3</span> <span class="keyword">while</span> (state.variable == mycpu) &#123;</span><br><span class="line"><span class="number">4</span>   lasttb = oldtb;</span><br><span class="line"><span class="number">5</span>   oldtb = gettb();</span><br><span class="line"><span class="number">6</span>   <span class="keyword">if</span> (lasttb - firsttb &gt;<span class="number">1000</span>)</span><br><span class="line"><span class="number">7</span>     <span class="keyword">break</span>;</span><br><span class="line"><span class="number">8</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>在退出循环前，firsttb 将保存一个时间戳，这是赋值的时间。lasttb 也保存一个时间戳，它是对共享变量保持最后赋予的值时刻的采样值，如果在进入循环前，共享变量已经变化，那么就等于firsttb。</p>
+<p>这个数据是在一个1.5GHz POWER5 8核系统上采集的。每一个核包含一对硬件线程。CPU 1、2、3和4记录值，而CPU 0 控制测试。时间戳计数器周期是5.32ns，这对于我们观察缓存状态来说是足够了。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsiauM3g6UrUbIlSwpiaKATgK6SrjKkLcLE8b3fVTiaDwAIXQJtBbA8DmJA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>上图的结果，展示出每个CPU识别到变量保持的时间。每一个水平条表示该CPU观察到变量的时间，左边的黑色区域表示相应的CPU第一次计数的时间。在最初5ns期间, 仅仅CPU 3拥有变量的值。在接下来的10ns，CPU 2和3看到不一致的变量值，但是随后都一致的认为其值是“2”。 但是，CPU 1在整个300ns内认为其值是“1”，并且 CPU 4 在整个500ns内认为其值是“4”。</p>
+<p>这真是一个匪夷所思的测试结果。同一个变量，竟然在不同的CPU上面被看到不同的值！！！！</p>
+<p>如果不理解硬件，就不会接受这个匪夷所思的测试结果。当然了，此时如果有一位大师站在你的面前，你也不能够跟随大师的节奏起舞。</p>
+<h3 id="4-为什么需要MESI"><a href="#4-为什么需要MESI" class="headerlink" title="4* 为什么需要MESI"></a>4* <strong>为什么需要MESI</strong></h3><p>请不要说：我还不知道MESI是什么？</p>
+<p>简单的说，MESI是一种内存缓存一致性协议。</p>
+<p>现代CPU的速度比现代内存系统的速度快得多。2006 年的CPU可以在每纳秒内执行十条指令。但是需要很多个十纳秒才能从物理内存中取出一个数据。它们的速度差异（超过2个数量级）导致在现代CPU中出现了数兆级别的缓存。这些缓存与CPU是相关联的，如下图。典型的，缓存可以在几个时钟周期内被访问。借助于CPU流水线的帮助，我们暂且可以认为，缓存能够抵消内存对CPU性能的影响。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqsRbyibhP3RlRhbmUjqMrnMetV5B6iaU0Fiahjdzvia9Gic1hjgnmCd2g87kA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>CPU缓存和内存之间的数据流是固定长度的块，称为“缓存行”，其大小通常是2的N次方。范围从16到256字节不等。当一个特定的数据第一次被CPU访问时，它在缓存中还不存在，这称为“cache miss”(或者可被更准确的称为“startup cache miss”或者“warmupcache miss”)。“cache miss”意味着：CPU在从物理内存中读取数据时，它必须等待(或处于“stalled”状态) 数百个CPU周期。但是，数据将被装载入CPU缓存以后，后续的访问将在缓存中找到，因此可以全速运行。</p>
+<p>经过一段时间后，CPU的缓存将会被填满，后续的缓存缺失需要换出缓存中现有的数据，以便为最近的访问项腾出空间。这种“cache miss”被称为“capacitymiss”，因为它是由于缓存容量限制而造成的。但是，即使此时缓存还没有被填满，大量缓存也可能由于一个新数据而被换出。这是由于大量的缓存是通过硬件哈希表来实现的，这些哈希表有固定长度的哈希桶（或者叫“sets”，CPU设计者是这样称呼的），如下图。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqseU5B5jSbMhjn1GlicWxpUFZqnU1I67j6WnjhsM0oZ12EicSOK0HZXyqQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>这个缓存有16个“sets”和2“路”，共32个“缓存行”，每个节点包含一个256字节的“缓存行”，它是一个256字节对齐的内存块。这个缓存行稍微显得大了一点，但是这使得十六进制的运行更简单。从硬件的角度来说，这是一个两路组相联缓存，类似于带16个桶的软件哈希表，每个桶的哈希链最多有两个元素。大小 (本例中是32个缓存行) 和相连性 (本例中是2) 都被称为缓存的“geometry”。由于缓存是硬件实现的，哈希函数非常简单：从内存地址中取出4位（哈希桶数量）作为哈希键值。</p>
+<p>在程序代码位于地址0x43210E00- 0x43210EFF，并且程序依次访问地址0x12345000-0x12345EFF时，图中的情况就可能发生。假设程序正准备访问地址0x12345F00，这个地址会哈希到 0xF行，该行的两路都是空的，因此可以提供对应的256字节缓存行。如果程序访问地址0x1233000，将会哈希到第0行，相应的256字节缓存行可以放到第1路。但是，如果程序访问地址0x1233E00，将会哈希到第0xE行，必须有一个缓存行被替换出去，以腾出空间给新的行。如果随后访问被替换的行，会产生一次“cache miss”，这样的缓存缺失被称为“associativitymiss”。</p>
+<p>更进一步说，我们仅仅考虑了读数据的情况。当写的时候会发生什么呢？由于在一个特定的CPU写数据前，让所有CPU都意识到数据被修改这一点是非常重要的。因此，它必须首先从其他CPU缓存中移除，或者叫“invalidated”（使无效）。一旦“使无效”操作完成，CPU可以安全的修改数据项。如果数据存在于该CPU缓存中，但是是只读的，这个过程称为“write miss”。一旦某个特定的CPU使其他CPU完成了“使无效”操作，该CPU可以反复的重新写（或者读）数据。</p>
+<p>最后，如果另外某个CPU试图访问数据项，将会引起一次缓存缺失，此时，由于第一个CPU为了写而使得缓存项无效，这被称为“communication miss”。因为这通常是由于几个CPU使用缓存通信造成的（例如，一个用于互斥算法的锁使用这个数据项在CPU之间进行通信）。</p>
+<p>很明显，所有CPU必须小心的维护数据的一致性视图。这些问题由“缓存一致性协议”来防止，常用的缓存一致性是MESI。</p>
+<h3 id="5-MESI的四种状态"><a href="#5-MESI的四种状态" class="headerlink" title="5. MESI的四种状态"></a>5. <strong>MESI的四种状态</strong></h3><p>MESI 存在“modified”，“exclusive”，“shared”和“invalid”四种状态，协议可以在一个指定的缓存行中应用这四种状态。因此，协议在每一个缓存行中维护一个两位的状态标记，这个标记附着在缓存行的物理地址和数据后面。</p>
+<p>处于“modified”状态的缓存行是由于相应的CPU最近进行了内存存储。并且相应的内存确保没有在其他CPU的缓存中出现。因此，“modified”状态的缓存行可以被认为被CPU所“拥有”。由于该缓存保存了“最新”的数据，因此缓存最终有责任将数据写回到内存，也应当为其他缓存提供数据，并且必须在缓存其他数据之前完成这些事情。</p>
+<p>“exclusive”状态非常类似于“modified”状态，唯一的差别是该缓存行还没有被相应的CPU修改，这也表示缓存行中的数据及内存中的数据都是最新的。但是，由于CPU能够在任何时刻将数据存储到该行，而不考虑其他CPU，因此，处于“exclusive”状态也可以认为被相应的CPU所“拥有”。也就是说，由于物理内存中的值是最新的，该行可以直接丢弃而不用回写到内存，也不用通知其他CPU。</p>
+<p>处于“shared”状态的缓存行可能已经被复制到至少一个其他CPU的缓存中，这样在没有得到其他CPU的许可时，不能向缓存行存储数据。与“exclusive”状态相同，此时内存中的值是最新的，因此可以不用向内存回写值而直接丢弃缓存中的值，也不用通知其他CPU。</p>
+<p>处于“invalid”状态的行是空的，换句话说，它没有保存任何有效数据。当新数据进入缓存时，它被放置到一个处于“invalid”状态的缓存行。这个方法是比较好的，因为替换其他状态的缓存行将引起大量的缓存缺失。</p>
+<p>由于所有CPU必须维护缓存行中的数据一致性视图，因此缓存一致性协议提供消息以标识系统中缓存行的动作。</p>
+<h3 id="6-MESI消息"><a href="#6-MESI消息" class="headerlink" title="6. MESI消息"></a>6. <strong>MESI消息</strong></h3><p>MESI协议需要在CPU之间通信。如果CPU在单一共享总线上，只需要如下消息就足够了：</p>
+<ul>
+<li>读消息：“读”消息包含要读取的缓存行的物理地址。</li>
+<li>读响应消息：“读响应”消息包含较早前的“读”消息的数据。这个“读响应”消息可能由物理内存或者其他CPU的缓存提供。例如，如果一个缓存处于“modified”状态，那么，它的缓存必须提供“读响应”消息。</li>
+<li>使无效消息：“使无效”消息包含要使无效的缓存行的物理地址。其他的缓存必须从它们的缓存中移除相应的数据并且响应此消息。</li>
+<li>使无效应答：一个接收到“使无效”消息的CPU必须在移除指定数据后响应一个“使无效应答”消息。</li>
+<li>读使无效：“读使无效”消息包含缓存行要读取的物理地址。同时指示其他缓存移除数据。因此，它同时包含一个“读”消息和一个“使无效”消息。“读使无效”消息同时需要“读响应”消息以及“使无效应答”消息进行答应。</li>
+<li>写回：“写回”消息包含要回写到物理内存的地址和数据。(并且也许会“探测”其他CPU的缓存)。这个消息允许缓存在必要时换出处于“modified”状态的数据以腾出空间。</li>
+</ul>
+<p>再次重申，所有这些消息均需要在CPU之间传播电信号，都面临霍金提出的那两个IT难题。</p>
+<h3 id="7-MESI状态转换"><a href="#7-MESI状态转换" class="headerlink" title="7. MESI状态转换"></a><strong>7. MESI状态转换</strong></h3><p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bys3d9lhjr1BiacWyP6ibVeLqs96SnuRicjvOIX3Aap5IXTx16wSUz2bciacQhVHWttg5qnnPiaHyzkTHKw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<ul>
+<li>Transition (a)：缓存行被写回到物理内存，但是CPU仍然将它保留在缓存中，并在以后修改它。这个转换需要一个“写回”消息。</li>
+<li>Transition (b)：CPU将数据写到缓存行，该缓存行目前处于排它访问。不需要发送或者接收任何消息。</li>
+<li>Transition (c)：CPU收到一个“读使无效”消息，相应的缓存行已经被修改。CPU必须使无效本地副本，然后响应“读响应”和 “使无效应答”消息，同时发送数据给请求的CPU，标示它的本地副本不再有效。</li>
+<li>Transition (d)：CPU进行一个原子读—修改—写操作，相应的数据没有在它的缓存中。它发送一个“读使无效”消息，通过“读响应”消息接收数据。一旦它接收到一个完整的“使无效应答”响应集合，CPU就完成此转换。</li>
+<li>Transition (e)：CPU进行一个原子读—修改—写操作，相应的数据在缓存中是只读的。它必须发送一个“使无效”消息，并等待“使无效应答”响应集合以完成此转换。</li>
+<li>Transition (f)：其他某些CPU读取缓存行，其数据由本CPU提供，本CPU包含一个只读副本。数据只读的原因，可能是由于数据已经回写到内存中。这个转换开始于接收到一个“读”消息，最终本CPU响应了一个“读响应” 消息。</li>
+<li>Transition (g)：其他CPU读取数据，并且数据是从本CPU的缓存或者物理内存中提供的。无论哪种情况，本CPU都会保留一个只读副本。这个事务开始于接收到一个“读”消息，最终本CPU响应一个“读响应”消息。</li>
+<li>Transition (h)：当前CPU很快将要写入一些数据到缓存行，于是发送一个“使无效”消息。直到它接收到所有“使无效应答”消息后，CPU才完成转换。可选的，所有其他CPU通过“写回”消息将缓存行的数据换出（可能是为其他缓存行腾出空间）。这样，当前CPU就是最后一个缓存该数据的CPU。</li>
+<li>Transition (i)：其他某些CPU进行了一个原子读—修改—写操作，相应的缓存行仅仅被本CPU持有。本CPU将缓存行变成无效状态。这个转换开始于接收到“读使无效”消息，最终本CPU响应一个“读响应”消息以及一个“使无效应答”消息。</li>
+<li>Transition (j)：本CPU保存一个数据到缓存行，但是数据还没有在它的缓存行中。因此发送一个“读使无效”消息。直到它接收到“读响应”消息以及所有“使无效应答”消息后，才完成事务。缓存行可能会很快转换到“修改”状态，这是在存储完成后由Transition (b)完成的。</li>
+<li>Transition (k)：本CPU装载一个数据，但是数据还没有在缓存行中。CPU发送一个“读”消息，当它接收到相应的“读响应”消息后完成转换。</li>
+<li>Transition (l)：其他CPU存储一个数据到缓存行，但是该缓存行处于只读状态（因为其他CPU也持有该缓存行）。这个转换开始于接收到一个“使无效”消息，当前CPU最终响应一个“使无效应答”消息。</li>
+</ul>
+<h2 id="系列二：从硬件说起之内存屏障"><a href="#系列二：从硬件说起之内存屏障" class="headerlink" title="系列二：从硬件说起之内存屏障"></a>系列二：从硬件说起之内存屏障</h2><h3 id="1-内存Cache还有哪些不足？"><a href="#1-内存Cache还有哪些不足？" class="headerlink" title="1. 内存Cache还有哪些不足？"></a>1. 内存Cache还有哪些不足？</h3><p>上一篇文章我们谈到了内存Cache，并且描述了典型的Cache一致性协议MESI。Cache的根本目的，是解决内存与CPU速度多达两个数量级的性能差异。一个包含Cache的计算机系统，其结构可以简单的表示为下图：</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKZYK0ticYUbtnCXAicuooM6jUaicuJJnGlE18fWrTAFa9YthfQHSBicenAA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>仅仅只有Cache的计算机系统，它还存在如下问题：</p>
+<ol>
+<li>Cache的速度，虽然比内存有了极大的提升，但是仍然比CPU慢几倍。</li>
+<li>在发生“warmup cache miss”、“capacity miss”、“associativity miss”时，CPU必须等待从内存中读取数据，此时CPU会处于一种Stall的状态。其等待时间可能达到几百个CPU指令周期。</li>
+</ol>
+<p>显然，这是现代计算机不能承受之重：）</p>
+<h3 id="2-Write-buffer是为了解决什么问题？"><a href="#2-Write-buffer是为了解决什么问题？" class="headerlink" title="2. Write buffer是为了解决什么问题？"></a>2. Write buffer是为了解决什么问题？</h3><p>如果CPU仅仅是执行foo = 1这样的语句，它其实无须从内存或者缓存中读取foo现在的值。因为无论foo当前的值是什么，它都会被覆盖。在仅仅只有Cache的系统中，foo = 1 这样的操作也会形成写停顿。自然而然的，CPU设计者应当会想到在Cache 和CPU之间再添加一级缓存。由于这样的缓存主要是应对写操作引起的Cache Miss，并且缓存的数据与写操作相关，因此CPU设计者将它命名为“Write buffer”。调整后的结构示意图如下(图中的store buffer即为write buffer)：</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKhtcDw4A3k4eiaKhJwL8LIjZTNaicaEwmEgiakK63Ldff9f3MRsFDUgzoQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>通过增加这些Write buffer，CPU可以简单的将要保存的数据放到Write buffer 中，并且继续运行，而不会真正去等待Cache从内存中读取数据并返回。</p>
+<p>对于特定CPU来说，这些Write buffer是属于本地的。或者在硬件多线程系统中，它对于特定核来说，是属于本地的。无论哪一种情况，一个特定CPU仅仅允许访问分配给它的Writebuffer。例如，在上图中，CPU 0不能访问CPU 1的存储缓冲，反之亦然。</p>
+<p>Write buffer进一步提升了系统性能，但是它也会为硬件设计者带来一些困扰：</p>
+<p><strong>第一个困扰：违反了自身一致性。</strong></p>
+<p>考虑如下代码：变量“a”和“b”都初始化为0，包含变量“a”缓存行，最初被CPU 1所拥有，而包含变量“b”的缓存行最初被CPU0所拥有：</p>
+<p>a = 1;<br>b = a + 1;<br>assert(b == 2);</p>
+<p>没有哪一位软件工程师希望断言被触发！</p>
+<p>然而，如果采用上图中的简单系统结构，断言确实会被触发。理解这一点的关键在于：a最初被CPU 1所拥有，而CPU 0在执行a = 1时，将a的新值存储在CPU 0的Write buffer中。</p>
+<p>在这个简单系统中，触发断言的事件顺序可能如下：</p>
+<ul>
+<li>1．CPU 0 开始执行a = 1。</li>
+<li>2．CPU 0在缓存中查找“a”，并且发现缓存缺失。</li>
+<li>3．因此，CPU 0发送一个“读使无效（read-invalidate message）”消息，以获得包含“a”的独享缓存行。</li>
+<li>4．CPU 0将“a”记录到存储缓冲区。</li>
+<li>5．CPU 1接收到“读使无效”消息，它通过发送缓存行数据，并从它的缓存行中移除数据来响应这个消息。</li>
+<li>6．CPU 0开始执行b = a + 1。</li>
+<li>7．CPU 0从CPU 1接收到缓存行，它仍然拥有一个为“0”的“a”值。</li>
+<li>8．CPU 0从它的缓存中读取到“a”的值，发现其值为0。</li>
+<li>9．CPU 0将存储队列中的条目应用到最近到达的缓存行，设置缓存行中的“a”的值为1。</li>
+<li>10．CPU 0将前面加载的“a”值0加1，并存储该值到包含“b”的缓存行中（假设已经被CPU 0所拥有）。</li>
+<li>11．CPU 0 执行assert(b == 2)，并引起错误。</li>
+</ul>
+<p>针对这种情况，硬件设计者对软件工程师还是给予了必要的同情。他们会对系统进行稍许的改进，如下图：</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKXRbVr6MNkyYxDrWhEhKAxhHhBke0KPVnh9xITIT6hndARqjldHRWmQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>在调整后的架构中，每个CPU在执行加载操作时，将考虑（或者嗅探）它的Writebuffer。这样，在前面执行顺序的第8步，将在存储缓冲区中为“a”找到正确的值1 ，因此最终的“b”值将是2，这正是我们期望的。</p>
+<p>Write buffer带来的第二个困扰，是违反了全局内存序。考虑如下的代码顺序，其中变量“a”、“b”的初始值是0。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"> 2 </span>&#123;</span><br><span class="line"> <span class="number">3</span>   a = <span class="number">1</span>;</span><br><span class="line"> <span class="number">4</span>   b = <span class="number">1</span>;</span><br><span class="line"> <span class="number">5</span> &#125;</span><br><span class="line"> <span class="number">6</span></span><br><span class="line"> <span class="number">7</span> <span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"> 8 </span>&#123;</span><br><span class="line"> <span class="number">9</span>   <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;</span><br><span class="line"><span class="number">10</span>   assert(a == <span class="number">1</span>);</span><br><span class="line"><span class="number">11</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>假设CPU 0执行foo()，CPU1执行bar()，再进一步假设包含“a”的缓存行仅仅位于CPU1的缓存中，包含“b”的缓存行被CPU 0所拥有。那么操作顺序可能如下：</p>
+<ul>
+<li>1．CPU 0 执行a = 1。缓存行不在CPU0的缓存中，因此CPU0将“a”的新值放到Write buffer，并发送一个“读使无效”消息。</li>
+<li>2．CPU 1 执行while (b == 0) continue，但是包含“b”的缓存行不在它的缓存中，因此它发送一个“读”消息。</li>
+<li>3．CPU 0 执行 b = 1，它已经拥有了该缓存行（换句话说，缓存行要么已经处于“modified”，要么处于“exclusive”状态），因此它存储新的“b”值到它的缓存行中。</li>
+<li>4．CPU 0 接收到“读”消息，并且发送缓存行中的最近更新的“b”的值到CPU1，同时将缓存行设置为“shared”状态。</li>
+<li>5．CPU 1 接收到包含“b”值的缓存行，并将其值写到它的缓存行中。</li>
+<li>6．CPU 1 现在结束执行while (b ==0) continue，因为它发现“b”的值是1，它开始处理下一条语句。</li>
+<li>7．CPU 1 执行assert(a == 1)，并且，由于CPU 1工作在旧的“a”的值，因此断言验证失败。</li>
+<li>8．CPU 1 接收到“读使无效”消息，并且发送包含“a”的缓存行到CPU 0，同时在它的缓存中，将该缓存行变成无效。但是已经太迟了。</li>
+<li>9．CPU 0 接收到包含“a”的缓存行，并且及时将存储缓冲区的数据保存到缓存行中，CPU1的断言失败受害于该缓存行。</li>
+</ul>
+<p>请注意，“内存屏障”已经在这里隐隐约约露出了它锋利的爪子！！！！</p>
+<h3 id="3-使无效队列又是为了解决什么问题？"><a href="#3-使无效队列又是为了解决什么问题？" class="headerlink" title="3. 使无效队列又是为了解决什么问题？"></a>3. 使无效队列又是为了解决什么问题？</h3><p><strong>一波未平，另一波再起。</strong></p>
+<p>问题的复杂性还不仅仅在于Writebuffer，因为仅仅有Write buffer，硬件还会形成严重的性能瓶颈。</p>
+<p>问题在于，每一个核的Writebuffer相对而言都比较小，这意味着执行一段较小的存储操作序列的CPU，很快就会填满它的Writebuffer。此时，CPU在能够继续执行前，必须等待Cache刷新操作完成，以清空它的Write buffer。</p>
+<p>清空Cache是一个耗时的操作，因为必须要在所在CPU之间广播MESI消息(使无效消息)，并等待对这些MESI消息的响应。为了加快MESI消息响应速度，CPU设计者增加了使无效队列。也就是说，CPU将接收到的使无效消息暂存起来，在发送使无效消息应答时，并不真正将Cache中的值无效。而是等待在合适的时候，延迟使无效操作。</p>
+<p>下图是增加了使无效队列的系统结构：</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6byscTZBf0ibHrT3zByX1gPcNKVaIcE4niciclcQDUZfFT2zNff1ukT3xC3IaZSnPmdRa0hZevyS1SibIBA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>将一个条目放进使无效队列，实际上是由CPU承诺：在发送任何与该缓存行相关的MESI协议消息前，处理该条目。在Cache竞争不太剧烈的情况下，CPU会很出色地完成此事。</p>
+<p>使无效队列带来的问题是：在没有真正将Cache无效之前，就告诉其他CPU已经使无效了。这多少有一点欺骗的意思。然而现代CPU确实是这样设计的。</p>
+<p>这个事实带来了额外的内存乱序的机会，看看如下示例：</p>
+<p>假设“a”和“b”被初始化为0，“a”是只读的（MESI“shared”状态），“b”被CPU 0拥有（MESI“exclusive”或者“modified”状态）。然后假设CPU 0执行foo()而CPU1执行bar()，代码片段如下：</p>
+<p>  1 void foo(void)<br>  2 {<br>  3   a = 1;<br>  4   smp_mb();<br>  5   b = 1;<br>  6 }<br>  7<br>  8 void bar(void)<br>  9 {<br> 10   while (b == 0) continue;<br> 11   assert(a == 1);<br> 12 }</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">操作顺序可能如下：</span><br><span class="line"></span><br><span class="line">*   1．CPU 0执行a = 1。在CPU0中，相应的缓存行是只读的，因此CPU 0将“a”的新值放入存储缓冲区，并发送一个“使无效”消息，这是为了使CPU1的缓存中相应的缓存行失效。</span><br><span class="line">*   2．CPU 1执行while (b == 0)continue，但是包含“b”的缓存行不在它的缓存中，因此它发送一个“读”消息。</span><br><span class="line">*   3．CPU 1接收到CPU 0的“使无效”消息，将它排队，并立即响应该消息。</span><br><span class="line">*   4．CPU 0接收到来自于CPU 1的响应消息，因此它放心的通过第4行的smp_mb()，从存储缓冲区移动“a”的值到缓存行。</span><br><span class="line">*   5．CPU 0执行b = 1。它已经拥有这个缓存行（也就是说，缓存行已经处于“modified”或者“exclusive”状态），因此它将“b”的新值存储到缓存行中。</span><br><span class="line">*   6．CPU 0接收到“读”消息，并且发送包含“b”的新值的缓存行到CPU 1，同时在自己的缓存中，标记缓存行为“shared”状态。</span><br><span class="line">*   7．CPU 1接收到包含“b”的缓存行并且将其应用到本地缓存。</span><br><span class="line">*   8．CPU 1现在可以完成while (b ==0) continue，因为它发现“b”的值为1，接着处理下一条语句。</span><br><span class="line">*   9．CPU 1执行assert(a == 1)，并且，由于旧的“a”值还在CPU 1的缓存中，因此陷入错误。</span><br><span class="line">*   10．虽然陷入错误，CPU 1处理已经排队的“使无效”消息，并且（迟到）在自己的缓存中刷新包含“a”值的缓存行。</span><br><span class="line"></span><br><span class="line">### 4. 内存屏障</span><br><span class="line"></span><br><span class="line">既然硬件设计者通过Write buffer和使无效队列引入了额外的内存乱序问题，那么就应当为软件工程师提供某种方法来解决这个问题。即使相应的解决方法会折磨软件工程师。</span><br><span class="line"></span><br><span class="line">答案就是内存屏障。对于Linux内核资深工程师来说，这个答案也显得比较沉重，它太折磨人了：）</span><br><span class="line"></span><br><span class="line">我们先看看Write buffer一节中，触发断言的例子，应该怎么修改。</span><br><span class="line"></span><br><span class="line">在那个例子中，硬件设计者不能直接帮助我们，因为 CPU没有办法识别那些相关联的变量（例子中的a和b），更不用说它们如何关联。因此，硬件设计者提供内存屏障指令，以允许软件告诉CPU这些关系的存在。程序必须修改，以包含内存屏障：</span><br><span class="line">```C</span><br><span class="line">void foo(void)</span><br><span class="line">&#123;</span><br><span class="line">   a = 1;</span><br><span class="line">   smp_mb();</span><br><span class="line">   b = 1;</span><br><span class="line">&#125;</span><br><span class="line">void bar(void)</span><br><span class="line">&#123;</span><br><span class="line">   while (b == 0) continue;</span><br><span class="line">   assert(a == 1);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>内存屏障smp_mb()将导致CPU在刷新后续的缓存行（包含b的缓存行）之前，前面的Write buffer被先刷新。在继续处理之前，CPU可能采取的动作是：</p>
+<ul>
+<li>1、简单的停顿下来，直到存储缓冲区变成空；</li>
+<li>2、也可能是使用存储缓冲区来持有后续的存储操作，直到前面所有的存储缓冲区已经被保存到缓存行中。</li>
+</ul>
+<p>理解其中第2点，能够帮助我们理解“内存屏障”这个单词的来历！！后一种情况下，操作序列可能如下所示：</p>
+<ul>
+<li>1．CPU 0执行a= 1。缓存行不在CPU0的缓存中，因此CPU 0将“a”的新值放到存储缓冲中，并发送一个“读使无效”消息。</li>
+<li>2．CPU 1 执行while(b == 0) continue，但是包含“b”的缓存行不在它的缓存中，因此它发送一个“读”消息。</li>
+<li>3．CPU 0执行smp_mb()，并标记当前所有存储缓冲区的条目。（也就是说a = 1这个条目）。</li>
+<li>4．CPU 0执行b= 1。它已经拥有这个缓存行了。（也就是说, 缓存行已经处于“modified”或者“exclusive”状态），但是在存储缓冲区中存在一个标记条目。因此，它不将“b”的新值存放到缓存行，而是存放到存储缓冲区中。（但是“b”不是一个标记条目）。</li>
+<li>5．CPU 0接收“读”消息，随后发送包含原始“b”值的缓存行给CPU1。它也标记该缓存行的复制为“shared”状态。</li>
+<li>6．CPU 1读取到包含“b”的缓存行，并将它复制到本地缓存中。</li>
+<li>7．CPU 1现在可以装载“b”的值了，但是，由于它发现其值仍然为“0”，因此它重复执行while语句。“b”的新值被安全的隐藏在CPU0的存储缓冲区中。</li>
+<li>8．CPU 1接收到“读使无效”消息，发送包含“a”的缓存行给CPU 0，并且使它的缓存行无效。</li>
+<li>9．CPU 0接收到包含“a”的缓存行，使用存储缓冲区的值替换缓存行，将这一行设置为“modified”状态。</li>
+<li>10．由于被存储的“a”是存储缓冲区中唯一被smp_mb()标记的条目，因此CPU0能够存储“b”的新值到缓存行中，除非包含“b”的缓存行当前处于“shared”状态。</li>
+<li>11．CPU 0发送一个“使无效”消息给CPU 1。</li>
+<li>12．CPU 1接收到“使无效”消息，使包含“b”的缓存行无效，并且发送一个“使无效应答”消息给 CPU 0。</li>
+<li>13．CPU 1执行while(b == 0) continue，但是包含“b”的缓存行不在它的缓存中，因此它发送一个“读”消息给 CPU 0。</li>
+<li>14．CPU 0接收到“使无效应答”消息，将包含“b”的缓存行设置成“exclusive”状态。CPU 0现在存储新的“b”值到缓存行。</li>
+<li>15．CPU 0接收到“读”消息，同时发送包含新的“b”值的缓存行给 CPU 1。它也标记该缓存行的复制为“shared”状态。</li>
+<li>16．CPU 1接收到包含“b”的缓存行，并将它复制到本地缓存中。</li>
+<li>17．CPU 1现在能够装载“b”的值了，由于它发现“b”的值为1，它退出while循环并执行下一条语句。</li>
+<li>18．CPU 1执行assert(a== 1)，但是包含“a”的缓存行不在它的缓存中。一旦它从CPU0获得这个缓存行，它将使用最新的“a”的值，因此断言语句将通过。</li>
+</ul>
+<p>正如你看到的那样，这个过程涉及不少工作。即使某些事情从直觉上看是简单的操作，就像“加载a的值”这样的操作，都会包含大量复杂的步骤。</p>
+<p>前面提到的，其实是写端的屏障，它解决Write buffer引入的内存乱序。接下来我们看看读端的屏障，它解决使无效队列引入的内存乱序。</p>
+<p>要避免使无效队列例子中的错误，应当再使用读端内存屏障：</p>
+<p>读端内存屏障指令能够与使无效队列交互，这样，当一个特定的CPU执行一个内存屏障时，它标记无效队列中的所有条目，并强制所有后续的装载操作进行等待，直到所有标记的条目都保存到CPU的Cache中。因此，我们可以在bar函数中添加一个内存屏障，如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"> <span class="number">1</span> <span class="function"><span class="keyword">void</span> <span class="title">foo</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"> 2 </span>&#123;</span><br><span class="line"> <span class="number">3</span>   a = <span class="number">1</span>;</span><br><span class="line"> <span class="number">4</span>   smp_mb();</span><br><span class="line"> <span class="number">5</span>   b = <span class="number">1</span>;</span><br><span class="line"> <span class="number">6</span> &#125;</span><br><span class="line"> <span class="number">7</span></span><br><span class="line"> <span class="number">8</span> <span class="function"><span class="keyword">void</span> <span class="title">bar</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"> 9 </span>&#123;</span><br><span class="line"><span class="number">10</span>   <span class="keyword">while</span> (b == <span class="number">0</span>) <span class="keyword">continue</span>;</span><br><span class="line"><span class="number">11</span>   smp_mb();</span><br><span class="line"><span class="number">12</span>   assert(a == <span class="number">1</span>);</span><br><span class="line"><span class="number">13</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了这个变化后，操作顺序可能如下：</p>
+<ul>
+<li>1．CPU 0执行a= 1。相应的缓存行在CPU0的缓存中是只读的，因此CPU0将“a”的新值放入它的存储缓冲区，并且发送一个“使无效”消息以刷新CPU1相应的缓存行。</li>
+<li>2．CPU 1 执行while(b == 0) continue，但是包含“b”的缓存行不在它的缓存中，因此它发送一个“读”消息。</li>
+<li>3．CPU 1 接收到 CPU 0的“使无效”消息，将它排队，并立即响应它。</li>
+<li>4．CPU 0 接收到CPU1的响应，因此它放心的通过第4行的smp_mb()语句，将“a”从它的存储缓冲区移到缓存行。</li>
+<li>5．CPU 0 执行b= 1。它已经拥有该缓存行（换句话说, 缓存行已经处于“modified”或者“exclusive”状态），因此它存储“b”的新值到缓存行。</li>
+<li>6．CPU 0 接收到“读”消息，并且发送包含新的“b”值的缓存行给CPU1，同时在自己的缓存中，标记缓存行为“shared”状态。</li>
+<li>7．CPU 1 接收到包含“b”的缓存行并更新到它的缓存中。</li>
+<li>8．CPU 1 现在结束执行while (b == 0) continue，因为它发现“b”的值为 1，它处理下一条语句，这是一条内存屏障指令。</li>
+<li>9．CPU 1 必须停顿，直到它处理完使无效队列中的所有消息。</li>
+<li>10．CPU 1 处理已经入队的“使无效”消息，从它的缓存中使无效包含“a”的缓存行。</li>
+<li>11．CPU 1 执行assert(a== 1)，由于包含“a”的缓存行已经不在它的缓存中，它发送一个“读”消息。</li>
+<li>12．CPU 0 以包含新的“a”值的缓存行响应该“读”消息。</li>
+<li>13．CPU 1 接收到该缓存行，它包含新的“a”的值1，因此断言不会被触发。</li>
+</ul>
+<p>即使有很多MESI消息传递，CPU最终都会正确的应答。这一节阐述了CPU设计者为什么必须格外小心地处理它们的缓存一致性优化操作。</p>
+<p>但是，这里真的需要一个读端内存屏障么？在assert()之前，不是有个循环么？</p>
+<p>难道在循环结束之前，会执行assert(a == 1)？</p>
+<p>对此有疑问的读者，您需要补充一点关于猜测（冒险）执行的背景知识！可以找CPU参考手册看看。简单的说，在循环的时候，a== 1这个比较条件，有可能会被CPU预先加载a的值到流水线中。临时结果不会被保存到Cache或者Write buffer中，而是在CPU流水线中的临时结果寄存器中暂存起来 。</p>
+<p>这是不是非常的反直觉？然而事实就是如此。</p>
+<p>对CPU世界中反直觉的东西有兴趣的朋友，甚至可以看看量子力学方面的书，量子计算机真的需要懂量子力学。让《深入理解并行编程》一书中提到的“<strong>薛定谔的猫</strong>”来烧一下脑，这只猫已经折磨了无数天才的大脑。除了霍金，还有爱因斯坦的大脑！</p>
+<ol start="5">
+<li>关于内存屏障进一步的思考</li>
+</ol>
+<p>本文仅仅从硬件的角度，引申出内存屏障。其目的是为了后续文章中，更好的讲解RCU。因此，并不会对内存屏障进行深入的剖析。但是，对于理解RCU来说，本文中的内存屏障知识已经可以了。</p>
+<p>更深入的思考包括：</p>
+<ul>
+<li>1、读屏障、写屏障、读依赖屏障的概念</li>
+<li>2、各个体系架构中，屏障的实现、及其微妙的差别</li>
+<li>3、深入思考内存屏障是否是必须的，有没有可能通过修改硬件，让屏障不再有用？</li>
+<li>4、内存屏障的传递性，这是Linux系统中比较微妙而难于理解的概念。</li>
+<li>5、单核架构中的屏障，是为了解决什么问题？怎么使用？</li>
+<li>6、屏障在内核同步原语中的使用，满足了什么样的同步原语语义？</li>
+</ul>
+<h2 id="系列三：概念"><a href="#系列三：概念" class="headerlink" title="系列三：概念"></a>系列三：概念</h2><h3 id="1-RCU有什么用？"><a href="#1-RCU有什么用？" class="headerlink" title="1. RCU有什么用？"></a>1. RCU有什么用？</h3><p>RCU主要用于对性能要求苛刻的并行实时计算。例如：天气预报、模拟核爆炸计算、内核同步等等。</p>
+<p>假设你正在编写一个并行实时程序，该程序需要访问随时变化的数据。这些数据可能是随着温度、湿度的变化而逐渐变化的大气压。这个程序的实时响应要求是如此严格，需要处理的数据量如此巨大，以至于不允许任何自旋或者阻塞，因此不能使用任何锁。</p>
+<p>幸运的是，温度和压力的范围通常变化不大，因此使用默认的数据集也是可行的。当温度、湿度和压力抖动时，有必要使用实时数据。但是温度、湿度和压力是逐渐变化的，我们可以在几分钟内更新数据，但没必要实时更新值。</p>
+<p>在这种情况下，可以使用一个全局指针，即gptr，通常为NULL，表示要使用默认值。偶尔也可以将gptr指向假设命名为a、b和c的变量，以反映气压的变化。</p>
+<p>传统的软件可以使用自旋锁这样的同步机制，来保护gptr指针的读写。一旦旧的值不被使用，就可以将旧指针指向的数据释放。这种简单的方法有一个最大的问题：它会使软件效率下降数个数量级（注意，不是下降数倍而是下降数个数量级）。</p>
+<p>在现代计算系统中，向gptr写入a、b、c这样的值，并发的读者要么看到一个NULL指针要么看到指向新结构gptr的指针，不会看到中间结果。也就是说，对于指针赋值来说，某种意义上这种赋值是原子的。读者不会看到a、b、c之外的其他结果。并且，更好的一点，也是更重要的一点是：读者不需要使用任何代价高昂的同步原语，因此这种方法非常适合于实时使用。</p>
+<p>真正的难点在于：在读者获得gptr的引用时，它可能看到a、b、c这三个值中任意一个值，写者何时才能安全的释放a、b、c所指向的内存数据结构？</p>
+<p>引用计数的方案很有诱惑力，但正如锁和顺序锁一样，引用计数可能消耗掉数百个CPU指令周期，更致命的是，它会引用缓存行在CPU之间的来回颠簸，破坏各个CPU的缓存，引起系统整体性能的下降。很明显，这种选择不是我们所期望的。</p>
+<p>想要理解Linux经典RCU实现的读者，应当认真阅读下面这段话：</p>
+<p>一种实现方法是，写者完全不知道有哪些读者存在。这种方法显然让读者的性能最佳，但留给写者的问题是：如何才能确定所有的老读者已经完成。</p>
+<p>最简单的实现是：让线程不会被抢占，或者说，读者在读RCU数据期间不能被抢占。在这种不可抢占的环境中，每个线程将一直运行，直到它明确地和自愿地阻塞自己（现实世界确实有这样的操作系统，它由线程自己决定何时释放CPU。例如大名鼎鼎的Solaris操作系统）。这要求一个不能阻塞的无限循环将使该CPU在循环开始后无法用于任何其他目的，还要求还要求线程在持有自旋锁时禁止阻塞。否则会形成死锁。</p>
+<p>这种方法的示意图下所示，图中的时间从顶部推移到底部，CPU 1的list_del()操作是RCU写者操作，CPU2、CPU3在读端读取list节点。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CibcLM8KpS817AhIUP9My6jtHialWk6H6ZdXfNkmuDJND71PsRmvUFy1A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>Linux经典RCU的概念即是如此。虽然这种方法在生产环境上的实现可能相当复杂，但是玩具实现却非常简单。</p>
+<p>for_each_online_cpu(cpu)<br>  run_on(cpu);</p>
+<p>for_each_online_cpu()原语遍历所有CPU，run_on()函数导致当前线程在指定的CPU上执行，这会强制目标CPU执行上下文切换。因此，一旦for_each_online_cpu()完成，每个CPU都执行了一次上下文切换，这又保证了所有之前存在的读线程已经完成。</p>
+<p>请注意，这个方法不能用于生产环境。正确处理各种边界条件和对性能优化的强烈要求意味着用于生产环境的代码实现将十分复杂。此外，可抢占环境的RCU实现需要读者实际做点什么事情（也就是在读临界区内，禁止抢占。这是Linux经典RCU读锁的实现）。不过，这种简单的不可抢占的方法在概念上是完整的，有助于我们理解RCU的基本原理。</p>
+<h3 id="2-RCU是什么？"><a href="#2-RCU是什么？" class="headerlink" title="2. RCU是什么？"></a>2. RCU是什么？</h3><p>RCU是read-copy-update的简称，翻译为中文有点别扭“读-复制-更新”。它是是一种同步机制，有三种角色或者操作：读者、写者和复制操作，我理解其中的复制操作就是不同CPU上的读者复制了不同的数据值，或者说拥有同一个指针的不同拷贝值，也可以理解为：在读者读取值的时候，写者复制并替换其内容（后一种理解来自于RCU作者的解释）。它于2002年10月引入Linux内核。</p>
+<p>RCU允许读操作可以与更新操作并发执行，这一点提升了程序的可扩展性。常规的互斥锁让并发线程互斥执行，并不关心该线程是读者还是写者，而读/写锁在没有写者时允许并发的读者，相比于这些常规锁操作，RCU在维护对象的多个版本时确保读操作保持一致，同时保证只有所有当前读端临界区都执行完毕后才释放对象。RCU定义并使用了高效并且易于扩展的机制，用来发布和读取对象的新版本，还用于延后旧版本对象的垃圾收集工作。这些机制恰当地在读端和更新端并行工作，使得读端特别快速。在某些场合下（比如非抢占式内核里），RCU读端的函数完全是零开销。</p>
+<p>Seqlock也可以让读者和写者并发执行，但是二者有什么区别？</p>
+<p>首先是二者的目的不一样。Seqlock是为了保证读端在读取值的时候，写者没有对它进行修改，而RCU是为了多核扩展性。</p>
+<p>其次是保护的数据结构大小不一样。Seqlock可以保护一组相关联的数据，而RCU只能保护指针这样的unsigned long类型的数据。</p>
+<p>最重要的区别还在于效率，Seqlock本质上是与自旋锁同等重量级的原语，其效率与RCU不在同一个数量级上面。</p>
+<p>下面从三个基础机制来阐述RCU究竟是什么？</p>
+<p>RCU由三种基础机制构成，第一个机制用于插入，第二个用于删除，第三个用于让读者可以不受并发的插入和删除干扰。分别是：</p>
+<ul>
+<li>发布/订阅机制，用于插入。</li>
+<li>等待已有的RCU读者完成的机制，用于删除。</li>
+<li>维护对象多个版本的机制，以允许并发的插入和删除操作。</li>
+</ul>
+<h4 id="发布-订阅机制"><a href="#发布-订阅机制" class="headerlink" title="发布/订阅机制"></a>发布/订阅机制</h4><p>RCU的一个关键特性是可以安全的读取数据，即使数据此时正被修改。RCU通过一种发布/订阅机制达成了并发的数据插入。举个例子，假设初始值为NULL的全局指针gp现在被赋值指向一个刚分配并初始化的数据结构。如下所示的代码片段：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="class"><span class="keyword">struct</span> <span class="title">foo</span>  &#123;</span></span><br><span class="line"><span class="number">2</span>     <span class="keyword">int</span> a;</span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span> b;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span> c;</span><br><span class="line"><span class="number">5</span>  &#125;;</span><br><span class="line"><span class="number">6</span>  <span class="class"><span class="keyword">struct</span> <span class="title">foo</span>  *<span class="title">gp</span>  = <span class="title">NULL</span>;</span></span><br><span class="line"><span class="number">7</span></span><br><span class="line"><span class="number">8</span>  <span class="comment">/* .  .  .  */</span></span><br><span class="line"><span class="number">9</span></span><br><span class="line"><span class="number">10</span>  p =  kmalloc(<span class="keyword">sizeof</span>(*p),  GFP_KERNEL);</span><br><span class="line"><span class="number">11</span>  p-&gt;a =  <span class="number">1</span>;</span><br><span class="line"><span class="number">12</span>  p-&gt;b =  <span class="number">2</span>;</span><br><span class="line"><span class="number">13</span>  p-&gt;c =  <span class="number">3</span>;</span><br><span class="line"><span class="number">14</span>  gp  =  p;</span><br></pre></td></tr></table></figure>
+
+<p><strong>“发布”数据结构（不安全）</strong></p>
+<p>不幸的是，这块代码无法保证编译器和CPU会按照编程顺序执行最后4条赋值语句。如果对gp的赋值发生在初始化p的各字段之前，那么并发的读者会读到未初始化的值。这里需要内存屏障来保证事情按顺序发生，可是内存屏障又向来以难用而闻名。所以这里我们用一句rcu_assign_ pointer()原语将内存屏障封装起来，让其拥有发布的语义。最后4行代码如下。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  p-&gt;a =  <span class="number">1</span>;</span><br><span class="line"><span class="number">2</span>  p-&gt;b =  <span class="number">2</span>;</span><br><span class="line"><span class="number">3</span>  p-&gt;c =  <span class="number">3</span>;</span><br><span class="line"><span class="number">4</span>  rcu_assign_pointer(gp,  p);</span><br></pre></td></tr></table></figure>
+
+<p>rcu_assign_pointer()“发布”一个新结构，强制让编译器和CPU在为p的各字段赋值后再去为gp赋值。</p>
+<p>不过，只保证更新者的执行顺序并不够，因为读者也需要保证读取顺序。请看下面这个例子中的代码。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  p =  gp;</span><br><span class="line"><span class="number">2</span>  <span class="keyword">if</span> (p  !=  <span class="literal">NULL</span>) &#123;</span><br><span class="line"><span class="number">3</span>     do_something_with(p-&gt;a,  p-&gt;b, p-&gt;c);</span><br><span class="line"><span class="number">4</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这块代码看起来好像不会受到乱序执行的影响，可惜事与愿违，在DEC Alpha CPU机器上，还有启用编译器值猜测（value-speculation）优化时，会让p-&gt;a，p-&gt;b和p-&gt;c的值在p赋值之前被读取。</p>
+<p>也许在启动编译器的值猜测优化时比较容易观察到这一情形，此时编译器会先猜测p-&gt;a、p-&gt;b、p-&gt;c的值，然后再去读取p的实际值来检查编译器的猜测是否正确。这种类型的优化十分激进，甚至有点疯狂，但是这确实发生在剖析驱动（profile-driven）优化的上下文中。</p>
+<p>然而读者可能会说，我们一般不会使用编译器猜测优化。那么我们可以考虑DEC Alpha CPU这样的极端弱序的CPU。在这个CPU上面，引起问题的根源在于：在同一个CPU内部，使用了不止一个缓存来缓存CPU数据。这样可能使用p和p-&gt;a被分布不同一个CPU的不同缓存中，造成缓存一致性方面的问题。</p>
+<p>显然，我们必须在编译器和CPU层面阻止这种危险的优化。rcu_dereference()原语用了各种内存屏障指令和编译器指令来达到这一目的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  rcu_read_lock();</span><br><span class="line"><span class="number">2</span>  p =  rcu_dereference(gp);</span><br><span class="line"><span class="number">3</span>  <span class="keyword">if</span> (p  !=  <span class="literal">NULL</span>) &#123;</span><br><span class="line"><span class="number">4</span>     do_something_with(p-&gt;a,  p-&gt;b, p-&gt;c);</span><br><span class="line"><span class="number">5</span>  &#125;</span><br><span class="line"><span class="number">6</span>  rcu_read_unlock();</span><br></pre></td></tr></table></figure>
+
+<p>其中rcu_read_ lock()和rcu_read_unlock()这对原语定义了RCU读端的临界区。事实上，在没有配置CONFIG_PREEMPT的内核里，这对原语就是空函数。在可抢占内核中，这这对原语就是关闭/打开抢占。</p>
+<p>rcu_dereference()原语用一种“订阅”的办法获取指定指针的值。保证后续的解引用操作可以看见在对应的“发布”操作（rcu_assign_pointer()）前进行的初始化，即：在看到p的新值之前，能够看到p-&gt;a、p-&gt;b、p-&gt;c的新值。请注意，rcu_assign_pointer()和rcu_dereference()这对原语既不会自旋或者阻塞，也不会阻止list_add_ rcu()的并发执行。</p>
+<p>虽然理论上rcu_assign_pointer()和rcu_derederence()可以用于构造任何能想象到的受RCU保护的数据结构，但是实践中常常只用于构建更上层的原语。例如，将rcu_assign_pointer()和rcu_dereference()原语嵌入在Linux链表的RCU变体中。Linux有两种双链表的变体，循环链表struct list_head和哈希表structhlist_head/struct hlist_node。前一种如下图所示。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CqkeScQFG8acKnfmJjmZLVRVHJicad7xpGiaEgw7y6mCEiazhQSfoYibn3A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>对链表采用指针发布的例子如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="class"><span class="keyword">struct</span>  <span class="title">foo</span>  &#123;</span></span><br><span class="line"><span class="number">2</span>    <span class="class"><span class="keyword">struct</span>  <span class="title">list_head</span>  *<span class="title">list</span>;</span></span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span>  a;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span>  b;</span><br><span class="line"><span class="number">5</span>     <span class="keyword">int</span>  c;</span><br><span class="line"><span class="number">6</span>  &#125;;</span><br><span class="line"><span class="number">7</span> LIST_HEAD(head);</span><br><span class="line"><span class="number">8</span></span><br><span class="line"><span class="number">9</span>  <span class="comment">/*  . .  .  */</span></span><br><span class="line"><span class="number">10</span></span><br><span class="line"><span class="number">11</span>  p  = kmalloc(<span class="keyword">sizeof</span>(*p),  GFP_KERNEL);</span><br><span class="line"><span class="number">12</span> p-&gt;a  =  <span class="number">1</span>;</span><br><span class="line"><span class="number">13</span> p-&gt;b  =  <span class="number">2</span>;</span><br><span class="line"><span class="number">14</span> p-&gt;c  =  <span class="number">3</span>;</span><br><span class="line"><span class="number">15</span> list_add_rcu(&amp;p-&gt;<span class="built_in">list</span>, &amp;head);</span><br></pre></td></tr></table></figure>
+
+<h4 id="RCU发布链表"><a href="#RCU发布链表" class="headerlink" title="RCU发布链表"></a>RCU发布链表</h4><p>第15行必须用某些同步机制（最常见的是各种锁）来保护，防止多核list_add()实例并发执行。不过，同步并不能阻止list_add()的实例与RCU的读者并发执行。</p>
+<p>订阅一个受RCU保护的链表的代码非常直接。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  rcu_read_lock();</span><br><span class="line"><span class="number">2</span>  list_for_each_entry_rcu(p,  head, <span class="built_in">list</span>)  &#123;</span><br><span class="line"><span class="number">3</span>    do_something_with(p-&gt;a,  p-&gt;b, p-&gt;c);</span><br><span class="line"><span class="number">4</span>  &#125;</span><br><span class="line"><span class="number">5</span>  rcu_read_unlock();</span><br></pre></td></tr></table></figure>
+
+<p>list_add_rcu()原语向指定的链表发布了一项条目，保证对应的list_for_each_ entry_rcu()可以订阅到同一项条目。</p>
+<p>Linux的其他链表、哈希表都是线性链表，这意味着它的头结点只需要一个指针，而不是象循环链表那样需要两个。因此哈希表的使用可以减少哈希表的hash bucket数组一半的内存消耗。</p>
+<p>向受RCU保护的哈希表发布新元素和向循环链表的操作十分类似，如下所示。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> <span class="class"><span class="keyword">struct</span>  <span class="title">foo</span>  &#123;</span></span><br><span class="line"><span class="number">2</span>    <span class="class"><span class="keyword">struct</span>  <span class="title">hlist_node</span>  *<span class="title">list</span>;</span></span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span>  a;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span>  b;</span><br><span class="line"><span class="number">5</span>     <span class="keyword">int</span>  c;</span><br><span class="line"><span class="number">6</span>  &#125;;</span><br><span class="line"><span class="number">7</span> HLIST_HEAD(head);</span><br><span class="line"><span class="number">8</span></span><br><span class="line"><span class="number">9</span>  <span class="comment">/*  . .  .  */</span></span><br><span class="line"><span class="number">10</span></span><br><span class="line"><span class="number">11</span>  p  = kmalloc(<span class="keyword">sizeof</span>(*p),  GFP_KERNEL);</span><br><span class="line"><span class="number">12</span> p-&gt;a  =  <span class="number">1</span>;</span><br><span class="line"><span class="number">13</span> p-&gt;b  =  <span class="number">2</span>;</span><br><span class="line"><span class="number">14</span> p-&gt;c  =  <span class="number">3</span>;</span><br><span class="line"><span class="number">15</span> hlist_add_head_rcu(&amp;p-&gt;<span class="built_in">list</span>, &amp;head);</span><br></pre></td></tr></table></figure>
+
+<p>和之前一样，第15行必须用某种同步机制，比如锁来保护。订阅受RCU保护的哈希表和订阅循环链表没什么区别。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> rcu_read_lock();</span><br><span class="line"><span class="number">2</span> hlist_for_each_entry_rcu(p, q,  head,  <span class="built_in">list</span>) &#123;</span><br><span class="line"><span class="number">3</span>    do_something_with(p-&gt;a, p-&gt;b,  p-&gt;c);</span><br><span class="line"><span class="number">4</span>  &#125;</span><br><span class="line"><span class="number">5</span>  rcu_read_unlock();</span><br></pre></td></tr></table></figure>
+
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CbnHHm2R3ibOviaSz7hOGXLpOqj2Zo3Ny9Yf8gl4ZYqrSlwneO09P0WxQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>请注意，list_replace_rcu()、list_del_rcu()、hlist_replace_rcu()和hlist_ del_rcu()这些API引入了一点复杂性。何时才能安全地释放刚被替换或者删除的数据元素？我们怎么能知道何时所有读者释放了他们对数据元素的引用？</p>
+<p>2、等待已有的RCU读者执行完毕</p>
+<p>从最基本的角度来说，RCU就是一种等待事物结束的方式。当然，有很多其他的方式可以用来等待事物结束，比如引用计数、读/写锁、事件等等。RCU的最伟大之处在于它可以等待（比如）20,000种不同的事物，而无需显式地去跟踪它们中的每一个，也无需去担心对性能的影响，对扩展性的限制，复杂的死锁场景，还有内存泄漏带来的危害等等使用显式跟踪手段会出现的问题。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CMdqUcPO5DTs2Kqw0uxrAPfDe6J6UicdOV3ItiaIiabodDJBhwbotCHyeA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>在RCU的例子中，被等待的事物称为“RCU读端临界区”。RCU读端临界区从rcu_read_lock()原语开始，到对应的rcu_read_unlock()原语结束。RCU读端临界区可以嵌套，也可以包含一大块代码，只要这其中的代码不会阻塞或者睡眠（先不考虑可睡眠RCU）。如果你遵守这些约定，就可以使用RCU去等待任何代码的完成。</p>
+<p>RCU通过间接地确定这些事物何时完成，才完成了这样的壮举。</p>
+<p>如上图所示，RCU是一种等待已有的RCU读端临界区执行完毕的方法，这里的执行完毕也包括在临界区里执行的内存操作。不过请注意，在某个宽限期开始后才启动的RCU读端临界区会扩展到该宽限期的结尾处。</p>
+<p>下列伪代码展示了写者使用RCU等待读者的基本方法。</p>
+<ul>
+<li>1．作出改变，比如替换链表中的一个元素。</li>
+<li>2．等待所有已有的RCU读端临界区执行完毕（比如使用synchronize_rcu()原语）。这里要注意的是后续的RCU读端临界区无法获取刚刚删除元素的引用。</li>
+<li>3．清理，比如释放刚才被替换的元素。</li>
+</ul>
+<p>下图所示的代码片段演示了这个过程，其中字段a是搜索关键字。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="class"><span class="keyword">struct</span>  <span class="title">foo</span>  &#123;</span></span><br><span class="line"><span class="number">2</span>    <span class="class"><span class="keyword">struct</span>  <span class="title">list_head</span>  *<span class="title">list</span>;</span></span><br><span class="line"><span class="number">3</span>     <span class="keyword">int</span>  a;</span><br><span class="line"><span class="number">4</span>     <span class="keyword">int</span>  b;</span><br><span class="line"><span class="number">5</span>    <span class="keyword">int</span>  c;</span><br><span class="line"><span class="number">6</span>  &#125;;</span><br><span class="line"><span class="number">7</span> LIST_HEAD(head);</span><br><span class="line"><span class="number">8</span></span><br><span class="line"><span class="number">9</span>  <span class="comment">/*  . .  .  */</span></span><br><span class="line"><span class="number">10</span></span><br><span class="line"><span class="number">11</span>  p  = search(head,  key);</span><br><span class="line"><span class="number">12</span>  <span class="keyword">if</span>  (p ==  <span class="literal">NULL</span>)  &#123;</span><br><span class="line"><span class="number">13</span>     <span class="comment">/*  Take appropriate  action,  unlock, and</span></span><br><span class="line"><span class="comment">  return. */</span></span><br><span class="line"><span class="number">14</span>  &#125;</span><br><span class="line"><span class="number">15</span>  q  = kmalloc(<span class="keyword">sizeof</span>(*p),  GFP_KERNEL);</span><br><span class="line"><span class="number">16</span>  *q  =  *p;</span><br><span class="line"><span class="number">17</span> q-&gt;b  =  <span class="number">2</span>;</span><br><span class="line"><span class="number">18</span> q-&gt;c  =  <span class="number">3</span>;</span><br><span class="line"><span class="number">19</span> list_replace_rcu(&amp;p-&gt;<span class="built_in">list</span>, &amp;q-&gt;<span class="built_in">list</span>);</span><br><span class="line"><span class="number">20</span> synchronize_rcu();</span><br><span class="line"><span class="number">21</span> kfree(p);</span><br></pre></td></tr></table></figure>
+
+<p>第19、20和21行实现了刚才提到的三个步骤。第16至19行正如RCU其名（读-复制-更新），在允许并发读的同时，第16行复制，第17到19行更新。</p>
+<p>synchronize_rcu()原语可以相当简单。然而，想要达到产品质量，代码实现必须处理一些困难的边界情况，并且还要进行大量优化，这两者都将导致明显的复杂性。理解RCU的难点，主要在于synchronize_rcu()的实现。</p>
+<p>3、维护最近被更新对象的多个版本</p>
+<p>下面展示RCU如何维护链表的多个版本，供并发的读者访问。通过两个例子来说明在读者还处于RCU读端临界区时，被读者引用的数据元素如何保持完整性。第一个例子展示了链表元素的删除，第二个例子展示了链表元素的替换。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//例子1：在删除过程中维护多个版本</span></span><br><span class="line"><span class="number">1</span>  p =  search(head,  key);</span><br><span class="line"><span class="number">2</span>  <span class="keyword">if</span> (p  !=  <span class="literal">NULL</span>) &#123;</span><br><span class="line"><span class="number">3</span>     list_del_rcu(&amp;p-&gt;<span class="built_in">list</span>);</span><br><span class="line"><span class="number">4</span>     synchronize_rcu();</span><br><span class="line"><span class="number">5</span>     kfree(p);</span><br><span class="line"><span class="number">6</span>  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>如下图，每个元素中的三个数字分别代表字段a、b、c的值。红色的元素表示RCU读者此时正持有该元素的引用。请注意，我们为了让图更清楚，忽略了后向指针和从尾指向头的指针。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CZa3rglOfibAmxaSickQbKevzZUvSUhDIFaQLibIrgYbvj9eMeF0RGPq4w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p>等第3行的list_del_rcu()执行完毕后，“5、6、7”元素从链表中被删除。因为读者不直接与更新者同步，所以读者可能还在并发地扫描链表。这些并发的读者有可能看见，也有可能看不见刚刚被删除的元素，这取决于扫描的时机。不过，刚好在取出指向被删除元素指针后被延迟的读者（比如，由于中断、ECC内存错误），就有可能在删除后还看见链表元素的旧值。因此，我们此时有两个版本的链表，一个有元素“5、6、7”，另一个没有。元素“5、6、7”用黄色标注，表明老读者可能还在引用它，但是新读者已经无法获得它的引用。</p>
+<p>请注意，读者不允许在退出RCU读端临界区后还维护元素“5、6、7”的引用。因此，一旦第4行的synchronize_rcu()执行完毕，所有已有的读者都要保证已经执行完，不能再有读者引用该元素。这样我们又回到了唯一版本的链表。</p>
+<p>此时，元素“5、6、7”可以安全被释放了。这样我们就完成了元素“5、6、7”的删除。</p>
+<p>例子2：在替换过程中维护多个版本<br>1  q =  kmalloc(sizeof(*p),  GFP_KERNEL);<br>2  *q  =  *p;<br>3  q-&gt;b  =  2;<br>4  q-&gt;c  =  3;<br>5 list_replace_rcu(&amp;p-&gt;list, &amp;q-&gt;list);<br>6 synchronize_rcu();<br>7  kfree(p);</p>
+<p>链表的初始状态包括指针p都和“删除”例子中一样。</p>
+<p><img src="http://mmbiz.qpic.cn/mmbiz_png/Ass1lsY6bytou4OgwWxeffVDBGZibX53CUPwibSIAu08bAmGBwPq3nUY0Kpq7xJTBxgh5tzAMJ4lXhTOOt6JQUfg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt></p>
+<p><strong>RCU从链表中替换元素</strong>  </p>
+<p>和前面一样，每个元素中的三个数字分别代表字段a、b、c。红色的元素表示读者可能正在引用，并且因为读者不直接与更新者同步，所以读者有可能与整个替换过程并发执行。请注意我们为了图表的清晰，再一次忽略了后向指针和从尾指向头的指针。</p>
+<p>下面描述了元素“5、2、3”如何替换元素“5、6、7”的过程，任何特定读者可能看见这两个值其中一个。</p>
+<ul>
+<li>第1行用kmalloc()分配了要替换的元素。此时，没有读者持有刚分配的元素的引用（用绿色表示），并且该元素是未初始化的（用问号表示）。</li>
+<li>第2行将旧元素复制给新元素。新元素此时还不能被读者访问，但是已经初始化了。</li>
+<li>第3行将q-&gt;b的值更新为2，第4行将q-&gt;c的值更新为3。</li>
+<li>现在，第5行开始替换，这样新元素终于对读者可见了，因此颜色也变成了红色。此时，链表就有两个版本了。已经存在的老读者可能看到元素“5、6、7”（现在颜色是黄色的），而新读者将会看见元素“5、2、3”。不过这里可以保证任何读者都能看到一个完好的链表。</li>
+<li>随着第6行synchronize_rcu()的返回，宽限期结束，所有在list_replace_rcu()之前开始的读者都已经完成。特别是任何可能持有元素“5、6、7”引用的读者保证已经退出了它们的RCU读端临界区，不能继续持有引用。因此，不再有任何读者持有旧数据的引用,，如第6排绿色部分所示。这样我们又回到了单一版本的链表，只是用新元素替换了旧元素。</li>
+<li>等第7行的kfree()完成后，链表就成了最后一排的样子。</li>
+</ul>
+<p>不过尽管RCU是因替换的例子而得名的，但是RCU在内核中的主要用途还是用于简单的删除。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/01/19/linux-e5-86-85-e6-a0-b8-e5-90-8c-e6-ad-a5-e4-b9-8brcu-ef-bc-882-ef-bc-89/" rel="bookmark">Linux内核同步之RCU（2）</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/03/06/linux-device-driver-kset-and-kobject/" rel="bookmark">Linux设备驱动模型-- 数据结构Kset/KObject</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2018/07/21/linux-interrupt-2/" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/01/06/linux-kernel-e-books/" rel="bookmark">Linux内核学习电子书</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2018/10/24/linux-low-power-1/" rel="bookmark">Linux电源管理介绍-1</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内核同步/" rel="tag"># 内核同步</a>
+            
+              <a href="/tags/转载/" rel="tag"># 转载</a>
+            
+              <a href="/tags/RCu/" rel="tag"># RCu</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/01/06/linux-linker-script/" rel="next" title="GNU 链接脚本LDS介绍">
+                  <i class="fa fa-chevron-left"></i> GNU 链接脚本LDS介绍
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/01/19/linux-e5-86-85-e6-a0-b8-e5-90-8c-e6-ad-a5-e4-b9-8brcu-ef-bc-882-ef-bc-89/" rel="prev" title="Linux内核同步之RCU（2）">
+                  Linux内核同步之RCU（2） <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    
+  <div class="comments" id="comments">
+    <div id="SOHUCS"></div>
+  </div>
+  
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#系列一：从硬件说起"><span class="nav-number">1.</span> <span class="nav-text">系列一：从硬件说起</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-来自于霍金的难题"><span class="nav-number">1.1.</span> <span class="nav-text">1. 来自于霍金的难题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-原子操作有多慢？"><span class="nav-number">1.2.</span> <span class="nav-text">2. 原子操作有多慢？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-变量可以拥有多个值"><span class="nav-number">1.3.</span> <span class="nav-text">3.变量可以拥有多个值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-为什么需要MESI"><span class="nav-number">1.4.</span> <span class="nav-text">4* 为什么需要MESI</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-MESI的四种状态"><span class="nav-number">1.5.</span> <span class="nav-text">5. MESI的四种状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-MESI消息"><span class="nav-number">1.6.</span> <span class="nav-text">6. MESI消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-MESI状态转换"><span class="nav-number">1.7.</span> <span class="nav-text">7. MESI状态转换</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系列二：从硬件说起之内存屏障"><span class="nav-number">2.</span> <span class="nav-text">系列二：从硬件说起之内存屏障</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-内存Cache还有哪些不足？"><span class="nav-number">2.1.</span> <span class="nav-text">1. 内存Cache还有哪些不足？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Write-buffer是为了解决什么问题？"><span class="nav-number">2.2.</span> <span class="nav-text">2. Write buffer是为了解决什么问题？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-使无效队列又是为了解决什么问题？"><span class="nav-number">2.3.</span> <span class="nav-text">3. 使无效队列又是为了解决什么问题？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系列三：概念"><span class="nav-number">3.</span> <span class="nav-text">系列三：概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-RCU有什么用？"><span class="nav-number">3.1.</span> <span class="nav-text">1. RCU有什么用？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-RCU是什么？"><span class="nav-number">3.2.</span> <span class="nav-text">2. RCU是什么？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#发布-订阅机制"><span class="nav-number">3.2.1.</span> <span class="nav-text">发布/订阅机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RCU发布链表"><span class="nav-number">3.2.2.</span> <span class="nav-text">RCU发布链表</span></a></li></ol></li></ol></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">129</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">113</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://pin.l2h.site" title="https://pin.l2h.site" rel="noopener" target="_blank">惠拼购</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  <script>
+  (function() {
+    var appid = 'cyutixI06';
+    var conf = 'prod_3e046acc8875533ad4449ee8d8e0fb14';
+    var width = window.innerWidth || document.documentElement.clientWidth;
+    if (width < 960) {
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>');
+    } else {
+      var loadJs=function(d,a){var c=document.getElementsByTagName("head")[0]||document.head||document.documentElement;var b=document.createElement("script");b.setAttribute("type","text/javascript");b.setAttribute("charset","UTF-8");b.setAttribute("src",d);if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}c.appendChild(b)};loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})});
+    }
+  })();
+  </script>
+  <script src="https://assets.changyan.sohu.com/upload/plugins/plugins.count.js"></script>
+
+</body>
+</html>
