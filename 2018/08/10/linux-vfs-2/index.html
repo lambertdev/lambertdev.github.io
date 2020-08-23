@@ -66,14 +66,14 @@
 </script>
 
   <meta name="description" content="本文介绍Linux虚拟文件系统的初始化过程。如下图:+—–&amp;gt; start_kernel()||+—–&amp;gt; vfs_caches_init_early()||+—–&amp;gt; vfs_caches_init()|                        +—&amp;gt;new thread(kernel_init)|                        |       +|">
-<meta name="keywords" content="Linux,文件系统,VFS">
+<meta name="keywords" content="Linux,VFS,文件系统">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux虚拟文件系统（2）-- 初始化流程">
 <meta property="og:url" content="http://l2h.site/2018/08/10/linux-vfs-2/index.html">
 <meta property="og:site_name" content="L&amp;H SITE">
 <meta property="og:description" content="本文介绍Linux虚拟文件系统的初始化过程。如下图:+—–&amp;gt; start_kernel()||+—–&amp;gt; vfs_caches_init_early()||+—–&amp;gt; vfs_caches_init()|                        +—&amp;gt;new thread(kernel_init)|                        |       +|">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2020-08-23T06:17:20.525Z">
+<meta property="og:updated_time" content="2020-08-23T05:00:44.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Linux虚拟文件系统（2）-- 初始化流程">
 <meta name="twitter:description" content="本文介绍Linux虚拟文件系统的初始化过程。如下图:+—–&amp;gt; start_kernel()||+—–&amp;gt; vfs_caches_init_early()||+—–&amp;gt; vfs_caches_init()|                        +—&amp;gt;new thread(kernel_init)|                        |       +|">
@@ -280,7 +280,7 @@
                 
               
 
-              <time title="Created: 2018-08-10 20:36:02" itemprop="dateCreated datePublished" datetime="2018-08-10T20:36:02+00:00">2018-08-10</time>
+              <time title="Created: 2018-08-10 12:36:02" itemprop="dateCreated datePublished" datetime="2018-08-10T12:36:02+00:00">2018-08-10</time>
             </span>
           
             <span class="post-meta-item">
@@ -377,7 +377,7 @@
     <li class="popular-posts-item">
       
       
-      <div class="popular-posts-title"><a href="/2019/05/15/yaffs-3/" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
+      <div class="popular-posts-title"><a href="/2019/05/18/yaffs-4/" rel="bookmark">YAFFS文件系统(4)– 垃圾回收(GC)机制</a></div>
       
     </li>
   
@@ -391,7 +391,7 @@
     <li class="popular-posts-item">
       
       
-      <div class="popular-posts-title"><a href="/2019/05/18/yaffs-4/" rel="bookmark">YAFFS文件系统(4)– 垃圾回收(GC)机制</a></div>
+      <div class="popular-posts-title"><a href="/2019/05/15/yaffs-3/" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
       
     </li>
   
@@ -408,9 +408,9 @@
             
               <a href="/tags/Linux/" rel="tag"># Linux</a>
             
-              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
-            
               <a href="/tags/VFS/" rel="tag"># VFS</a>
+            
+              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
             
           </div>
         

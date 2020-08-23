@@ -65,19 +65,22 @@
   });
 </script>
 
-  <meta name="description" content="什么是中断CPU获取外设状态变化有两种方式: Polling：不断跟外设询问它的状态 当外设状态变化后主动通知CPU CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用：">
-<meta name="keywords" content="Linux,中断">
+  <meta name="keywords" content="L&amp;H, L&amp;H Site, Site, L2H, L2H Site, Linux, Wordpress, Interrupt">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Linux中断学习笔记(1)">
-<meta property="og:url" content="http://l2h.site/2018/07/15/linux-interrupt-1/index.html">
+<meta property="og:title" content="早安">
+<meta property="og:url" content="http://l2h.site/2018/09/29/e6-97-a9-e5-ae-89/index.html">
 <meta property="og:site_name" content="L&amp;H SITE">
-<meta property="og:description" content="什么是中断CPU获取外设状态变化有两种方式: Polling：不断跟外设询问它的状态 当外设状态变化后主动通知CPU CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用：">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2020-08-23T06:17:20.521Z">
+<meta property="og:image" content="http://pic.l2h.site/l2hsited5343035-d2ab-4f26-bcb3-a03d29508f34.jpg">
+<meta property="og:image" content="http://pic.l2h.site/l2hsite085c25c7-256a-45cb-8334-0481c0efd026.jpg">
+<meta property="og:image" content="http://pic.l2h.site/l2hsite586ba946-b576-4475-806d-fa38130e2512.jpg">
+<meta property="og:image" content="http://pic.l2h.site/l2hsite0eec6389-d3b1-4064-ac5c-5a641f7ecb0f.jpg">
+<meta property="og:image" content="http://pic.l2h.site/l2hsitec606e1b5-9826-4d56-bd1b-6569ceff97b3.jpg">
+<meta property="og:updated_time" content="2020-08-23T05:00:44.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Linux中断学习笔记(1)">
-<meta name="twitter:description" content="什么是中断CPU获取外设状态变化有两种方式: Polling：不断跟外设询问它的状态 当外设状态变化后主动通知CPU CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用：">
-  <link rel="canonical" href="http://l2h.site/2018/07/15/linux-interrupt-1/">
+<meta name="twitter:title" content="早安">
+<meta name="twitter:image" content="http://pic.l2h.site/l2hsited5343035-d2ab-4f26-bcb3-a03d29508f34.jpg">
+  <link rel="canonical" href="http://l2h.site/2018/09/29/e6-97-a9-e5-ae-89/">
 
 
 <script id="page-configurations">
@@ -91,7 +94,7 @@
   };
 </script>
 
-  <title>Linux中断学习笔记(1) | L&H SITE</title>
+  <title>早安 | L&H SITE</title>
   
 
 
@@ -252,7 +255,7 @@
   
   
   <div class="post-block post">
-    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/07/15/linux-interrupt-1/">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2018/09/29/e6-97-a9-e5-ae-89/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Lambert">
@@ -264,7 +267,7 @@
       <meta itemprop="name" content="L&H SITE">
     </span>
       <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">Linux中断学习笔记(1)
+        <h1 class="post-title" itemprop="name headline">早安
 
           
         </h1>
@@ -280,7 +283,7 @@
                 
               
 
-              <time title="Created: 2018-07-15 00:56:44" itemprop="dateCreated datePublished" datetime="2018-07-15T00:56:44+00:00">2018-07-15</time>
+              <time title="Created: 2018-09-29 22:48:22" itemprop="dateCreated datePublished" datetime="2018-09-29T22:48:22+00:00">2018-09-29</time>
             </span>
           
             <span class="post-meta-item">
@@ -289,14 +292,7 @@
               </span>
               <span class="post-meta-item-text">In</span>
               
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
-
-                
-                
-                  , 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux中断/" itemprop="url" rel="index"><span itemprop="name">Linux中断</span></a></span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/L-amp-H-Site/" itemprop="url" rel="index"><span itemprop="name">L&amp;H Site</span></a></span>
 
                 
                 
@@ -316,7 +312,7 @@
       <span class="post-meta-item-text">Changyan: </span>
     
     
-      <a title="changyan" href="/2018/07/15/linux-interrupt-1/#SOHUCS" itemprop="discussionUrl"><span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2018/07/15/linux-interrupt-1/" itemprop="commentCount"></span></a>
+      <a title="changyan" href="/2018/09/29/e6-97-a9-e5-ae-89/#SOHUCS" itemprop="discussionUrl"><span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2018/09/29/e6-97-a9-e5-ae-89/" itemprop="commentCount"></span></a>
     
   </span>
   
@@ -331,29 +327,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="什么是中断"><a href="#什么是中断" class="headerlink" title="什么是中断"></a>什么是中断</h1><p>CPU获取外设状态变化有两种方式:</p><ul>
-<li>Polling：不断跟外设询问它的状态</li>
-<li>当外设状态变化后主动通知CPU</li>
-</ul><p>CPU要负责处理系统中各种各样的业务，如果频繁地轮询外设状态，必然会对整个系统的吞吐量产生影响，影响操作系统的正常运作。 中断便是外设通知CPU其状态变化的一种机制。CPU会有中断线，由中断控制器的输出线连接。中断控制器作用：</p><a id="more"></a>
-
-
-<ul>
-<li>中断优先级处理</li>
-<li>接收中断控制器ACK</li>
-<li>分发中断</li>
-</ul>
-<p>中断控制器连接到MCU的中断输入引脚（在ARM就是IRQ-Interrupt Request or FIQ-Fast Interrupt Request信号线）。中断控制器驱动负责Kernel中断号与物理中断号的Mapping。 当外设没有变化的时候，CPU可以专心地处理其他事务。外设准备好资料时，通过中断控制器通知CPU，CPU再对其进行相应的处理。</p>
-<h1 id="Linux的中断处理"><a href="#Linux的中断处理" class="headerlink" title="Linux的中断处理"></a>Linux的中断处理</h1><h2 id="顶半部（Top-Half）和底半部（Bottom-Half）"><a href="#顶半部（Top-Half）和底半部（Bottom-Half）" class="headerlink" title="顶半部（Top Half）和底半部（Bottom Half）"></a>顶半部（Top Half）和底半部（Bottom Half）</h2><p>中断会将正在运行的程序给打断（操作系统会保留相应的执行数据以便返回）。外设中断有时要处理的数据量很大，为了避免中断处理长期占用CPU导致系统中其他事务无法正常进行，Linux将中断处理分为顶半部和底半部。顶半部主要负责响应中断，处理该外设一些必须的业务，同时将需要复杂处理的事务放到底半部执行。 Linux中中断的顶半部是不能被Block的，原因： <em>操作系统并没有为中断分配相应的进程管理单元，当中断服务例程因为发生Block而被系统Schedule出去后，便无法再返回到该中断服务例程。而因为中断被调度出的进程，被schedule后却不能得到调度。</em> 实现底半部有多种方式，常用的是Tasklet（特殊的软中断）和Workqueue（内核线程）</p>
-<h3 id="软中断和Tasklet"><a href="#软中断和Tasklet" class="headerlink" title="软中断和Tasklet"></a>软中断和Tasklet</h3><p>当中断上半部执行结束后，操作系统会调度执行软中断。具体实现以linux-4.x为例：</p>
-<p>./kernel/softirq.c</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">arch_do_IRQ</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">int</span> irq, struct pt_regs *regs)</span>                <span class="comment">//中断向量表调用相应的IRQ处理函数</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pt_regs</span> *<span class="title">old_regs</span> = <span class="title">set_irq_regs</span>(<span class="title">regs</span>);</span>                      <span class="comment">//保留中断现场</span></span><br><span class="line"></span><br><span class="line">    irq_enter();                                                        <span class="comment">//进入中断处理前的必要处理，如关闭硬件中断,关闭抢占（preempt），禁止ksoftirqd启动处理（softirq）-- 因为稍后会看到，中断结束后会做处理</span></span><br><span class="line">    generic_handle_irq(irq);                                            <span class="comment">//执行外设驱动注册的irq handler</span></span><br><span class="line">    irq_exit();                                                         <span class="comment">//进入到irq_exit</span></span><br><span class="line">    set_irq_regs(old_regs);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">irq_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __ARCH_IRQ_EXIT_IRQS_DISABLED</span></span><br><span class="line">    local_irq_disable();</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">    WARN_ON_ONCE(!irqs_disabled());</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    account_irq_exit_time(current);</span><br><span class="line">    preempt_count_sub(HARDIRQ_OFFSET);                                 <span class="comment">//打开抢占</span></span><br><span class="line">    <span class="keyword">if</span> (!in_interrupt() &amp;&amp; local_softirq_pending())                    <span class="comment">//如果有软中断pending，执行softirq</span></span><br><span class="line">        invoke_softirq();</span><br><span class="line">    tick_irq_exit();</span><br><span class="line">    rcu_irq_exit();</span><br><span class="line">    trace_hardirq_exit(); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>可以看到，软中断是在中断处理进程退出后，立即执行。软中断处理函数，会检查当前系统中有哪些软中断，然后循环执行。因为系统仍有很多任务要处理，包括之前被抢占的任务，因此kernel不会无限度的将时间片都留给软中断。它设置了一个软中断循环执行的最大次数。当超过这个次数后，就退出软中断执行，并将内核线程ksoftirqd叫起。 ksoftirqd是内核线程，他与系统中其他线程包括用户态进程一起接受系统调度。因此保证了未完成的软中断也可再后来继续执行完毕。 Tasklet是一种特殊的软中断。Workqueue是一种特殊的内核线程。它们都是实现中断下半部的方式。具体用法可在有使用需求时查看。</p>
-<h2 id="irq-在多处理器系统的分发"><a href="#irq-在多处理器系统的分发" class="headerlink" title="irq 在多处理器系统的分发"></a>irq 在多处理器系统的分发</h2><ul>
-<li>中断亲和力：多处理系统中，操作系统会按照一定策略把中断分配到各CPU Core来处理。中断亲和力高的CPU Core，操作系统会倾向于把中断交给其处理</li>
-<li>通过修改/proc/irq/smp_affinity 可以改变Linux的中断亲和力</li>
-<li>内核线程kirqd：周期性执行do_irq_balance()。Track最近时间间隔每个Core的接收中断次数，动态做Balance</li>
-</ul>
+        <p><img src="http://pic.l2h.site/l2hsited5343035-d2ab-4f26-bcb3-a03d29508f34.jpg" alt="早安" title="早安"><br><img src="http://pic.l2h.site/l2hsite085c25c7-256a-45cb-8334-0481c0efd026.jpg" alt="早安" title="早安"><br><img src="http://pic.l2h.site/l2hsite586ba946-b576-4475-806d-fa38130e2512.jpg" alt="早安" title="早安"><br><img src="http://pic.l2h.site/l2hsite0eec6389-d3b1-4064-ac5c-5a641f7ecb0f.jpg" alt="早安" title="早安"><br><img src="http://pic.l2h.site/l2hsitec606e1b5-9826-4d56-bd1b-6569ceff97b3.jpg" alt="早安" title="早安"></p>
 
     </div>
 
@@ -361,68 +335,19 @@
     
     
       
-  <div class="popular-posts-header">Related Posts</div>
-  <ul class="popular-posts">
-    <li class="popular-posts-item">
-      
-      
-      <div class="popular-posts-title"><a href="/2018/07/21/linux-interrupt-2/" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
-      
-    </li>
-  
-    <li class="popular-posts-item">
-      
-      
-      <div class="popular-posts-title"><a href="/2019/01/01/linux-interrupt-3/" rel="bookmark">Linux中断(1)</a></div>
-      
-    </li>
-  
-    <li class="popular-posts-item">
-      
-      
-      <div class="popular-posts-title"><a href="/2019/01/05/linux-interrupt-4/" rel="bookmark">Linux中断(2)</a></div>
-      
-    </li>
-  
-    <li class="popular-posts-item">
-      
-      
-      <div class="popular-posts-title"><a href="/2018/08/10/linux-vfs-2/" rel="bookmark">Linux虚拟文件系统（2）-- 初始化流程</a></div>
-      
-    </li>
-  
-    <li class="popular-posts-item">
-      
-      
-      <div class="popular-posts-title"><a href="/2019/05/15/yaffs-3/" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
-      
-    </li>
-  
-  </ul>
 
         
       
 
       <footer class="post-footer">
-          
-            
-          
-          <div class="post-tags">
-            
-              <a href="/tags/Linux/" rel="tag"># Linux</a>
-            
-              <a href="/tags/中断/" rel="tag"># 中断</a>
-            
-          </div>
-        
 
         
 
           <div class="post-nav">
             <div class="post-nav-next post-nav-item">
               
-                <a href="/2018/07/01/bye-argentina/" rel="next" title="再见，潘帕斯雄鹰">
-                  <i class="fa fa-chevron-left"></i> 再见，潘帕斯雄鹰
+                <a href="/2018/09/27/wordpress-how-to-set-template-page-wo-scandir/" rel="next" title="Wordpress--免修改scandir添加模板页面">
+                  <i class="fa fa-chevron-left"></i> Wordpress--免修改scandir添加模板页面
                 </a>
               
             </div>
@@ -431,8 +356,8 @@
 
             <div class="post-nav-prev post-nav-item">
               
-                <a href="/2018/07/21/linux-interrupt-2/" rel="prev" title="Linux中断学习笔记(2) -- 嵌入式设备中断">
-                  Linux中断学习笔记(2) -- 嵌入式设备中断 <i class="fa fa-chevron-right"></i>
+                <a href="/2018/09/30/qiniuyun/" rel="prev" title="Wordpress-使用七牛云存储测试域名过期问题解决">
+                  Wordpress-使用七牛云存储测试域名过期问题解决 <i class="fa fa-chevron-right"></i>
                 </a>
               
             </div>
@@ -489,8 +414,6 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#什么是中断"><span class="nav-number">1.</span> <span class="nav-text">什么是中断</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Linux的中断处理"><span class="nav-number">2.</span> <span class="nav-text">Linux的中断处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#顶半部（Top-Half）和底半部（Bottom-Half）"><span class="nav-number">2.1.</span> <span class="nav-text">顶半部（Top Half）和底半部（Bottom Half）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#软中断和Tasklet"><span class="nav-number">2.1.1.</span> <span class="nav-text">软中断和Tasklet</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#irq-在多处理器系统的分发"><span class="nav-number">2.2.</span> <span class="nav-text">irq 在多处理器系统的分发</span></a></li></ol></li></ol></div>
-        
       </div>
       <!--/noindex-->
 
