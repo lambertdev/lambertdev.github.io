@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<script>
+  (adsbygoogle = window.adsbygoogle || []).push({
+    google_ad_client: "ca-pub-3852401481783193",
+    enable_page_level_ads: true
+  });
+</script>
+
+  <meta name="description" content="Yaffs全称 Yet Another Flash File System，是一种嵌入式设备常用文件系统。它对基于Flash的存储设备（NAND 或NOR Flash）特别是NAND Flash有很好的支持，其具有速度快、鲁棒性强等特点。此外，其对各种操作系统的支持也很好。目前Yaffs已经更新到了版本2，而本文从源码角度对Yaffs2文件系统进行分析 。希望对知识进行巩固的同时，也能对大家有所帮">
+<meta name="keywords" content="Linux,文件系统,YAFFS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Yaffs文件系统(1)-- 概述">
+<meta property="og:url" content="http://l2h.site/2019/04/30/yaffs-1/index.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="Yaffs全称 Yet Another Flash File System，是一种嵌入式设备常用文件系统。它对基于Flash的存储设备（NAND 或NOR Flash）特别是NAND Flash有很好的支持，其具有速度快、鲁棒性强等特点。此外，其对各种操作系统的支持也很好。目前Yaffs已经更新到了版本2，而本文从源码角度对Yaffs2文件系统进行分析 。希望对知识进行巩固的同时，也能对大家有所帮">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2020-08-23T05:00:44.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Yaffs文件系统(1)-- 概述">
+<meta name="twitter:description" content="Yaffs全称 Yet Another Flash File System，是一种嵌入式设备常用文件系统。它对基于Flash的存储设备（NAND 或NOR Flash）特别是NAND Flash有很好的支持，其具有速度快、鲁棒性强等特点。此外，其对各种操作系统的支持也很好。目前Yaffs已经更新到了版本2，而本文从源码角度对Yaffs2文件系统进行分析 。希望对知识进行巩固的同时，也能对大家有所帮">
+  <link rel="canonical" href="http://l2h.site/2019/04/30/yaffs-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Yaffs文件系统(1)-- 概述 | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/2019/04/30/yaffs-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Yaffs文件系统(1)-- 概述
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-04-30 14:12:19" itemprop="dateCreated datePublished" datetime="2019-04-30T14:12:19+00:00">2019-04-30</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux文件系统/" itemprop="url" rel="index"><span itemprop="name">Linux文件系统</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Changyan: </span>
+    
+    
+      <a title="changyan" href="/2019/04/30/yaffs-1/#SOHUCS" itemprop="discussionUrl"><span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2019/04/30/yaffs-1/" itemprop="commentCount"></span></a>
+    
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><a href="https://yaffs.net/" target="_blank" rel="noopener">Yaffs</a>全称 Yet Another Flash File System，是一种嵌入式设备常用文件系统。它对基于Flash的存储设备（NAND 或NOR Flash）特别是NAND Flash有很好的支持，其具有速度快、鲁棒性强等特点。此外，其对各种操作系统的支持也很好。<br>目前Yaffs已经更新到了版本2，而本文从源码角度对Yaffs2文件系统进行分析 。希望对知识进行巩固的同时，也能对大家有所帮助。其中理解若有不到位的地方，也麻烦大家指正。</p><a id="more"></a>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>先看Yaffs在整个系统中的位置（注：本文无特别说明均以搭载Linux OS为例）：</p>
+<ul>
+<li><p>YAFFS位于虚拟文件系统之下，为VFS提供调用接口</p>
+</li>
+<li><p>YAFFS使用Linux MTD 子系统提供的服务对Flash进行操作。</p>
+<ul>
+<li>为什么直接使用Nand或者Nor Flash 驱动直接操作？这就涉及到Linux内核的设计思想：尽可能的对架构进行抽象，避免上下层直接调用，产生N*N的组合，节省了内核驱动设计者的开发负担，同时降低系统的代码复杂度。</li>
+</ul>
+<p>+—————————+<br>|   用 户 空 间 态           |<br>+—————————+</p>
+</li>
+</ul>
+<hr>
+<p>  +—————————+<br>  |     VFS 虚 拟 文 件 系 统  |<br>  +—————————+ 内<br>  +——+ +——+ +———+<br>  |File  | |File  | | YAFFS   | 核<br>  |Sys-1 | |Sys-2 | |         |<br>  +——+ +——+ +———+ 态<br>  +—————+ +———+<br>  |               | | MTD     |<br>  |               | | Sub SYS |<br>  | …………  | +———+<br>  |               | +———+<br>  |               | | Nand or |<br>  |               | | NOR DrV |<br>  +—————+ +———+</p>
+<hr>
+<p>  +—————————+<br>  |      硬   件              |<br>  +—————————+</p>
+<p>Yaffs2主要有以下功能模块</p>
+<ul>
+<li>Flash的块/Chunk分配管理</li>
+<li>检查点机制</li>
+<li>垃圾回收机制</li>
+<li>缓存机制</li>
+<li>Proc调试功能</li>
+</ul>
+<h2 id="YAFFS文件系统格式"><a href="#YAFFS文件系统格式" class="headerlink" title="YAFFS文件系统格式"></a>YAFFS文件系统格式</h2><p>如下图，按照由大到小，Flash一般如下组成：</p>
+<ul>
+<li>Block（块）：Block一般为Flash擦除的基本单位。由多个页及对应OOB区域组成， 跟据Flash控制器和Flash颗粒的不同， 组成Block的page数量也不相同</li>
+<li>Page（页）：Flash的页，用来存放真正数据的基本单位。在Yaffs文件系统管理里称作数据Chunk。</li>
+<li>OOB（带外数据）：与页对应，紧跟在页的后边，一般存放ECC校验信息，Flash坏块标记等信息。</li>
+</ul>
+<p>+——————–+<br>| Flash 页           |—–&gt;存放文件内容<br>|                    |<br>|                    |<br>|                    |<br>+————————-&gt;Flash Chunk 1<br>| Flash Spare区域     |—–&gt;存放文件相关信息的Spare区域<br>+——————–+<br>|                    |<br>|                    |<br>|                    |<br>|                    |<br>+————————-&gt;Flash Chunk 2<br>|                    |<br>+——————–+<br>|                    |<br>|  ……………   +—-&gt;Flash Chunks<br>+——————–+<br>|                    |<br>|                    |<br>|                    |<br>|                    |<br>+————————-&gt;Flash Chunk N<br>|                    |<br>+——————–+</p>
+<p>一个典型的普通文件在 YAFFS 文件系统格式Flash的存储形式如下图所示：</p>
+<ul>
+<li>YAFFS将文件头部信息（包括文件类型，文件名，父目录的obj_id等）<br>单独 存放在page的起始位置。</li>
+<li>文件的唯一标示id(也叫obj_id)位于OOB区域，紧跟chunk_id标示这个是文件的第几块数据，Chunk_id 0表示该page为文件头信息，不含文件内容</li>
+<li>真正的文件内容根据文件大小散落在的size/page_size+1个页内。若文件大小正好不是页大小的整数倍，那么最后一段文件内容后会填充全0xFF放在一个页内，Page对应的OOB区域</li>
+<li>因为文件可能会被YAFFS管理（例如，上层应用对文件改写）的关系，同一个文件的内容不一定会摆放在相邻的Flash 页内（刚刚使用mkyaffs创建的文件系统除外）。同时，对同一个文件，可能会存在多个相同obj_id肯chunk_id的文件页，此时有另外的标示seq number来决定选择哪个page</li>
+</ul>
+<p>+—————————-+<br>|类型 父目录id 文件名          |<br>|….                        |<br>|                            |<br>+—————————-+<br>|id chunk_id(0) size   ecc   |<br>+—————————-+<br>|                            |<br>|                            |<br>|                            |<br>|  ……………………  |<br>|                            |<br>|                            |<br>|                            |<br>|                            |<br>+—————————-+<br>|数 据                       |<br>|                            |<br>|                        数据|<br>+—————————-+<br>|id chunk_id(1) size ecc     |<br>+—————————-+<br>|数据                        |<br>|                            |<br>|                        数据|<br>+—————————-+<br>|id chunk_id(2) size   ecc   |<br>+—————————-+</p>
+<h2 id="源码结构"><a href="#源码结构" class="headerlink" title="源码结构"></a>源码结构</h2><p>真正开始源码分析前，我们先看一下YAFFS的源码结构。Yaffs的核心代码如下：</p>
+<p>yaffs_allocator.c</p>
+<p>yaffs_obj和Tnode的分配器</p>
+<p>yaffs_bitmap.c</p>
+<p>管理块和Chunk的位图的代码  </p>
+<p>yaffs_checkpointrw.c</p>
+<p>读写Checkpoint数据的代码  </p>
+<p>yaffs_ecc.c</p>
+<p>Yaffs ECC相关代码（使用<a href="https://en.wikipedia.org/wiki/Hamming_code" target="_blank" rel="noopener">Hamming ECC</a>）  </p>
+<p>yaffs_guts.c</p>
+<p>Yaffs 主代码.</p>
+<p>yaffs_nameval.c</p>
+<p>处理Yaffs扩展标签的diamante (xattr).</p>
+<p>yaffs_nand.c</p>
+<p>Flash 接口抽象.</p>
+<p>yaffs_packedtags1.c<br>yaffs_packedtags2.c</p>
+<p>打包Yaffs标签代码</p>
+<p>yaffs_summary.c</p>
+<p>处理Flash块Summary的代码.</p>
+<p>yaffs_tagscompat.c</p>
+<p>兼容Yaffs1模式的标签处理代码  </p>
+<p>yaffs_tagsmarshall.c</p>
+<p>标签组织代码</p>
+<p>yaffs_verify.c</p>
+<p>用于检查有效性的代码（例如，头部格式检查等）</p>
+<p>yaffs_yaffs1.c</p>
+<p>Yaffs1 模式特有代码.</p>
+<p>yaffs_yaffs2.c</p>
+<p>Yaffs2 模式特有代码.</p>
+<p>yaffs_attribs.c  </p>
+<p>文件属性处理相关代码</p>
+<p>yaffs_error.c</p>
+<p>存放Yaffs 错误代码</p>
+<p>yaffsfs.c</p>
+<p>Yaffs文件系统接口wrapper（支援多文件系统时用）</p>
+<p>yaffs_hweight.c</p>
+<p>用来检查Flash坏块标记的一些功能代码</p>
+<p>yaffs_qsort.c</p>
+<p>Yaffs使用的一些排序函数</p>
+<h2 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h2><p>YAFFS的初始化很简单，源代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">module_init(init_yaffs_fs)</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">init_yaffs_fs</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> error = <span class="number">0</span>;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file_system_to_install</span> *<span class="title">fsinst</span>;</span></span><br><span class="line"></span><br><span class="line">	mutex_init(&amp;yaffs_context_lock);        </span><br><span class="line"></span><br><span class="line">	error = yaffs_procfs_init();                        ---<span class="number">-1</span></span><br><span class="line">	<span class="keyword">if</span> (error)</span><br><span class="line">		<span class="keyword">return</span> error;</span><br><span class="line"></span><br><span class="line">	fsinst = fs_to_install;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (fsinst-&gt;fst &amp;&amp; !error) &#123;</span><br><span class="line">		error = register_filesystem(fsinst-&gt;fst);   ---<span class="number">-2</span></span><br><span class="line">		<span class="keyword">if</span> (!error)</span><br><span class="line">			fsinst-&gt;installed = <span class="number">1</span>;</span><br><span class="line">		fsinst++;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* Any errors? uninstall  */</span>                        ---<span class="number">-3</span></span><br><span class="line">	<span class="keyword">if</span> (error) &#123;</span><br><span class="line">		fsinst = fs_to_install;</span><br><span class="line">		<span class="keyword">while</span> (fsinst-&gt;fst) &#123;</span><br><span class="line">			<span class="keyword">if</span> (fsinst-&gt;installed) &#123;</span><br><span class="line">				unregister_filesystem(fsinst-&gt;fst);</span><br><span class="line">				fsinst-&gt;installed = <span class="number">0</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			fsinst++;</span><br><span class="line">	&#125;&#125;</span><br><span class="line">	<span class="keyword">return</span> error;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_system_to_install</span> <span class="title">fs_to_install</span>[] = &#123;</span></span><br><span class="line">	&#123;&amp;yaffs_fs_type, <span class="number">0</span>&#125;,</span><br><span class="line">	&#123;&amp;yaffs2_fs_type, <span class="number">0</span>&#125;,</span><br><span class="line">	&#123;<span class="literal">NULL</span>, <span class="number">0</span>&#125;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_system_type</span> <span class="title">yaffs2_fs_type</span> = &#123;</span></span><br><span class="line">	.owner = THIS_MODULE,</span><br><span class="line">	.name = <span class="string">"yaffs2"</span>,</span><br><span class="line">	.mount = yaffs2_mount,</span><br><span class="line">	.kill_sb = kill_block_super,</span><br><span class="line">	.fs_flags = FS_REQUIRES_DEV,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第1段初始化系统的procfs</li>
+<li>第2段向Kernel注册yaffs文件系统，这里不光注册yaffs2也会注册yaffs1，所以可以看到是一个while循环</li>
+<li>第3段：如果注册文件系统发生问题，解注册文件系统，此处不做过多分析</li>
+</ul>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>被成功注册到内核后，YAFFS利用内存中如下重要的数据结构来对文件系统进行管理：</p>
+<ul>
+<li>_<strong>yaffs_dev：</strong>_YAFFS Partition或者挂载点的相关信息</li>
+<li>_<strong>yaffs_block_info</strong>：_Nand Flash 块的信息，一个yaffs partition会有多个block info</li>
+<li>_<strong>yaffs_obj：</strong>_记录文件系统中的文件或者目录相关信息</li>
+<li>_<strong>yaffs_tnode：</strong>_记录文件系统的目录结构，以及文件chunk位置相关信息</li>
+</ul>
+<p>此外，YAFFS会使用少量的内存缓存（Cache）来提升访问性能。</p>
+<p>yaffs_dev定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">yaffs_dev</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_param</span> <span class="title">param</span>;</span>          <span class="comment">//Yaffs相关参数</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_driver</span> <span class="title">drv</span>;</span>           <span class="comment">//驱动处理相关函数</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_tags_handler</span> <span class="title">tagger</span>;</span>  <span class="comment">//Yaffs标签处理相关函数</span></span><br><span class="line">        <span class="comment">//操作系统相关参数</span></span><br><span class="line">	<span class="keyword">void</span> *os_context;</span><br><span class="line">	<span class="keyword">void</span> *driver_context;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">dev_list</span>;</span></span><br><span class="line">	<span class="keyword">int</span> ll_init;</span><br><span class="line">	u32 data_bytes_per_chunk;</span><br><span class="line"></span><br><span class="line">	u16 chunk_grp_bits;</span><br><span class="line">	u16 chunk_grp_size;</span><br><span class="line">        <span class="comment">//TNode相关参数</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_tnode</span> *<span class="title">tn_swap_buffer</span>;</span></span><br><span class="line">	u32 tnode_width;</span><br><span class="line">	u32 tnode_mask;</span><br><span class="line">	u32 tnode_size;</span><br><span class="line">        <span class="comment">//Chunk大小相关参数</span></span><br><span class="line">	u32 chunk_shift;	</span><br><span class="line">	u32 chunk_div;		</span><br><span class="line">	u32 chunk_mask;		</span><br><span class="line">        <span class="comment">//与文件系统挂载相关标识符</span></span><br><span class="line">	<span class="keyword">int</span> is_mounted;</span><br><span class="line">	<span class="keyword">int</span> read_only;</span><br><span class="line">	<span class="keyword">int</span> is_checkpointed;</span><br><span class="line">	<span class="keyword">int</span> swap_endian;	</span><br><span class="line">        <span class="comment">//块管理相关参数</span></span><br><span class="line">	u32 internal_start_block;</span><br><span class="line">	u32 internal_end_block;</span><br><span class="line">	<span class="keyword">int</span> block_offset;</span><br><span class="line">	<span class="keyword">int</span> chunk_offset;</span><br><span class="line">        <span class="comment">//检查点相关参数</span></span><br><span class="line">	<span class="keyword">int</span> checkpt_page_seq;</span><br><span class="line">        ..............</span><br><span class="line">	<span class="comment">//块管理相关参数</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_block_info</span> *<span class="title">block_info</span>;</span></span><br><span class="line">	u8 *chunk_bits;		<span class="comment">/* bitmap of chunks in use */</span></span><br><span class="line">	u8 block_info_alt:<span class="number">1</span>;	<span class="comment">/* allocated using alternative alloc */</span></span><br><span class="line">	u8 chunk_bits_alt:<span class="number">1</span>;	<span class="comment">/* allocated using alternative alloc */</span></span><br><span class="line">	<span class="keyword">int</span> chunk_bit_stride;	</span><br><span class="line">	<span class="keyword">int</span> n_erased_blocks;</span><br><span class="line">	<span class="keyword">int</span> alloc_block;	</span><br><span class="line">	u32 alloc_page;</span><br><span class="line">	<span class="keyword">int</span> alloc_block_finder;	</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Tnode或者Object内存分配相关参数 */</span></span><br><span class="line">	<span class="keyword">void</span> *allocator;</span><br><span class="line">	<span class="keyword">int</span> n_obj;</span><br><span class="line">	<span class="keyword">int</span> n_tnodes;</span><br><span class="line">	<span class="keyword">int</span> n_hardlinks;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_obj_bucket</span> <span class="title">obj_bucket</span>[<span class="title">YAFFS_NOBJECT_BUCKETS</span>];</span></span><br><span class="line">	u32 bucket_finder;</span><br><span class="line">	<span class="keyword">int</span> n_free_chunks; </span><br><span class="line">        <span class="comment">//垃圾回收相关参数</span></span><br><span class="line">	u32 *gc_cleanup_list;</span><br><span class="line">       ................</span><br><span class="line">	<span class="comment">//根目录及lost and found目录</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_obj</span> *<span class="title">root_dir</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_obj</span> *<span class="title">lost_n_found</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> buffered_block;	<span class="comment">/* Which block is buffered here? */</span></span><br><span class="line">	<span class="keyword">int</span> doing_buffered_block_rewrite;</span><br><span class="line">        <span class="comment">//Yaffs缓存相关</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_cache</span> *<span class="title">cache</span>;</span></span><br><span class="line">	<span class="keyword">int</span> cache_last_use;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 后台删除或者unlink文件相关参数 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_obj</span> *<span class="title">unlinked_dir</span>;</span>	</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_obj</span> *<span class="title">del_dir</span>;</span>	</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_obj</span> *<span class="title">unlinked_deletion</span>;</span></span><br><span class="line">	<span class="keyword">int</span> n_deleted_files;	</span><br><span class="line">	<span class="keyword">int</span> n_unlinked_files;	<span class="comment">/* Count of unlinked files. */</span></span><br><span class="line">	<span class="keyword">int</span> n_bg_deletions;	<span class="comment">/* Count of background deletions. */</span></span><br><span class="line">	<span class="comment">/* 临时缓存相关 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_buffer</span> <span class="title">temp_buffer</span>[<span class="title">YAFFS_N_TEMP_BUFFERS</span>];</span></span><br><span class="line">	<span class="keyword">int</span> max_temp;</span><br><span class="line">	<span class="keyword">int</span> temp_in_use;</span><br><span class="line">	<span class="keyword">int</span> unmanaged_buffer_allocs;</span><br><span class="line">	<span class="keyword">int</span> unmanaged_buffer_deallocs;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">unsigned</span> seq_number;	</span><br><span class="line">	<span class="keyword">unsigned</span> oldest_dirty_seq;</span><br><span class="line">	<span class="keyword">unsigned</span> oldest_dirty_block;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> refresh_skip;	</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">dirty_dirs</span>;</span>	</span><br><span class="line">	<span class="keyword">int</span> chunks_per_summary;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_summary_tags</span> *<span class="title">sum_tags</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 统计数据*/</span></span><br><span class="line">	u32 n_page_writes;</span><br><span class="line">        .......</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>yaffs_param 主要包含文件系统相关参数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">yaffs_param</span> &#123;</span></span><br><span class="line">	<span class="keyword">const</span> YCHAR *name;      <span class="comment">//文件系统对应的MTD设备名称</span></span><br><span class="line">	<span class="keyword">int</span> inband_tags;	<span class="comment">/* Use unband tags */</span></span><br><span class="line">	u32 total_bytes_per_chunk;<span class="comment">//每个chunk的大小（字节为单位）</span></span><br><span class="line">	u32 chunks_per_block; <span class="comment">//每个Flash块的chunk数量</span></span><br><span class="line">	u32 spare_bytes_per_chunk;<span class="comment">//每个chunk后的spare区域大小（字节为单位）</span></span><br><span class="line">	u32 start_block; <span class="comment">//第一个可以使用的块	</span></span><br><span class="line">        u32 end_block;	<span class="comment">//最后一个可使用的块</span></span><br><span class="line">	u32 n_reserved_blocks; <span class="comment">//保留的块数量，主要为垃圾回收机制使用	</span></span><br><span class="line">	u32 n_caches;<span class="comment">//Yaffs高速缓存的数量。Flash颗粒的写擦除是有次数上限的，为了避免读写端数据时Flash的频繁访问影响flash寿命，且避免访问Flash的性能下降，Yaffs定义了一些磁盘高速缓存在内存中</span></span><br><span class="line">	<span class="keyword">int</span> cache_bypass_aligned; <span class="comment">//若值为1：当读写是从chunk align的位置开始，便不使用cache</span></span><br><span class="line">	<span class="keyword">int</span> use_nand_ecc;	<span class="comment">//使用Nand Driver的ECC方法</span></span><br><span class="line">	<span class="keyword">int</span> tags_9bytes;	<span class="comment">/* Use 9 byte tags */</span></span><br><span class="line">	<span class="keyword">int</span> no_tags_ecc;	<span class="comment">//是否对Tag使用ECC</span></span><br><span class="line">	<span class="keyword">int</span> is_yaffs2;		<span class="comment">//是否是Yaffs2</span></span><br><span class="line">	<span class="keyword">int</span> empty_lost_n_found;	</span><br><span class="line">	<span class="keyword">int</span> refresh_period;	<span class="comment">//检查Block的时间间隔</span></span><br><span class="line">	u8 skip_checkpt_rd;     <span class="comment">//是否跳过checkpoint检查</span></span><br><span class="line">	u8 skip_checkpt_wr;</span><br><span class="line">	<span class="keyword">int</span> enable_xattr;	<span class="comment">/* Enable xattribs */</span></span><br><span class="line">	<span class="keyword">int</span> max_objects;	<span class="comment">//最大的yaffs object数量</span></span><br><span class="line">	<span class="keyword">int</span> hide_lost_n_found;  <span class="comment">//是否隐藏lost and found目录</span></span><br><span class="line">	<span class="keyword">int</span> stored_endian;      <span class="comment">//大小端</span></span><br><span class="line">	<span class="keyword">void</span> (*remove_obj_fn) (struct yaffs_obj *obj); <span class="comment">//移除object的函数回调</span></span><br><span class="line">	<span class="keyword">void</span> (*sb_dirty_fn) (struct yaffs_dev *dev);<span class="comment">//超级块标记脏函数</span></span><br><span class="line">	<span class="keyword">unsigned</span> (*gc_control_fn) (struct yaffs_dev *dev);<span class="comment">//垃圾回收管理的回调函数</span></span><br><span class="line">        <span class="comment">//以下为debug相关标记</span></span><br><span class="line">	<span class="keyword">int</span> use_header_file_size;	</span><br><span class="line">	<span class="keyword">int</span> disable_lazy_load;	</span><br><span class="line">	<span class="keyword">int</span> wide_tnodes_disabled;	</span><br><span class="line">	<span class="keyword">int</span> disable_soft_del;	</span><br><span class="line">	<span class="keyword">int</span> defered_dir_update;	</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> auto_unicode;</span><br><span class="line">	<span class="keyword">int</span> always_check_erased;</span><br><span class="line">	<span class="keyword">int</span> disable_summary;</span><br><span class="line">	<span class="keyword">int</span> disable_bad_block_marking;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>以下为yaffs标签相关处理函数，在yaffs_tags_marshall_install函数初始化。源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">yaffs_tags_handler</span> &#123;</span></span><br><span class="line">	<span class="keyword">int</span> (*write_chunk_tags_fn) (struct yaffs_dev *dev,<span class="keyword">int</span> nand_chunk, <span class="keyword">const</span> u8 *data,<span class="keyword">const</span> struct yaffs_ext_tags *tags);</span><br><span class="line">	<span class="keyword">int</span> (*read_chunk_tags_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> nand_chunk, u8 *data,struct yaffs_ext_tags *tags);</span><br><span class="line">	<span class="keyword">int</span> (*query_block_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> block_no,<span class="keyword">enum</span> yaffs_block_state *state, u32 *seq_number);</span><br><span class="line">	<span class="keyword">int</span> (*mark_bad_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> block_no);</span><br><span class="line">&#125;;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">yaffs_tags_marshall_install</span><span class="params">(struct yaffs_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;param.is_yaffs2)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;tagger.write_chunk_tags_fn)</span><br><span class="line">		dev-&gt;tagger.write_chunk_tags_fn = yaffs_tags_marshall_write;</span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;tagger.read_chunk_tags_fn)</span><br><span class="line">		dev-&gt;tagger.read_chunk_tags_fn = yaffs_tags_marshall_read;</span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;tagger.query_block_fn)</span><br><span class="line">		dev-&gt;tagger.query_block_fn = yaffs_tags_marshall_query_block;</span><br><span class="line">	<span class="keyword">if</span> (!dev-&gt;tagger.mark_bad_fn)</span><br><span class="line">		dev-&gt;tagger.mark_bad_fn = yaffs_tags_marshall_mark_bad;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>yaffs_driver定义了Yaffs驱动相关，读写擦除，坏块检查等操作MTD设备的接口函数，其初始化位于yaffs_mtd_drv_install函数。代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">yaffs_driver</span> &#123;</span></span><br><span class="line">	<span class="keyword">int</span> (*drv_write_chunk_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> nand_chunk, <span class="keyword">const</span> u8 *data, <span class="keyword">int</span> data_len, <span class="keyword">const</span> u8 *oob, <span class="keyword">int</span> oob_len);</span><br><span class="line">	<span class="keyword">int</span> (*drv_read_chunk_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> nand_chunk, u8 *data, <span class="keyword">int</span> data_len,u8 *oob, <span class="keyword">int</span> oob_len,<span class="keyword">enum</span> yaffs_ecc_result *ecc_result);</span><br><span class="line">	<span class="keyword">int</span> (*drv_erase_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> block_no);</span><br><span class="line">	<span class="keyword">int</span> (*drv_mark_bad_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> block_no);</span><br><span class="line">	<span class="keyword">int</span> (*drv_check_bad_fn) (struct yaffs_dev *dev, <span class="keyword">int</span> block_no);</span><br><span class="line">	<span class="keyword">int</span> (*drv_initialise_fn) (struct yaffs_dev *dev);</span><br><span class="line">	<span class="keyword">int</span> (*drv_deinitialise_fn) (struct yaffs_dev *dev);</span><br><span class="line">&#125;;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">yaffs_mtd_drv_install</span><span class="params">(struct yaffs_dev *dev)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_driver</span> *<span class="title">drv</span> = &amp;<span class="title">dev</span>-&gt;<span class="title">drv</span>;</span></span><br><span class="line"></span><br><span class="line">	drv-&gt;drv_write_chunk_fn = yaffs_mtd_write;</span><br><span class="line">	drv-&gt;drv_read_chunk_fn = yaffs_mtd_read;</span><br><span class="line">	drv-&gt;drv_erase_fn = yaffs_mtd_erase;</span><br><span class="line">	drv-&gt;drv_mark_bad_fn = yaffs_mtd_mark_bad;</span><br><span class="line">	drv-&gt;drv_check_bad_fn = yaffs_mtd_check_bad;</span><br><span class="line">	drv-&gt;drv_initialise_fn = yaffs_mtd_initialise;</span><br><span class="line">	drv-&gt;drv_deinitialise_fn = yaffs_mtd_deinitialise;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下为Yaffs选项，为yaffs系统挂载（Mount）时配置，最后被传给yaffs_dev对应栏位。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">yaffs_options</span> &#123;</span></span><br><span class="line">	<span class="keyword">int</span> inband_tags;         </span><br><span class="line">	<span class="keyword">int</span> skip_checkpoint_read;</span><br><span class="line">	<span class="keyword">int</span> skip_checkpoint_write;</span><br><span class="line">	<span class="keyword">int</span> no_cache;</span><br><span class="line">	<span class="keyword">int</span> tags_ecc_on;</span><br><span class="line">	<span class="keyword">int</span> tags_ecc_overridden;</span><br><span class="line">	<span class="keyword">int</span> lazy_loading_enabled;</span><br><span class="line">	<span class="keyword">int</span> lazy_loading_overridden;</span><br><span class="line">	<span class="keyword">int</span> empty_lost_and_found;</span><br><span class="line">	<span class="keyword">int</span> empty_lost_and_found_overridden;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>yaffs对应Linux对应上下文：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">yaffs_linux_context</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">context_list</span>;</span>	</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">yaffs_dev</span> *<span class="title">dev</span>;</span> <span class="comment">//指向Yaffs Dev的回调</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">super_block</span> *<span class="title">super</span>;</span> <span class="comment">//指向超级块指针</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">bg_thread</span>;</span>	<span class="comment">//做GC的后台线程</span></span><br><span class="line">	<span class="keyword">int</span> bg_running; <span class="comment">//后台线程启动标记</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> <span class="title">gross_lock</span>;</span> <span class="comment">//大粒度锁，用来保护文件系统关键字段</span></span><br><span class="line">	u8 *spare_buffer;	<span class="comment">//Spare缓冲区</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">search_contexts</span>;</span> <span class="comment">//目录查找上下文链表</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">readdir_process</span>;</span> <span class="comment">//标记当前目录读取的task</span></span><br><span class="line">	<span class="keyword">unsigned</span> mount_id; <span class="comment">//yaffs2挂载的id号，对每个yaffs文件系统来讲标号唯一</span></span><br><span class="line">	<span class="keyword">int</span> dirty;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="文件系统挂载"><a href="#文件系统挂载" class="headerlink" title="文件系统挂载"></a>文件系统挂载</h2><p>挂载后，整个文件系统才会为操作系统所用。YAFFS文件系统的挂载过程如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//其实yaffs2挂载就是执行内核的mount_bdev函数，最后当然也会执行到传入的回调函数yaffs_internal_read_super</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> struct dentry *<span class="title">yaffs2_mount</span><span class="params">(struct file_system_type *fs_type, <span class="keyword">int</span> flags,<span class="keyword">const</span> <span class="keyword">char</span> *dev_name, <span class="keyword">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> mount_bdev(fs_type, flags, dev_name, data, yaffs2_internal_read_super_mtd);   </span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">yaffs2_internal_read_super_mtd</span><span class="params">(struct super_block *sb, <span class="keyword">void</span> *data, <span class="keyword">int</span> silent)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span> yaffs_internal_read_super(<span class="number">2</span>, sb, data, silent) ? <span class="number">0</span> : -EINVAL;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> struct super_block *<span class="title">yaffs_internal_read_super</span><span class="params">(<span class="keyword">int</span> yaffs_version, struct super_block *sb,  <span class="keyword">void</span> *data, <span class="keyword">int</span> silent)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        .......</span><br><span class="line">        <span class="comment">//超级块的一些初使设置</span></span><br><span class="line">	sb-&gt;s_magic = YAFFS_MAGIC;</span><br><span class="line">	sb-&gt;s_op = &amp;yaffs_super_ops;</span><br><span class="line">	sb-&gt;s_flags |= MS_NOATIME;</span><br><span class="line">	read_only = ((sb-&gt;s_flags &amp; MS_RDONLY) != <span class="number">0</span>);</span><br><span class="line">	sb-&gt;s_export_op = &amp;yaffs_export_ops;</span><br><span class="line">        .......</span><br><span class="line">	<span class="keyword">if</span> (yaffs_parse_options(&amp;options, data_str))</span><br><span class="line">		<span class="comment">/* Option parsing failed */</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        .......</span><br><span class="line">	sb-&gt;s_blocksize = PAGE_CACHE_SIZE;</span><br><span class="line">	sb-&gt;s_blocksize_bits = PAGE_CACHE_SHIFT;</span><br><span class="line">        .......</span><br><span class="line">	mtd = get_mtd_device(<span class="literal">NULL</span>, MINOR(sb-&gt;s_dev));</span><br><span class="line">        .......</span><br><span class="line">        <span class="comment">//若文件分区是MTD device类型的Nand Flash，开始着手建立整个yaffs_dev</span></span><br><span class="line">	<span class="keyword">if</span> (!read_only &amp;&amp; !(mtd-&gt;flags &amp; MTD_WRITEABLE)) &#123;</span><br><span class="line">		read_only = <span class="number">1</span>;</span><br><span class="line">		sb-&gt;s_flags |= MS_RDONLY;</span><br><span class="line">	&#125;</span><br><span class="line">	dev = kmalloc(<span class="keyword">sizeof</span>(struct yaffs_dev), GFP_KERNEL);</span><br><span class="line">	context = kmalloc(<span class="keyword">sizeof</span>(struct yaffs_linux_context), GFP_KERNEL);</span><br><span class="line">        .......</span><br><span class="line">	<span class="built_in">memset</span>(dev, <span class="number">0</span>, <span class="keyword">sizeof</span>(struct yaffs_dev));</span><br><span class="line">	param = &amp;(dev-&gt;param);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">memset</span>(context, <span class="number">0</span>, <span class="keyword">sizeof</span>(struct yaffs_linux_context));</span><br><span class="line">	dev-&gt;os_context = context;</span><br><span class="line">	INIT_LIST_HEAD(&amp;(context-&gt;context_list));</span><br><span class="line">	context-&gt;dev = dev;</span><br><span class="line">	context-&gt;super = sb;</span><br><span class="line"></span><br><span class="line">	dev-&gt;read_only = read_only;</span><br><span class="line">	sb-&gt;s_fs_info = dev;</span><br><span class="line">	dev-&gt;driver_context = mtd;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 设定yaffs_param相关参数</span></span><br><span class="line">        ...............</span><br><span class="line"></span><br><span class="line">	mutex_lock(&amp;yaffs_context_lock);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (mount_id = <span class="number">0</span>, found = <span class="number">0</span>; !found; mount_id++) &#123;</span><br><span class="line">		found = <span class="number">1</span>;</span><br><span class="line">		list_for_each(l, &amp;yaffs_context_list) &#123;</span><br><span class="line">			context_iterator =list_entry(l, struct yaffs_linux_context,context_list);</span><br><span class="line">			<span class="keyword">if</span> (context_iterator-&gt;mount_id == mount_id)</span><br><span class="line">				found = <span class="number">0</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	context-&gt;mount_id = mount_id;</span><br><span class="line"></span><br><span class="line">	list_add_tail(&amp;(yaffs_dev_to_lc(dev)-&gt;context_list),</span><br><span class="line">		      &amp;yaffs_context_list);</span><br><span class="line">	mutex_unlock(&amp;yaffs_context_lock);</span><br><span class="line"></span><br><span class="line">	mutex_init(&amp;(yaffs_dev_to_lc(dev)-&gt;gross_lock));</span><br><span class="line">	yaffs_gross_lock(dev);</span><br><span class="line">        <span class="comment">//建立yaffs_dev参数，以及初始化Tnode</span></span><br><span class="line">	err = yaffs_guts_initialise(dev);</span><br><span class="line">        <span class="comment">//执行yaffs的后台线程</span></span><br><span class="line">	<span class="keyword">if</span> (err == YAFFS_OK) yaffs_bg_start(dev);</span><br><span class="line">	<span class="keyword">if</span> (!context-&gt;bg_thread)</span><br><span class="line">		param-&gt;defered_dir_update = <span class="number">0</span>;</span><br><span class="line">	sb-&gt;s_maxbytes = yaffs_max_file_size(dev);</span><br><span class="line">	yaffs_gross_unlock(dev);</span><br><span class="line"></span><br><span class="line">	<span class="comment">//创建文件系统根节点</span></span><br><span class="line">	<span class="keyword">if</span> (err == YAFFS_OK)</span><br><span class="line">		inode = yaffs_get_inode(sb, S_IFDIR | <span class="number">0755</span>, <span class="number">0</span>, yaffs_root(dev));</span><br><span class="line">        .......</span><br><span class="line">	inode-&gt;i_op = &amp;yaffs_dir_inode_operations;</span><br><span class="line">	inode-&gt;i_fop = &amp;yaffs_dir_operations;</span><br><span class="line">	root = d_alloc_root(inode);</span><br><span class="line">        .......</span><br><span class="line">	sb-&gt;s_root = root;</span><br><span class="line">	sb-&gt;s_dirt = !dev-&gt;is_checkpointed;</span><br><span class="line">	<span class="keyword">return</span> sb;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>本文介绍了Yaffs的架构、文件结构及初始化流程。之后章节介绍：</p>
+<ul>
+<li>checkpoint机制</li>
+<li>YAFFS参数调优及Debug</li>
+<li>…….</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/05/18/yaffs-4/" rel="bookmark">YAFFS文件系统(4)– 垃圾回收(GC)机制</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/05/14/yaffs-2/" rel="bookmark">Yaffs文件系统(2)--块及Chunk管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/05/15/yaffs-3/" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2018/07/28/linux-vfs-1/" rel="bookmark">Linux虚拟文件系统（1）</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2018/08/10/linux-vfs-2/" rel="bookmark">Linux虚拟文件系统（2）-- 初始化流程</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
+            
+              <a href="/tags/YAFFS/" rel="tag"># YAFFS</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/04/26/e9-80-89-e6-8b-a9/" rel="next" title="选择">
+                  <i class="fa fa-chevron-left"></i> 选择
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/05/03/e8-af-95-e7-94-a8cleanmymac-e6-9b-bf-e4-bb-a3-e8-80-85-e8-85-be-e8-ae-af-e6-9f-a0-e6-aa-ac/" rel="prev" title="试用CleanMyMac替代者-腾讯柠檬">
+                  试用CleanMyMac替代者-腾讯柠檬 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    
+  <div class="comments" id="comments">
+    <div id="SOHUCS"></div>
+  </div>
+  
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#YAFFS文件系统格式"><span class="nav-number">2.</span> <span class="nav-text">YAFFS文件系统格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#源码结构"><span class="nav-number">3.</span> <span class="nav-text">源码结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#初始化"><span class="nav-number">4.</span> <span class="nav-text">初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据结构"><span class="nav-number">5.</span> <span class="nav-text">数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#文件系统挂载"><span class="nav-number">6.</span> <span class="nav-text">文件系统挂载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">128</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">113</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambertdev@gmail.com" title="E-Mail &rarr; mailto:lambertdev@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.tianshan277.com/" title="http://www.tianshan277.com/" rel="noopener" target="_blank">田珊珊个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://pin.l2h.site" title="https://pin.l2h.site" rel="noopener" target="_blank">惠拼购</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  <script>
+  (function() {
+    var appid = 'cyutixI06';
+    var conf = 'prod_3e046acc8875533ad4449ee8d8e0fb14';
+    var width = window.innerWidth || document.documentElement.clientWidth;
+    if (width < 960) {
+      window.document.write('<script id="changyan_mobile_js" charset="utf-8" type="text/javascript" src="https://changyan.sohu.com/upload/mobile/wap-js/changyan_mobile.js?client_id=' + appid + '&conf=' + conf + '"><\/script>');
+    } else {
+      var loadJs=function(d,a){var c=document.getElementsByTagName("head")[0]||document.head||document.documentElement;var b=document.createElement("script");b.setAttribute("type","text/javascript");b.setAttribute("charset","UTF-8");b.setAttribute("src",d);if(typeof a==="function"){if(window.attachEvent){b.onreadystatechange=function(){var e=b.readyState;if(e==="loaded"||e==="complete"){b.onreadystatechange=null;a()}}}else{b.onload=a}}c.appendChild(b)};loadJs("https://changyan.sohu.com/upload/changyan.js",function(){window.changyan.api.config({appid:appid,conf:conf})});
+    }
+  })();
+  </script>
+  <script src="https://assets.changyan.sohu.com/upload/plugins/plugins.count.js"></script>
+
+</body>
+</html>
