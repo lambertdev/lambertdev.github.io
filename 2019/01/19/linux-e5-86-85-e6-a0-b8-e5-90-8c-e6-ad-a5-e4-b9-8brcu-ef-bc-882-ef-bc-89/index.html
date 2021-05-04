@@ -66,7 +66,7 @@
 </script>
 
   <meta name="description" content="本欲根据自己的理解来写RCU，无奈时间有限，且目前工作内容着重逻辑、架构思考，少接触直接编程。为避免误人子弟，_从如下文章转载_：欢迎大家留言交流《谢宝友:深入理解RCU 》，请尊重原文作者劳动成果 本转载系列文章：LINUX内核同步之RCU Linux内核同步之RCU（2） 系列四： 用法1. RCU的用法">
-<meta name="keywords" content="Linux,RCU,内核同步,转载">
+<meta name="keywords" content="Linux,内核同步,转载,RCU">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux内核同步之RCU（2）">
 <meta property="og:url" content="http://l2h.site/2019/01/19/linux-e5-86-85-e6-a0-b8-e5-90-8c-e6-ad-a5-e4-b9-8brcu-ef-bc-882-ef-bc-89/index.html">
@@ -570,13 +570,6 @@
     <li class="popular-posts-item">
       
       
-      <div class="popular-posts-title"><a href="/2018/07/15/linux-interrupt-1/" rel="bookmark">Linux中断学习笔记(1)</a></div>
-      
-    </li>
-  
-    <li class="popular-posts-item">
-      
-      
       <div class="popular-posts-title"><a href="/2018/07/21/linux-interrupt-2/" rel="bookmark">Linux中断学习笔记(2) -- 嵌入式设备中断</a></div>
       
     </li>
@@ -584,7 +577,14 @@
     <li class="popular-posts-item">
       
       
-      <div class="popular-posts-title"><a href="/2019/01/01/linux-interrupt-3/" rel="bookmark">Linux中断(1)</a></div>
+      <div class="popular-posts-title"><a href="/2018/07/15/linux-interrupt-1/" rel="bookmark">Linux中断学习笔记(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/2019/01/05/linux-interrupt-4/" rel="bookmark">Linux中断(2)</a></div>
       
     </li>
   
@@ -601,11 +601,11 @@
             
               <a href="/tags/Linux/" rel="tag"># Linux</a>
             
-              <a href="/tags/RCU/" rel="tag"># RCU</a>
-            
               <a href="/tags/内核同步/" rel="tag"># 内核同步</a>
             
               <a href="/tags/转载/" rel="tag"># 转载</a>
+            
+              <a href="/tags/RCU/" rel="tag"># RCU</a>
             
           </div>
         
@@ -766,27 +766,7 @@
     </div>
     <ul class="links-of-blogroll-list">
         <li class="links-of-blogroll-item">
-          <a href="https://www.echoteen.com/" title="https://www.echoteen.com/" rel="noopener" target="_blank">Echo少年</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
           <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="http://www.supert.net.cn/" title="http://www.supert.net.cn/" rel="noopener" target="_blank">七年。</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="https://www.gazyip.cn/" title="https://www.gazyip.cn/" rel="noopener" target="_blank">八个比特</a>
         </li>
       
         <li class="links-of-blogroll-item">
@@ -802,14 +782,6 @@
         </li>
       
         <li class="links-of-blogroll-item">
-          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="http://www.yangqq.com/" title="http://www.yangqq.com/" rel="noopener" target="_blank">杨青-"青姐"</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
           <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
         </li>
       
@@ -818,7 +790,7 @@
         </li>
       
         <li class="links-of-blogroll-item">
-          <a href="https://www.52ecy.cn/" title="https://www.52ecy.cn/" rel="noopener" target="_blank">阿珏博客</a>
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
         </li>
       
         <li class="links-of-blogroll-item">
@@ -826,19 +798,7 @@
         </li>
       
         <li class="links-of-blogroll-item">
-          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="http://travel-hare.l2h.site/" title="http://travel-hare.l2h.site/" rel="noopener" target="_blank">旅行的兔撸撸</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
           <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
-        </li>
-      
-        <li class="links-of-blogroll-item">
-          <a href="https://pin.l2h.site" title="https://pin.l2h.site" rel="noopener" target="_blank">惠拼购</a>
         </li>
       
     </ul>
@@ -857,7 +817,7 @@
     <footer id="footer" class="footer">
       <div class="footer-inner">
         <div class="copyright"><a href="http://www.beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
-  <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2020</span>
+  <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2021</span>
   <span class="with-love" id="animate">
     <i class="fa fa-user"></i>
   </span>
