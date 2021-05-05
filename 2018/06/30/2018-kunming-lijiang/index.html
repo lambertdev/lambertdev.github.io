@@ -452,6 +452,9 @@
 
           </div>
           
+    
+    <div class="comments" id="gitalk-container"></div>
+  
 
         </div>
           
@@ -691,6 +694,25 @@
   
 
   
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID: '1aca82f9c984b55675c3',
+      clientSecret: '286d1e4da0cb8a234818bc1d60709c0dc0df163d',
+      repo: 'lambertdev.github.io',
+      owner: 'lambertdev',
+      admin: ['lambertdev'],
+      id: 'cbe179ebde3c317440e0a7d881595945',
+        language: window.navigator.language || window.navigator.userLanguage,
+      
+      distractionFreeMode: 'true'
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+</script>
 
 </body>
 </html>
