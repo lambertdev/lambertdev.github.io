@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第三篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构  前言以Intel X64 CPU为例，Linux的初始化可大致分为如下几个过程： Loader跳转到内核后的实模式(Real Mode) 32位保护模式跳转到64位长模式 64位长模式下解压内核 解压内核后，建立新的页表映射，并跳转到Arch（平台）相关C代码 执行">
+<meta name="keywords" content="Linux,内存管理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理 - 从内核启动过程透视内存管理">
+<meta property="og:url" content="http://l2h.site/p/8f5117c5.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第三篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构  前言以Intel X64 CPU为例，Linux的初始化可大致分为如下几个过程： Loader跳转到内核后的实模式(Real Mode) 32位保护模式跳转到64位长模式 64位长模式下解压内核 解压内核后，建立新的页表映射，并跳转到Arch（平台）相关C代码 执行">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://pic.l2h.site/Linux%20Boot%20Layout-1.png">
+<meta property="og:image" content="http://pic.l2h.site/Linux-Boot-Layout-2.png">
+<meta property="og:image" content="http://pic.l2h.site/early_page_table.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.480Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理 - 从内核启动过程透视内存管理">
+<meta name="twitter:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第三篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构  前言以Intel X64 CPU为例，Linux的初始化可大致分为如下几个过程： Loader跳转到内核后的实模式(Real Mode) 32位保护模式跳转到64位长模式 64位长模式下解压内核 解压内核后，建立新的页表映射，并跳转到Arch（平台）相关C代码 执行">
+<meta name="twitter:image" content="http://pic.l2h.site/Linux%20Boot%20Layout-1.png">
+  <link rel="canonical" href="http://l2h.site/p/8f5117c5">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理 - 从内核启动过程透视内存管理 | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/8f5117c5.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理 - 从内核启动过程透视内存管理
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2021-09-05 17:56:48" itemprop="dateCreated datePublished" datetime="2021-09-05T17:56:48+08:00">2021-09-05</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：3.8k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/8f5117c5.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/8f5117c5.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>这是&lt;Linux内核内存管理&gt;系列的第三篇</p>
+<blockquote>
+<p><a href="/p/61304bbb.html">第一篇</a>为内核内存管理过程知识点的的简单梳理</p>
+<p><a href="/p/1dc6adc2.html">第二篇</a>介绍了内核的数据结构</p>
+</blockquote>
+</blockquote><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>以Intel X64 CPU为例，Linux的初始化可大致分为如下几个过程：</p><ol>
+<li>Loader跳转到内核后的实模式(Real Mode)</li>
+<li>32位保护模式跳转到64位长模式</li>
+<li>64位长模式下解压内核</li>
+<li>解压内核后，建立新的页表映射，并跳转到Arch（平台）相关C代码</li>
+<li>执行平台无关初始化代码</li>
+</ol><a id="more"></a>
+
+
+<p>内存管理占据了以上过程的重要角色。包括了内存布局规划、分段管理、页表配置、内核移动等。</p>
+<p>本文使用Qemu模拟，基于Linux v5.13.9版本，按顺序介绍以上过程中的内存管理。</p>
+<h2 id="实模式-Real-Mode"><a href="#实模式-Real-Mode" class="headerlink" title="实模式(Real Mode)"></a>实模式(Real Mode)</h2><p>使用如下命令启动编译好的64位内核：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel arch/x86/boot/bzImage -nographic  -append "console=ttyS0 nokaslr"  -s -S</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li>内核参数”<strong>console=ttyS0 nokaslr</strong>“的主要作用为指定内核控制台，以及关闭KASLR功能（主要原因是为了调试方便，开启KASLR后每次开机内核解压的地址都是随机的）。</li>
+<li>而-s和-S参数主要是为了GDB调试Qemu之用。  </li>
+</ul>
+<p>执行上述命令后，便得到如下图的内核地址分布。<br><img src="http://pic.l2h.site/Linux%20Boot%20Layout-1.png" alt="实模式内存分布" title="Figure 1. 实模式下内存分布"></p>
+<p>根据内核文档<a href="https://www.kernel.org/doc/html/latest/x86/boot.html" target="_blank" rel="noopener">Linux/x86 Boot Protocol</a>，任何Boot Loader(Grub/Lilo/…)加载X86内核，均要遵守该协议。内核发展至今，该协议版本已经发展到了2.15。图中<em>X</em>为Boot Loader加载内核的起始偏移，在Qemu平台上该偏移为 <strong>0x10000</strong>。 加载后，内核Boot Sector开始执行，执行入口点为 <strong>_start</strong>。参考Linker Script <strong>arch/x86/boot/setup.ld</strong>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">OUTPUT_FORMAT(&quot;elf32-i386&quot;)</span><br><span class="line">OUTPUT_ARCH(i386)</span><br><span class="line">ENTRY(_start)</span><br><span class="line"></span><br><span class="line">SECTIONS</span><br><span class="line">&#123;</span><br><span class="line">	. = 0;</span><br><span class="line">	.bstext		: &#123; *(.bstext) &#125;</span><br><span class="line">	.bsdata		: &#123; *(.bsdata) &#125;</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+
+<p>这里会直接跳转到<strong>start_of_setup</strong>开始执行。</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">#arch/x86/boot/header<span class="number">.</span>S</span><br><span class="line"><span class="meta">	.globl</span>	_start</span><br><span class="line"><span class="symbol">_start:</span></span><br><span class="line"><span class="meta">		.byte</span>	<span class="number">0xeb</span>		# short (<span class="number">2</span>-<span class="built_in">byte</span>) jump</span><br><span class="line"><span class="meta">		.byte</span>	start_of_setup-1f</span><br><span class="line"></span><br><span class="line"><span class="meta">	.section</span> <span class="string">".entrytext"</span>, <span class="string">"ax"</span></span><br><span class="line"><span class="symbol">start_of_setup:</span></span><br><span class="line"># Force %es = %ds</span><br><span class="line">	movw	%ds, %ax</span><br><span class="line">	movw	%ax, %es</span><br><span class="line">	<span class="keyword">cld</span></span><br><span class="line"></span><br><span class="line">	movw	%ss, %dx</span><br><span class="line">	cmpw	%ax, %dx	# %ds == %ss?</span><br><span class="line">	movw	%sp, %dx</span><br><span class="line">	<span class="keyword">je</span>	2f		# -&gt; <span class="meta">assume</span> %sp is reasonably set</span><br><span class="line"></span><br><span class="line">	# Invalid %ss, make <span class="meta">up</span> a new stack</span><br><span class="line">	movw	$_end, %dx</span><br><span class="line">	testb	$CAN_USE_HEAP, loadflags</span><br><span class="line">	<span class="keyword">jz</span>	1f</span><br><span class="line">	movw	heap_end_ptr, %dx</span><br><span class="line"><span class="number">1</span>:	addw	$STACK_SIZE, %dx</span><br><span class="line">	<span class="keyword">jnc</span>	2f</span><br><span class="line">	xorw	%dx, %dx	# Prevent wraparound</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>:	# Now %dx should point to the end of our stack space</span><br><span class="line">	andw	$~<span class="number">3</span>, %dx	# <span class="built_in">dword</span> <span class="meta">align</span> (might as well...)</span><br><span class="line">	<span class="keyword">jnz</span>	3f</span><br><span class="line">	movw	<span class="number">$0</span>xfffc, %dx	# Make sure we<span class="string">'re not zero</span></span><br><span class="line"><span class="string">3:	movw	%ax, %ss</span></span><br><span class="line"><span class="string">	movzwl	%dx, %esp	# Clear upper half of %esp</span></span><br><span class="line"><span class="string">	sti			# Now we should have a working stack</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"># We will have entered with %cs = %ds+0x20, normalize %cs so it is on par with the other segments.</span></span><br><span class="line"><span class="string">	pushw	%ds</span></span><br><span class="line"><span class="string">	pushw	$6f</span></span><br><span class="line"><span class="string">	lretw</span></span><br><span class="line"><span class="string">6:</span></span><br><span class="line"><span class="string"># Check signature at end of setup</span></span><br><span class="line"><span class="string">	cmpl	$0x5a5aaa55, setup_sig</span></span><br><span class="line"><span class="string">	jne	setup_bad</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"># Zero the bss</span></span><br><span class="line"><span class="string">	movw	$__bss_start, %di</span></span><br><span class="line"><span class="string">	movw	$_end+3, %cx</span></span><br><span class="line"><span class="string">	xorl	%eax, %eax</span></span><br><span class="line"><span class="string">	subw	%di, %cx</span></span><br><span class="line"><span class="string">	shrw	$2, %cx</span></span><br><span class="line"><span class="string">	rep; stosl</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"># Jump to C code (should not return)</span></span><br><span class="line"><span class="string">	calll	main</span></span><br></pre></td></tr></table></figure>
+
+<p>以上代码会为实模式代码执行清理方向位，并未C代码的执行分配堆空间和栈空间。接着跳转到6执行，检查内核代码加载的正确性。这里说明一下， <strong>lretw</strong>及之前两行汇编语句的作用是调用返回，之前两行是将返回地址保存在栈内，参考&lt;<a href="https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html" target="_blank" rel="noopener">Intel® 64 and IA-32 Architectures Software Developer’s Manual</a>&gt;。如注释，使用lret的目的是为了重置CS寄存器的值，确保与其他段寄存器一致。可参考Intel手册，ret指令的说明：</p>
+<blockquote>
+<p>When executing a far return, the processor pops the return instruction pointer from the top of the stack into the EIP<br>register, <strong>then pops the segment selector from the top of the stack into the CS register</strong>. The processor then begins<br>program execution in the new code segment at the new instruction pointer.</p>
+</blockquote>
+<p>接着清空BSS段后跳转到main函数执行。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">	<span class="comment">/* First, copy the boot header into the "zeropage" */</span></span><br><span class="line">	copy_boot_params();</span><br><span class="line">	console_init();</span><br><span class="line">	<span class="keyword">if</span> (cmdline_find_option_bool(<span class="string">"debug"</span>))</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">"early console in setup code\n"</span>);</span><br><span class="line">	init_heap();</span><br><span class="line">	<span class="keyword">if</span> (validate_cpu()) &#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">"Unable to boot - please use a kernel appropriate "</span></span><br><span class="line">		     <span class="string">"for your CPU.\n"</span>);</span><br><span class="line">		die();</span><br><span class="line">	&#125;</span><br><span class="line">	set_bios_mode();</span><br><span class="line">	detect_memory();</span><br><span class="line">	keyboard_init();</span><br><span class="line">	query_ist();</span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_APM) || defined(CONFIG_APM_MODULE)</span></span><br><span class="line">	query_apm_bios();</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_EDD) || defined(CONFIG_EDD_MODULE)</span></span><br><span class="line">	query_edd();</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	set_video();</span><br><span class="line">	go_to_protected_mode();</span><br></pre></td></tr></table></figure>
+
+<p><strong>main</strong>函数的注释比较清楚,我们这里只讲一下copy_boot_param/detect_memory/go_to_protected_mode:</p>
+<ul>
+<li>copy_boot_param将内存中boot_param的信息（见图“实模式内存分布”）拷贝到全局变量boot_params内。boot_params存放的就是Linux Boot Protocol定义的哪些参数。有些栏位是编译过程中改写，有些烂尾由Boot Loader填写。boot_param包括内核cmdline会穿插内核初始化的各个子过程中</li>
+<li>detect_memory主要是使用<a href="https://en.wikipedia.org/wiki/E820" target="_blank" rel="noopener">e820</a>获取内存的基础布局，存储到boot_param指定区域（<strong>boot_params.e820_table</strong>和<strong>boot_params.e820_entries</strong>）。</li>
+<li>go_to_protected_mode主要是打开32位地址线（<a href="https://en.wikipedia.org/wiki/A20_line" target="_blank" rel="noopener">A20 Gate</a>），做GDT/IDT表的配置，关中断，打开保护模式，并跳转到32位代码开始执行。代码如下：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//arch/x86/boot/pm.c</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">go_to_protected_mode</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	realmode_switch_hook();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Enable the A20 gate */</span></span><br><span class="line">	<span class="keyword">if</span> (enable_a20()) &#123;</span><br><span class="line">		<span class="built_in">puts</span>(<span class="string">"A20 gate not responding, unable to boot...\n"</span>);</span><br><span class="line">		die();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	reset_coprocessor();</span><br><span class="line"></span><br><span class="line">	mask_all_interrupts();</span><br><span class="line"></span><br><span class="line">	setup_idt();</span><br><span class="line">	setup_gdt();</span><br><span class="line">	protected_mode_jump(boot_params.hdr.code32_start,</span><br><span class="line">			    (u32)&amp;boot_params + (ds() &lt;&lt; <span class="number">4</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>protected_mode_jump</strong>是一段汇编代码，定义在arch/x86/boot/pmjump.S，这里不多过多分析。其主要就是修改CR0寄存器的PE（Protect Enable）位，并执行跳转指令跳转到32位代码(.Lin_pm32标号)处执行。</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">#arch/x86/boot/pmjump<span class="number">.</span>S</span><br><span class="line">/*</span><br><span class="line"> * void protected_mode_jump(u32 entrypoint, u32 bootparams)<span class="comment">;</span></span><br><span class="line"> */</span><br><span class="line">SYM_FUNC_START_NOALIGN(protected_mode_jump)</span><br><span class="line">........</span><br><span class="line"></span><br><span class="line">	movl	%cr0, %edx</span><br><span class="line">	orb	$X86_CR0_PE, %dl	# Protected mode</span><br><span class="line">	movl	%edx, %cr0</span><br><span class="line"></span><br><span class="line">	# Transition to <span class="number">32</span>-bit mode</span><br><span class="line"><span class="meta">	.byte</span>	<span class="number">0x66</span>, <span class="number">0xea</span>		# ljmpl opcode</span><br><span class="line"><span class="number">2</span>:	.long	.Lin_pm32		# offset</span><br><span class="line"><span class="meta">	.word</span>	__BOOT_CS		# <span class="meta">segment</span></span><br><span class="line">SYM_FUNC_END(protected_mode_jump)</span><br><span class="line"></span><br><span class="line">SYM_FUNC_START_LOCAL_NOALIGN(.Lin_pm32)</span><br><span class="line">	# Set <span class="meta">up</span> data segments for flat <span class="number">32</span>-bit mode</span><br><span class="line">	movl	%ecx, %ds</span><br><span class="line">	movl	%ecx, %es</span><br><span class="line">	movl	%ecx, %fs</span><br><span class="line">	movl	%ecx, %gs</span><br><span class="line">	movl	%ecx, %ss</span><br><span class="line">	# The <span class="number">32</span>-bit code <span class="keyword">sets</span> <span class="meta">up</span> its own stack, but this way we <span class="built_in">do</span> have</span><br><span class="line">	# a valid stack if some debugging hack wants to use it.</span><br><span class="line">	addl	%ebx, %esp</span><br><span class="line"></span><br><span class="line">	# Set <span class="meta">up</span> TR to make Intel VT happy</span><br><span class="line">	<span class="keyword">ltr</span>	%di</span><br><span class="line"></span><br><span class="line">	# Clear registers to allow for future extensions to the</span><br><span class="line">	# <span class="number">32</span>-bit boot protocol</span><br><span class="line">	xorl	%ecx, %ecx</span><br><span class="line">	xorl	%edx, %edx</span><br><span class="line">	xorl	%ebx, %ebx</span><br><span class="line">	xorl	%ebp, %ebp</span><br><span class="line">	xorl	%edi, %edi</span><br><span class="line"></span><br><span class="line">	# Set <span class="meta">up</span> LDTR to make Intel VT happy</span><br><span class="line">	<span class="keyword">lldt</span>	%cx</span><br><span class="line"></span><br><span class="line">	jmpl	*%eax			# Jump to the <span class="number">32</span>-bit entrypoint</span><br><span class="line">SYM_FUNC_END(.Lin_pm32)</span><br></pre></td></tr></table></figure>
+
+<p>32位代码伊始就是重建各个段寄存器为<strong>BOOT_DS。段寄存器内容为向GDT某项的段选择子，而</strong>BOOT_DS即为GDT的第三个表项。 此时GDT的表项可以到arch/x86/boot/pm.c查找，大概定义了Base为0大小为4G的段，这足以覆盖内核初始化32位代码执行的区域。有关GDT表及段选择相关知识，可以查阅&lt;<a href="https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html" target="_blank" rel="noopener">Intel® 64 and IA-32 Architectures Software Developer’s Manual</a>&gt;中Volume 3，CHAPTER 3 PROTECTED-MODE MEMORY MANAGEMENT一节。做一些寄存器内容的清理，就跳转到32位内核的起始地址执行。  </p>
+<p>该起始地址，是protected_mode_jump函数的第一个参数-boot_params.hdr.code32_start。在我们的QEMU环境中这个值为<strong>0x100000</strong></p>
+<blockquote>
+<p>为什么是存储在eax寄存器呢，这里就需要了解<a href="https://uclibc.org/docs/psABI-x86_64.pdf" target="_blank" rel="noopener">System V Application Binary Interface AMD64</a>中有关<strong>calling convention</strong>的知识,Linux内核也是遵守System V ABI的。ABI指的是Application Binary Interface，根据程序运行的Arch不同而有不同的定义。</p>
+</blockquote>
+<h2 id="32位保护模式跳转到64位长模式"><a href="#32位保护模式跳转到64位长模式" class="headerlink" title="32位保护模式跳转到64位长模式"></a>32位保护模式跳转到64位长模式</h2><h3 id="startup-32"><a href="#startup-32" class="headerlink" title="startup_32"></a>startup_32</h3><p>_<br><strong>0x100000</strong>存放的是32位代码起始地址，具体布局可以参考链接脚本：<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/boot/compressed/vmlinux.lds.S" target="_blank" rel="noopener">vmlinux.lds</a></p>
+<blockquote>
+<p>链接脚本，即<a href="https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_chapter/ld_3.html" target="_blank" rel="noopener">Linker Script</a>，这是告诉链接器目标文件该如何链接的脚本。一般GCC编译我们不会指定链接脚本，这是因为其有默认的链接脚本。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line">#ifdef CONFIG_X86_64</span><br><span class="line">OUTPUT_ARCH(i386:x86-64)</span><br><span class="line">ENTRY(startup_64)</span><br><span class="line">#else</span><br><span class="line">OUTPUT_ARCH(i386)</span><br><span class="line">ENTRY(startup_32)</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">SECTIONS</span><br><span class="line">&#123;</span><br><span class="line">	/* Be careful parts of head_64.S assume startup_32 is at</span><br><span class="line">	 * address 0.</span><br><span class="line">	 */</span><br><span class="line">	. = 0;</span><br><span class="line">	.head.text : &#123;</span><br><span class="line">		_head = . ;</span><br><span class="line">		HEAD_TEXT</span><br><span class="line">		_ehead = . ;</span><br><span class="line">	&#125;</span><br><span class="line">	.rodata..compressed : &#123;</span><br><span class="line">		*(.rodata..compressed)</span><br><span class="line">	&#125;</span><br><span class="line">	.text :	&#123;</span><br><span class="line">		_text = .; 	/* Text */</span><br><span class="line">		*(.text)</span><br><span class="line">		*(.text.*)</span><br><span class="line">		_etext = . ;</span><br><span class="line">	&#125;</span><br><span class="line">	.rodata : &#123;</span><br><span class="line">		_rodata = . ;</span><br><span class="line">		*(.rodata)	 /* read-only data */</span><br><span class="line">		*(.rodata.*)</span><br><span class="line">		_erodata = . ;</span><br><span class="line">	&#125;</span><br><span class="line">	.data :	&#123;</span><br><span class="line">		_data = . ;</span><br><span class="line">		*(.data)</span><br><span class="line">		*(.data.*)</span><br><span class="line">		*(.bss.efistub)</span><br><span class="line">		_edata = . ;</span><br><span class="line">	&#125;</span><br><span class="line">	. = ALIGN(L1_CACHE_BYTES);</span><br><span class="line">	.bss : &#123;</span><br><span class="line">		_bss = . ;</span><br><span class="line">		*(.bss)</span><br><span class="line">		*(.bss.*)</span><br><span class="line">		*(COMMON)</span><br><span class="line">		. = ALIGN(8);	/* For convenience during zeroing */</span><br><span class="line">		_ebss = .;</span><br><span class="line">	&#125;</span><br><span class="line">#ifdef CONFIG_X86_64</span><br><span class="line">       . = ALIGN(PAGE_SIZE);</span><br><span class="line">       .pgtable : &#123;</span><br><span class="line">		_pgtable = . ;</span><br><span class="line">		*(.pgtable)</span><br><span class="line">		_epgtable = . ;</span><br><span class="line">	&#125;</span><br><span class="line">#endif</span><br><span class="line">	. = ALIGN(PAGE_SIZE);	/* keep ZO size page aligned */</span><br><span class="line">	_end = .;</span><br></pre></td></tr></table></figure>
+
+<p>经过ld链接、且qemu加载后，得到下图左侧的内存布局。从地址0x100000开始，首先是32位保护模式入口代码、解压缩代码等，之后摆放了压缩的内核。其后分别是解压后内核的代码段、只读数据段、数据段、未初始化数据段和32位代码页表。<br><img src="http://pic.l2h.site/Linux-Boot-Layout-2.png" alt="32位下内存分布" title="Figure 2. 32位下内存分布"></p>
+<p>从链接脚本可以看出：32位代码的入口地址是<strong>startup_32</strong>。代码首先清中断，加载新GDT表，同时重置各段寄存器，建立堆栈。</p>
+<blockquote>
+<p>需要注意代码定义了一个宏<strong>rva</strong>,它的主要作用是为了计算段内相对地址，这样可以避免内核加载到不同位置时，同样的代码皆可执行。</p>
+</blockquote>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">#arch/x86/boot/compressed/head_64<span class="number">.</span>S</span><br><span class="line">#define rva(X) ((X) - startup_32)</span><br><span class="line"></span><br><span class="line"><span class="meta">	.code32</span></span><br><span class="line">SYM_FUNC_START(startup_32)</span><br><span class="line">	<span class="keyword">cld</span></span><br><span class="line">	<span class="keyword">cli</span></span><br><span class="line"></span><br><span class="line">	leal	(BP_scratch+<span class="number">4</span>)(%esi), %esp</span><br><span class="line">	<span class="keyword">call</span>	1f</span><br><span class="line"><span class="number">1</span>:	popl	%ebp</span><br><span class="line">	subl	$ rva(<span class="number">1b</span>), %ebp</span><br><span class="line"></span><br><span class="line">	leal	rva(gdt)(%ebp), %eax</span><br><span class="line">	movl	%eax, <span class="number">2</span>(%eax)</span><br><span class="line">	<span class="keyword">lgdt</span>	(%eax)</span><br><span class="line"></span><br><span class="line">	/* Load <span class="meta">segment</span> registers with our descriptors */</span><br><span class="line">	movl	$__BOOT_DS, %eax</span><br><span class="line">	movl	%eax, %ds</span><br><span class="line">	movl	%eax, %es</span><br><span class="line">	movl	%eax, %fs</span><br><span class="line">	movl	%eax, %gs</span><br><span class="line">	movl	%eax, %ss</span><br><span class="line"></span><br><span class="line">	leal	rva(boot_stack_end)(%ebp), %esp</span><br><span class="line"></span><br><span class="line">	pushl	$__KERNEL32_CS</span><br><span class="line">	leal	rva(1f)(%ebp), %eax</span><br><span class="line">	pushl	%eax</span><br><span class="line">	lretl</span><br><span class="line"><span class="number">1</span>:</span><br><span class="line">	<span class="keyword">call</span>	startup32_load_idt</span><br><span class="line">	<span class="keyword">call</span>	verify_cpu</span><br><span class="line">	testl	%eax, %eax</span><br><span class="line">	<span class="keyword">jnz</span>	.Lno_longmode</span><br><span class="line"></span><br><span class="line">#ifdef CONFIG_RELOCATABLE</span><br><span class="line">	movl	%ebp, %ebx</span><br><span class="line">......</span><br><span class="line">	movl	BP_kernel_alignment(%esi), %eax</span><br><span class="line">	decl	%eax</span><br><span class="line">	addl	%eax, %ebx</span><br><span class="line">	notl	%eax</span><br><span class="line">	andl	%eax, %ebx</span><br><span class="line">	cmpl	$LOAD_PHYSICAL_ADDR, %ebx</span><br><span class="line">	<span class="keyword">jae</span>	1f</span><br><span class="line">#endif</span><br><span class="line">	movl	$LOAD_PHYSICAL_ADDR, %ebx</span><br><span class="line"><span class="number">1</span>:</span><br><span class="line"></span><br><span class="line">	addl	BP_init_size(%esi), %ebx</span><br><span class="line">	subl	$ rva(_end), %ebx</span><br><span class="line"></span><br><span class="line">	/* Enable PAE mode */</span><br><span class="line">	movl	%cr4, %eax</span><br><span class="line">	orl	$X86_CR4_PAE, %eax</span><br><span class="line">	movl	%eax, %cr4</span><br></pre></td></tr></table></figure>
+
+<p>加载IDT后，打开PAE模式。 然后会计算出将压缩内核摆放的位置放到ebx，用于原地(<strong>in-place</strong>)解压。上面代码中<strong>BP_kernel_alignment(%esi)</strong> 主要作用是从boot_param对应区域取出对应的值。我们再次打开<a href="https://www.kernel.org/doc/html/latest/x86/boot.html" target="_blank" rel="noopener">Linux/x86 Boot Protocol</a>和<a href="https://www.kernel.org/doc/html/v5.6/x86/zero-page.html" target="_blank" rel="noopener">Boot Protocol附属栏位</a>查看这些栏位的说明:</p>
+<table>
+<thead>
+<tr>
+<th>偏移/所占字节数</th>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0230/4</td>
+<td>kernel_alignment</td>
+<td>Physical addr alignment required for kernel</td>
+</tr>
+<tr>
+<td>0260/4</td>
+<td>init_size</td>
+<td>Linear memory required during initialization</td>
+</tr>
+<tr>
+<td>01E4/4</td>
+<td>scratch</td>
+<td>Scratch field for the kernel setup code</td>
+</tr>
+</tbody></table>
+<p>其中init_size存放的是内核初始化、解压所需要的空间，这是根据内核压缩In-place解压预留足够的空间。这部分大小的计算可以参考内核源码<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/boot/header.S#L494" target="_blank" rel="noopener">arch/x86/boot/header.S</a>的说明（<strong><em>本人也还没吃透,待补充</em></strong>）。<br>紧接着内核为4GB大小的内存建立每页大小为2MB的内核页表（见Figure 2图右）并加载页表目录地址（<strong>pgtable</strong>）到CR3寄存器，并开启64位长模式。参考<a href="https://en.wikipedia.org/wiki/Long_mode" target="_blank" rel="noopener">Wiki</a>:</p>
+<blockquote>
+<p>当处于长模式（Long mode）时，64位应用程序（或者是操作系统）可以使用64位指令和寄存器，而32位程序将以一种兼容子模式运行。</p>
+</blockquote>
+<p>4GB大小足以执行内核解压等动作。接着内核将64位地址<strong>startup_64</strong>压入栈，开启分页，并执行<em>lret</em>指令跳转到<strong>startup_64</strong>处执行。</p>
+<blockquote>
+<p>此处我们省略了SEV功能的检查，这是AMD CPU的特性。此处不做分析。</p>
+</blockquote>
+<h3 id="startup-64"><a href="#startup-64" class="headerlink" title="startup_64"></a>startup_64</h3><p><strong>startup_64</strong> 的开始同样会清中断，清理各段寄存器。同时计算压缩内核要移动到的地址，即LOAD_PHYSICAL_ADDR + INIT_SIZE - 压缩内核的长度(<strong>rva（_end）</strong>)。此处处理与<strong>startup_32</strong>相同</p>
+<blockquote>
+<p>可能大家会疑惑，为什么这段代码在startup_32做了，此处还要做一遍。主要原因代码内有描述，内核可能会被64位Loader直接加载并从<strong>startup_64</strong>处执行。</p>
+</blockquote>
+<p>接着内核加载空的IDT表，检查是否需要开启五级页表，并做对应处理。紧接着清除EFLAGS寄存器后，将压缩内核移动到In-place解压的位置(LOAD_PHYSICAL_ADDR + INIT_SIZE - 压缩内核的长度)，紧接着重新加载移动过位置的GDT表。之后跳转到移动后的 <strong>.Lrelocated</strong> 地址处开始执行。</p>
+<h3 id="Lrelocated"><a href="#Lrelocated" class="headerlink" title=".Lrelocated"></a>.Lrelocated</h3><p><strong>.Lrelocated</strong> 代码最主要的作用有三个：</p>
+<ul>
+<li><strong>加载IDT</strong>：此时IDT的内容只开启了Page Fault Trap，对应的处理函数是<em>boot_page_fault</em>，其实现在<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/boot/compressed/ident_map_64.c#L324" target="_blank" rel="noopener">arch/x86/boot/compressed/ident_map_64.c</a>, 主要作用就是做一些基础检查后，为对应缺页的地址建立一致性映射。</li>
+<li><strong>创建一致性映射</strong>： 主要为[_head, _end], bootparam 和 boot cmdline三个区域建立一致性映射。</li>
+<li><strong>解压内核</strong>： 解压内核本文不做分析。提及一点就是如果开启了KASLR，解压内核前，会计算一个随机偏移生成内核真正的解压地址。</li>
+</ul>
+<p>解压完内核后跳转到加压后内核的入口地址,即arch/x86/kernel/head_64.S的<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/kernel/head_64.S#L44" target="_blank" rel="noopener">startup_64标号处</a></p>
+<h2 id="内核解压后"><a href="#内核解压后" class="headerlink" title="内核解压后"></a>内核解压后</h2><p><strong>startup_64</strong> 代码如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">SYM_CODE_START_NOALIGN(startup_64)</span><br><span class="line">	UNWIND_HINT_EMPTY</span><br><span class="line">	leaq	(__end_init_task - SIZEOF_PTREGS)(%rip), %rsp</span><br><span class="line"></span><br><span class="line">	leaq	_text(%rip), %rdi</span><br><span class="line">	pushq	%rsi</span><br><span class="line">	<span class="keyword">call</span>	startup_64_setup_env</span><br><span class="line">	popq	%rsi</span><br><span class="line"></span><br><span class="line">	pushq	$__KERNEL_CS</span><br><span class="line">	leaq	.Lon_kernel_cs(%rip), %rax</span><br><span class="line">	pushq	%rax</span><br><span class="line">	lretq</span><br><span class="line"></span><br><span class="line"><span class="symbol">.Lon_kernel_cs:</span></span><br><span class="line">	UNWIND_HINT_EMPTY</span><br><span class="line"></span><br><span class="line">	/* Sanitize <span class="meta">CPU</span> configuration */</span><br><span class="line">	<span class="keyword">call</span> verify_cpu</span><br><span class="line"></span><br><span class="line">	leaq	_text(%rip), %rdi</span><br><span class="line">	pushq	%rsi</span><br><span class="line">	<span class="keyword">call</span>	__startup_64</span><br><span class="line">	popq	%rsi</span><br><span class="line"></span><br><span class="line">	addq	$(early_top_pgt - __START_KERNEL_map), %rax</span><br><span class="line">	<span class="keyword">jmp</span> 1f</span><br><span class="line">SYM_CODE_END(startup_64)</span><br></pre></td></tr></table></figure>
+
+<p>以上代码会配置栈之后，调用<strong>startup_64_setup_env</strong>配置Startup GDT和IDT。GDT表的内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">static struct desc_struct startup_gdt[GDT_ENTRIES] = &#123;</span><br><span class="line">	[GDT_ENTRY_KERNEL32_CS]         = GDT_ENTRY_INIT(0xc09b, 0, 0xfffff),</span><br><span class="line">	[GDT_ENTRY_KERNEL_CS]           = GDT_ENTRY_INIT(0xa09b, 0, 0xfffff),</span><br><span class="line">	[GDT_ENTRY_KERNEL_DS]           = GDT_ENTRY_INIT(0xc093, 0, 0xfffff),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>Startup GDT中的段描述符,都是0地址开始的4GB大小。Startup IDT（也叫binrgup IDT）主要处理AMD 架构下VMM Communication异常，该异常与虚拟机有关。<br>之后内核继续执行到<strong>verify_cpu</strong>这个汇编函数，其定义在<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/kernel/verify_cpu.S#L34" target="_blank" rel="noopener">verify_cpu.S</a>,其主要是使用<em>cpuid</em>指令得到CPU对长模式和SSE指令集的支持状况。<br>检查完后，内核跳转执行 <strong>__startup_64</strong>,其主要作用是重新建立内核早期4级或者5级页表，此时需要考虑KASLR产生的随机偏移，因此我们可以看到此函数调用了多次<strong>fixup_pointer</strong>函数进行页表项纠正。<br>页表定义在<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/kernel/head_64.S#L472" target="_blank" rel="noopener">head_64.s</a>，如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line">SYM_DATA_START_PTI_ALIGNED(early_top_pgt)</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">512</span>,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line"><span class="meta">	.fill</span>	PTI_USER_PGD_FILL,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">SYM_DATA_END(early_top_pgt)</span><br><span class="line"></span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(early_dynamic_pgts)</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">512</span>*EARLY_DYNAMIC_PAGE_TABLES,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">SYM_DATA_END(early_dynamic_pgts)</span><br><span class="line"></span><br><span class="line">SYM_DATA(early_recursion_flag, .long <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">	.data</span></span><br><span class="line"></span><br><span class="line">#if defined(CONFIG_XEN_PV) || defined(CONFIG_PVH)</span><br><span class="line">SYM_DATA_START_PTI_ALIGNED(init_top_pgt)</span><br><span class="line"><span class="meta">	.quad</span>   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC</span><br><span class="line"><span class="meta">	.org</span>    init_top_pgt + L4_PAGE_OFFSET*<span class="number">8</span>, <span class="number">0</span></span><br><span class="line"><span class="meta">	.quad</span>   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC</span><br><span class="line"><span class="meta">	.org</span>    init_top_pgt + L4_START_KERNEL*<span class="number">8</span>, <span class="number">0</span></span><br><span class="line">	/* (<span class="number">2</span>^<span class="number">48</span>-(<span class="number">2</span>*<span class="number">1024</span>*<span class="number">1024</span>*<span class="number">1024</span>))/(<span class="number">2</span>^<span class="number">39</span>) = <span class="number">511</span> */</span><br><span class="line"><span class="meta">	.quad</span>   level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC</span><br><span class="line"><span class="meta">	.fill</span>	PTI_USER_PGD_FILL,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">SYM_DATA_END(init_top_pgt)</span><br><span class="line"></span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level3_ident_pgt)</span><br><span class="line"><span class="meta">	.quad</span>	level2_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">511</span>, <span class="number">8</span>, <span class="number">0</span></span><br><span class="line">SYM_DATA_END(level3_ident_pgt)</span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level2_ident_pgt)</span><br><span class="line">	PMDS(<span class="number">0</span>, __PAGE_KERNEL_IDENT_LARGE_EXEC, PTRS_PER_PMD)</span><br><span class="line">SYM_DATA_END(level2_ident_pgt)</span><br><span class="line">#else</span><br><span class="line">SYM_DATA_START_PTI_ALIGNED(init_top_pgt)</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">512</span>,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line"><span class="meta">	.fill</span>	PTI_USER_PGD_FILL,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">SYM_DATA_END(init_top_pgt)</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#ifdef CONFIG_X86_5LEVEL</span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level4_kernel_pgt)</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">511</span>,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line"><span class="meta">	.quad</span>	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC</span><br><span class="line">SYM_DATA_END(level4_kernel_pgt)</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level3_kernel_pgt)</span><br><span class="line"><span class="meta">	.fill</span>	L3_START_KERNEL,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">	/* (<span class="number">2</span>^<span class="number">48</span>-(<span class="number">2</span>*<span class="number">1024</span>*<span class="number">1024</span>*<span class="number">1024</span>)-((<span class="number">2</span>^<span class="number">39</span>)*<span class="number">511</span>))/(<span class="number">2</span>^<span class="number">30</span>) = <span class="number">510</span> */</span><br><span class="line"><span class="meta">	.quad</span>	level2_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC</span><br><span class="line"><span class="meta">	.quad</span>	level2_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC</span><br><span class="line">SYM_DATA_END(level3_kernel_pgt)</span><br><span class="line"></span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level2_kernel_pgt)</span><br><span class="line">	PMDS(<span class="number">0</span>, __PAGE_KERNEL_LARGE_EXEC, KERNEL_IMAGE_SIZE/PMD_SIZE)</span><br><span class="line">SYM_DATA_END(level2_kernel_pgt)</span><br><span class="line"></span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level2_fixmap_pgt)</span><br><span class="line"><span class="meta">	.fill</span>	(<span class="number">512</span> - <span class="number">4</span> - FIXMAP_PMD_NUM),<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">	pgtno = <span class="number">0</span></span><br><span class="line"><span class="meta">	.rept</span> (FIXMAP_PMD_NUM)</span><br><span class="line"><span class="meta">	.quad</span> level1_fixmap_pgt + (pgtno &lt;&lt; PAGE_SHIFT) - __START_KERNEL_map \</span><br><span class="line">		+ _PAGE_TABLE_NOENC<span class="comment">;</span></span><br><span class="line">	pgtno = pgtno + <span class="number">1</span></span><br><span class="line"><span class="meta">	.endr</span></span><br><span class="line">	/* <span class="number">6</span> MB reserved space + a 2MB hole */</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">4</span>,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line">SYM_DATA_END(level2_fixmap_pgt)</span><br><span class="line"></span><br><span class="line">SYM_DATA_START_PAGE_ALIGNED(level1_fixmap_pgt)</span><br><span class="line"><span class="meta">	.rept</span> (FIXMAP_PMD_NUM)</span><br><span class="line"><span class="meta">	.fill</span>	<span class="number">512</span>,<span class="number">8</span>,<span class="number">0</span></span><br><span class="line"><span class="meta">	.endr</span></span><br><span class="line">SYM_DATA_END(level1_fixmap_pgt)</span><br></pre></td></tr></table></figure>
+
+<p>比较难理解，我们用图翻译一下：<br><img src="http://pic.l2h.site/early_page_table.png" alt="内核早期页表" title="Figure 3. 内核早期页表"></p>
+<p>图中为内核代码建立了早期映射，这样，就可以愉快地执行内核代码了。（当然，也并不一定是愉快执行内核代码，后面我们也会看到，内核需要注册IDT表项来处理Page Fault Trap）。</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/* Switch to new page-table */</span><br><span class="line"><span class="keyword">movq</span>	%rax, %cr3</span><br><span class="line"></span><br><span class="line">/* Ensure I am executing from virtual addresses */</span><br><span class="line"><span class="keyword">movq</span>	<span class="number">$1f</span>, %rax</span><br><span class="line">ANNOTATE_RETPOLINE_SAFE</span><br><span class="line"><span class="keyword">jmp</span>	*%rax</span><br></pre></td></tr></table></figure>
+
+<p> <strong>__startup_64</strong>执行过后我们跳过一些SEV的处理，便开始使用新的内核页表。此后我们就跳转到__START_KERNEL_map开始的虚拟地址执行了。紧接着重新初始化GDT、设置段寄存器、建立初始化运营时的栈、建立IDT。这中间有一段代码：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">	/* Set <span class="meta">up</span> %gs.</span><br><span class="line">	 *</span><br><span class="line">	 * The base of %gs always points to fixed_percpu_data. If the</span><br><span class="line">	 * stack protector canary is enabled, it is located <span class="meta">at</span> %gs:<span class="number">40</span>.</span><br><span class="line">	 * Note that, on SMP, the boot <span class="meta">cpu</span> uses init data <span class="meta">section</span> until</span><br><span class="line">	 * the per <span class="meta">cpu</span> areas are set <span class="meta">up</span>.</span><br><span class="line">	 */</span><br><span class="line">	movl	$MSR_GS_BASE,%ecx</span><br><span class="line">	movl	initial_gs(%rip),%eax</span><br><span class="line">	movl	initial_gs+<span class="number">4</span>(%rip),%edx</span><br><span class="line">	<span class="keyword">wrmsr</span></span><br><span class="line">..................</span><br><span class="line">	pushq	$.Lafter_lret	# put return address on stack for unwinder</span><br><span class="line">	xorl	%ebp, %ebp	# clear frame pointer</span><br><span class="line">	<span class="keyword">movq</span>	initial_code(%rip), %rax</span><br><span class="line">	pushq	$__KERNEL_CS	# set correct <span class="built_in">cs</span></span><br><span class="line">	pushq	%rax		# target address <span class="keyword">in</span> negative space</span><br><span class="line">	lretq</span><br><span class="line"></span><br><span class="line">......</span><br><span class="line">SYM_DATA(initial_code,	.quad x86_64_start_kernel)</span><br></pre></td></tr></table></figure>
+
+<p>它的作用是为多处理器系统保存per CPU变量的地址，保存到64-bit model specific register (MSR)。接着跳转到初始化c代码, 即<strong>x86_64_start_kernel</strong>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文重点分析了从内核被Loader加载一直执行到C代码入口的内存管理。一些主要的步骤：</p>
+<ul>
+<li>开启保护模式</li>
+<li>开启长模式</li>
+<li>内核解压同时添加随机偏移</li>
+<li>建立内核页表并跳转到虚拟地址执行</li>
+</ul>
+<p>系列后续我们将分析执行到C代码入口之后的处理</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/94b22c5d.html" rel="bookmark">Linux内核内存管理 - 初始化C代码中的内存处理概览</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/61304bbb.html" rel="bookmark">Linux内核内存管理 - 内核职责</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/20210923linuxmm4.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/5347665a.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(2)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/37327e44.html" rel="bookmark">Linux内核内存管理 - SLUB</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/75308136.html" rel="bookmark">Linux内核内存管理 - KFENCE</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/e84c7fac.html" rel="bookmark">Linux内核内存管理 - 进程内存</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8cc7cf15.html" rel="bookmark">Linux内核内存管理 - 文件mmap映射和反向映射</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/db78840c.html" rel="bookmark">Linux内核内存管理 - 缺页异常处理</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/61304bbb.html" rel="next" title="Linux内核内存管理 - 内核职责">
+                  <i class="fa fa-chevron-left"></i> Linux内核内存管理 - 内核职责
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/1dc6adc2.html" rel="prev" title="Linux内核内存管理 - 数据结构">
+                  Linux内核内存管理 - 数据结构 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实模式-Real-Mode"><span class="nav-number">2.</span> <span class="nav-text">实模式(Real Mode)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#32位保护模式跳转到64位长模式"><span class="nav-number">3.</span> <span class="nav-text">32位保护模式跳转到64位长模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#startup-32"><span class="nav-number">3.1.</span> <span class="nav-text">startup_32</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#startup-64"><span class="nav-number">3.2.</span> <span class="nav-text">startup_64</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lrelocated"><span class="nav-number">3.3.</span> <span class="nav-text">.Lrelocated</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内核解压后"><span class="nav-number">4.</span> <span class="nav-text">内核解压后</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

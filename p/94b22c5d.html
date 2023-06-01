@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第四篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。  x86_64体系结构C代码处理前文我们从汇编代码跳转到了x86_64_start_kernel，该函数代码如下：">
+<meta name="keywords" content="Linux,内存管理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理 - 初始化C代码中的内存处理概览">
+<meta property="og:url" content="http://l2h.site/p/94b22c5d.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第四篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。  x86_64体系结构C代码处理前文我们从汇编代码跳转到了x86_64_start_kernel，该函数代码如下：">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://pic.l2h.site/start_kernel.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20210921/e820_memory_mapping.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.480Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理 - 初始化C代码中的内存处理概览">
+<meta name="twitter:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第四篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。  x86_64体系结构C代码处理前文我们从汇编代码跳转到了x86_64_start_kernel，该函数代码如下：">
+<meta name="twitter:image" content="http://pic.l2h.site/start_kernel.png">
+  <link rel="canonical" href="http://l2h.site/p/94b22c5d">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理 - 初始化C代码中的内存处理概览 | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/94b22c5d.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理 - 初始化C代码中的内存处理概览
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2021-09-20 10:27:33" itemprop="dateCreated datePublished" datetime="2021-09-20T10:27:33+08:00">2021-09-20</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：1.9k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/94b22c5d.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/94b22c5d.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>这是&lt;Linux内核内存管理&gt;系列的第四篇</p>
+<blockquote>
+<p><a href="/p/61304bbb.html">第一篇</a>为内核内存管理过程知识点的的简单梳理</p>
+<p><a href="/p/1dc6adc2.html">第二篇</a>介绍了内核的数据结构</p>
+<p><a href="/p/8f5117c5.html">第三篇</a>介绍了从内核第一行代码加载到跳转到C代码前的内存处理。</p>
+</blockquote>
+</blockquote><h2 id="x86-64体系结构C代码处理"><a href="#x86-64体系结构C代码处理" class="headerlink" title="x86_64体系结构C代码处理"></a>x86_64体系结构C代码处理</h2><p>前文我们从汇编代码跳转到了<strong>x86_64_start_kernel</strong>，该函数代码如下：</p><a id="more"></a>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">asmlinkage __visible <span class="keyword">void</span> __init <span class="title">x86_64_start_kernel</span><span class="params">(<span class="keyword">char</span> * real_mode_data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">	BUILD_BUG_ON(MODULES_VADDR &lt; __START_KERNEL_map);</span><br><span class="line">	BUILD_BUG_ON(MODULES_VADDR - __START_KERNEL_map &lt; KERNEL_IMAGE_SIZE);</span><br><span class="line">	BUILD_BUG_ON(MODULES_LEN + KERNEL_IMAGE_SIZE &gt; <span class="number">2</span>*PUD_SIZE);</span><br><span class="line">	BUILD_BUG_ON((__START_KERNEL_map &amp; ~PMD_MASK) != <span class="number">0</span>);</span><br><span class="line">	BUILD_BUG_ON((MODULES_VADDR &amp; ~PMD_MASK) != <span class="number">0</span>);</span><br><span class="line">	BUILD_BUG_ON(!(MODULES_VADDR &gt; __START_KERNEL));</span><br><span class="line">	MAYBE_BUILD_BUG_ON(!(((MODULES_END - <span class="number">1</span>) &amp; PGDIR_MASK) ==</span><br><span class="line">				(__START_KERNEL &amp; PGDIR_MASK)));</span><br><span class="line">	BUILD_BUG_ON(__fix_to_virt(__end_of_fixed_addresses) &lt;= MODULES_END);</span><br><span class="line"></span><br><span class="line">	cr4_init_shadow();</span><br><span class="line">	reset_early_page_tables();</span><br><span class="line">	clear_bss();</span><br><span class="line">	clear_page(init_top_pgt);</span><br><span class="line"></span><br><span class="line">	sme_early_init();</span><br><span class="line">	kasan_early_init();</span><br><span class="line">	idt_setup_early_handler();</span><br><span class="line">	copy_bootdata(__va(real_mode_data));</span><br><span class="line"></span><br><span class="line">	load_ucode_bsp();</span><br><span class="line">	init_top_pgt[<span class="number">511</span>] = early_top_pgt[<span class="number">511</span>];</span><br><span class="line"></span><br><span class="line">	x86_64_start_reservations(real_mode_data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先几个<em>BUILD_BUG_ON</em> 用于检查潜在的配置错误，分别检查的是：</p>
+<ul>
+<li>内核模块的虚拟地址位于内核映像之后。</li>
+<li>内核模块+内核映像所占空间小于 2^31 (即2GB)</li>
+<li>内核映像和内核模块的地址为2MB对齐</li>
+<li>固定映射结束地址大于内核模块结束地址</li>
+</ul>
+<p>接着初始化CR4 Shadow，<a href="https://lore.kernel.org/lkml/808fa43ef6e24d1df47c2666174d997105b9582d.1413323611.git.luto@amacapital.net/" target="_blank" rel="noopener">内核Check-in List</a>给出其作用如下：</p>
+<blockquote>
+<p>Context switches and TLB flushes can change individual bits of CR4. CR4 reads take several cycles, so store a shadow copy of CR4 in a per-cpu variable. To avoid wasting a cache line, I added the CR4 shadow to cpu_tlbstate, which is already touched during context switches.</p>
+</blockquote>
+<p>也就是说，CR4读取是需要多个CPU时钟周期的，所以将CR4存在一个per-cpu变量内。CR4 Shadow放置于cpu_tlbstate，因为cpu_tlbstate在上下文切换时会被CPU加载到Cache，由此可以节省Cache line的使用。</p>
+<p><strong>reset_early_page_tables</strong>将early_top_pgt清除并重新加载其为内核页表。<strong>clear_bss</strong>清理BSS和init_top_pgt<strong>sme_early_init</strong>是初始化内存加密相关。<br><strong>kasan_early_init</strong>作用是初始化KASAN功能，后续会再具体介绍KASAN，这里略过不表。<br><strong>idt_setup_early_handler</strong>作用是加载<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/kernel/head_64.S#L363" target="_blank" rel="noopener">IDT Handler</a>，其代码如下：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">SYM_CODE_START_LOCAL(early_idt_handler_common)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">cld</span></span><br><span class="line"></span><br><span class="line">	incl early_recursion_flag(%rip)</span><br><span class="line">	pushq %rsi				/* pt_regs-&gt;<span class="built_in">si</span> */</span><br><span class="line">	<span class="keyword">movq</span> <span class="number">8</span>(%rsp), %rsi			/* <span class="built_in">RSI</span> = vector number */</span><br><span class="line">	<span class="keyword">movq</span> %rdi, <span class="number">8</span>(%rsp)			/* pt_regs-&gt;<span class="built_in">di</span> = <span class="built_in">RDI</span> */</span><br><span class="line">	pushq %rdx				/* pt_regs-&gt;<span class="built_in">dx</span> */</span><br><span class="line">	pushq %rcx				/* pt_regs-&gt;<span class="built_in">cx</span> */</span><br><span class="line">	pushq %rax				/* pt_regs-&gt;<span class="built_in">ax</span> */</span><br><span class="line">	pushq %r8				/* pt_regs-&gt;<span class="built_in">r8</span> */</span><br><span class="line">	pushq %r9				/* pt_regs-&gt;<span class="built_in">r9</span> */</span><br><span class="line">	pushq %r10				/* pt_regs-&gt;<span class="built_in">r10</span> */</span><br><span class="line">	pushq %r11				/* pt_regs-&gt;<span class="built_in">r11</span> */</span><br><span class="line">	pushq %rbx				/* pt_regs-&gt;<span class="built_in">bx</span> */</span><br><span class="line">	pushq %rbp				/* pt_regs-&gt;<span class="built_in">bp</span> */</span><br><span class="line">	pushq %r12				/* pt_regs-&gt;<span class="built_in">r12</span> */</span><br><span class="line">	pushq %r13				/* pt_regs-&gt;<span class="built_in">r13</span> */</span><br><span class="line">	pushq %r14				/* pt_regs-&gt;<span class="built_in">r14</span> */</span><br><span class="line">	pushq %r15				/* pt_regs-&gt;<span class="built_in">r15</span> */</span><br><span class="line">	UNWIND_HINT_REGS</span><br><span class="line"></span><br><span class="line">	<span class="keyword">movq</span> %rsp,%rdi		/* <span class="built_in">RDI</span> = pt_regs<span class="comment">; RSI is already trapnr */</span></span><br><span class="line">	<span class="keyword">call</span> do_early_exception</span><br><span class="line"></span><br><span class="line">	decl early_recursion_flag(%rip)</span><br><span class="line">	<span class="keyword">jmp</span> restore_regs_and_return_to_kernel</span><br><span class="line">SYM_CODE_END(early_idt_handler_common)</span><br></pre></td></tr></table></figure>
+
+<p>上述代码主要作用是寄存器状态保存，同时执行<strong>do_early_exception</strong>。<br><strong>copy_bootdata</strong>的主要作用是检查初始化参数，并将它们复制<em>boot_params</em>和<em>boot_command_line</em>内。同时将early_top_pgt页表的第512项赋值给init_top_pgt对应项。<br>最后<strong>x86_64_start_reservations</strong>执行一些特定平台相关的”quirks”后，开始执行<strong>start_kernel</strong>。</p>
+<h2 id="start-kernel"><a href="#start-kernel" class="headerlink" title="start_kernel"></a>start_kernel</h2><p><strong>start_kernel</strong>执行所有内核初始化代码。本文仅分析与内存管理相关的步骤如下图：<br><img src="http://pic.l2h.site/start_kernel.png" alt="内核初始化的内存处理" title="Figure 1. 内核初始化的内存处理"></p>
+<ul>
+<li><strong>set_task_stack_end_magic</strong> 为内核栈底设置Magic Number，用于栈溢出的检查。</li>
+<li><strong>page_address_init</strong> 初始化<em>page_address_htable</em>链表</li>
+<li><strong>setup_arch</strong>为体系结构相关的初始化代码。X64系统对应的setup_arch定义在<a href="https://elixir.bootlin.com/linux/v5.13.9/source/arch/x86/kernel/setup.c#L790" target="_blank" rel="noopener">arch/x86/kernel/setup.c</a><ul>
+<li><strong>early_ioremap_init</strong> 初始化数组 <strong><em>slot_virt</em></strong> 用于保存虚拟地址和外设物理地址的早期固定映射，其定义在<a href="https://elixir.bootlin.com/linux/latest/source/arch/x86/include/asm/fixmap.h#L127" target="_blank" rel="noopener">fixmap.h</a>。</li>
+<li><strong>setup_olpc_ofw_pgd</strong> 为“<a href="https://en.wikipedia.org/wiki/One_Laptop_per_Child" target="_blank" rel="noopener">One Laptop Per Child</a>”公益项目相关设备初始化PGD。</li>
+<li><strong>e820__memory_setup</strong> 执行 <strong>e820__memory_setup_default</strong> ，主要作用是从 <a href="https://en.wikipedia.org/wiki/E820" target="_blank" rel="noopener">E820</a>获取硬件内存布局，保存在全局变量<em>e820_table</em>。代码如下：<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">e820_table</span> <span class="title">e820_table_init</span>		__<span class="title">initdata</span>;</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">e820_table</span> <span class="title">e820_table_kexec_init</span>		__<span class="title">initdata</span>;</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">e820_table</span> <span class="title">e820_table_firmware_init</span>	__<span class="title">initdata</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">e820_table</span> *<span class="title">e820_table</span> __<span class="title">refdata</span>			= &amp;<span class="title">e820_table_init</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">e820_table</span> *<span class="title">e820_table_kexec</span> __<span class="title">refdata</span>		= &amp;<span class="title">e820_table_kexec_init</span>;</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">e820_table</span> *<span class="title">e820_table_firmware</span> __<span class="title">refdata</span>	= &amp;<span class="title">e820_table_firmware_init</span>;</span></span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>注意 <strong>initdata和</strong>refdata修饰作用在内核代码有说明,其中<strong>init的作用是为了标记初始化使用的数据以便内核初始化结束后释放对应的内存。而</strong>refdata的用于引用__initdata标记的数据。</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __init		__section(<span class="meta-string">".init.text"</span>) __cold  __latent_entropy __noinitretpoline __nocfi</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __initdata	__section(<span class="meta-string">".init.data"</span>)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __initconst	__section(<span class="meta-string">".init.rodata"</span>)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __exitdata	__section(<span class="meta-string">".exit.data"</span>)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __exit_call	__used __section(<span class="meta-string">".exitcall.exit"</span>)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __ref            __section(<span class="meta-string">".ref.text"</span>) noinline</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __refdata        __section(<span class="meta-string">".ref.data"</span>)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __refconst       __section(<span class="meta-string">".ref.rodata"</span>)</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><strong>early_reserve_memory</strong> 作用是将已占用的内存区域标记为不可用。这样后续不允许被memblock或者伙伴系统分配器再分配。</p>
+<ul>
+<li>[_text, __end_of_kernel_reserve]</li>
+<li>[0,64K]</li>
+<li>setup_data: [hdr.setup_data, sizeof(setup_data)+hdr.setup_data]</li>
+<li>initrd</li>
+<li>ibft(<a href="https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.storage.doc/GUID-03E73408-076A-4A7F-9732-3BB816A16CA1.html" target="_blank" rel="noopener">iSCSI Boot Format Table</a>) 区域(如果有的话)</li>
+<li>BIOS区域: [BIOS Start, 0x1000000]</li>
+<li>etc.</li>
+</ul>
+</li>
+<li><p><strong>memblock_set_bottom_up</strong> 标记memblock内存分配是从低地址到高地址</p>
+<blockquote>
+<p><a href="https://lwn.net/Articles/761215/" target="_blank" rel="noopener">memblock</a>是系统初始化初期，伙伴系统接管前的分配器，它取代了内核早期的bootmem分配器。</p>
+</blockquote>
+</li>
+<li><p><strong>e820__reserve_setup_data</strong> 将Boot Loader扩展的数据区标记为内核保留区域，并为其分配内存映射。</p>
+</li>
+<li><p><strong>e820__finish_early_params</strong> 更新e820表。用户可以通过Loader传入内核CMD line来自定义内存区域映射。下图是在QEMU中E820扫描到的内存映射。<br><img src="/images/posts/20210921/e820_memory_mapping.png" alt="E820物理内存映射" title="Figure 2. E820物理内存映射"></p>
+</li>
+<li><p><strong>probe_roms</strong> 为ROM的分配IO资源</p>
+</li>
+<li><p><strong>insert_resource</strong> 将code、rodata、data和bss插入IOMEM资源</p>
+</li>
+<li><p><strong>e820_add_kernel_range</strong> 将内核_text 到 _end区域加入到e820表。</p>
+</li>
+<li><p><strong>trim_bios_range</strong> 处理一些BIOS识别内存的特殊情况</p>
+<ul>
+<li>0到4KB区域没有被BIOS加入到e820中，我们将这段区域加入到e820保留区域。</li>
+<li>将BIOS区域中BIOS_BEGIN到BIOS_END(640Kb -&gt; 1Mb) 从e820表中删除。这是因为有些BIOS会将这段区域识别为物理内存（但起始不是）。</li>
+</ul>
+</li>
+<li><p><strong>early_gart_iommu_check</strong> 针对早期的AMD处理器中基于<a href="https://en.wikipedia.org/wiki/Graphics_address_remapping_table" target="_blank" rel="noopener">GART IOMMU</a>的支持。</p>
+</li>
+<li><p><strong>e820__end_of_ram_pfn</strong> 从e820获取最大物理页帧号</p>
+</li>
+<li><p><strong>init_cache_modes</strong> <font color="red">待确定</font></p>
+</li>
+<li><p><strong>kernel_randomize_memory</strong> 与KASLR相关，后续介绍，此处不表</p>
+</li>
+<li><p><strong>early_alloc_pgt_buf</strong> 为初始化过程中分配PGT预留堆空间</p>
+</li>
+<li><p><strong>reserve_brk</strong> 在Boot分配器Reserve堆空间</p>
+</li>
+<li><p><strong>e820__memblock_setup</strong> 将e820内存分布表的数据读出，并填写到Boot分配器管理</p>
+<blockquote>
+<p>关于memblock分配器memblock，系列后续文章专门介绍</p>
+</blockquote>
+</li>
+<li><p><strong>e820__memblock_alloc_reserved_mpc_new</strong> 从Memblock为<a href="https://en.wikipedia.org/wiki/MultiProcessor_Specification" target="_blank" rel="noopener">MPC Table</a>分配内存。</p>
+</li>
+<li><p><strong>reserve_real_mode</strong> 从Memblock为实模式的[0, 1MB]分配内存。</p>
+</li>
+<li><p><strong>init_mem_mapping</strong>  <font color="red">待确定</font></p>
+</li>
+<li><p><strong>memblock_set_current_limit</strong> 设置memblock.current_limit为membelcok管理的最大页帧号</p>
+</li>
+<li><p><strong>initmem_init</strong> 初始化NUMA（如果开启对应Kconfig的话），为memblock的现有区域分配NUMA节点ID号</p>
+</li>
+<li><p><strong>dma_contiguous_reserve</strong> 为DMA预留连续内存</p>
+</li>
+<li><p><strong>reserve_crashkernel</strong> 为kernel crash分配内存</p>
+</li>
+<li><p><strong>memblock_find_dma_reserve</strong>  计算DMA区域的大小</p>
+</li>
+<li><p><strong>x86_init.paging.pagetable_init</strong> 调用 <em>native_pagetable_init</em> 来初始化paging <font color="red">待确定</font></p>
+</li>
+<li><p><strong>kasan_init</strong> 初始化KASAN</p>
+</li>
+<li><p><strong>sync_initial_page_table</strong> <font color="red">待确定</font></p>
+</li>
+<li><p><strong>e820__reserve_resources</strong> 为e820表项分配IO resource （reserve标记的表项除外） </p>
+</li>
+<li><p><strong>x86_init.resources.reserve_resources</strong> 使用reserve_standard_io_resources 为下面硬件端口分配ioport resource</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">resource</span> <span class="title">standard_io_resources</span>[] = &#123;</span></span><br><span class="line">	&#123; .name = <span class="string">"dma1"</span>, .start = <span class="number">0x00</span>, .<span class="built_in">end</span> = <span class="number">0x1f</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"pic1"</span>, .start = <span class="number">0x20</span>, .<span class="built_in">end</span> = <span class="number">0x21</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"timer0"</span>, .start = <span class="number">0x40</span>, .<span class="built_in">end</span> = <span class="number">0x43</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"timer1"</span>, .start = <span class="number">0x50</span>, .<span class="built_in">end</span> = <span class="number">0x53</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"keyboard"</span>, .start = <span class="number">0x60</span>, .<span class="built_in">end</span> = <span class="number">0x60</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"keyboard"</span>, .start = <span class="number">0x64</span>, .<span class="built_in">end</span> = <span class="number">0x64</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"dma page reg"</span>, .start = <span class="number">0x80</span>, .<span class="built_in">end</span> = <span class="number">0x8f</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"pic2"</span>, .start = <span class="number">0xa0</span>, .<span class="built_in">end</span> = <span class="number">0xa1</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"dma2"</span>, .start = <span class="number">0xc0</span>, .<span class="built_in">end</span> = <span class="number">0xdf</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;,</span><br><span class="line">	&#123; .name = <span class="string">"fpu"</span>, .start = <span class="number">0xf0</span>, .<span class="built_in">end</span> = <span class="number">0xff</span>,</span><br><span class="line">		.flags = IORESOURCE_BUSY | IORESOURCE_IO &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>e820__setup_pci_gap</strong> 在0到4GB找到空闲的内存区域，用于PCI设备的IO映射。</li>
+<li><strong>build_all_zonelists</strong> 将所有内存节点的区域加入到对应的zonelist，可以参考<a href="1dc6adc2">数据结构</a>的介绍</li>
+<li><strong>page_alloc_init</strong> <font color="red">待确定</font></li>
+<li><strong>mm_init</strong> 为内存管理初始化最核心的部分，由以下部分组成<ul>
+<li><strong>page_ext_init_flatmem</strong></li>
+<li><strong>init_mem_debugging_and_hardening</strong></li>
+<li><strong>kfence_alloc_pool</strong></li>
+<li><strong>report_meminit</strong></li>
+<li><strong>stack_depot_init</strong> </li>
+<li><strong>mem_init</strong> 回收memblock分配的内存（Reserve的除外），接着用<strong>mem_init_print_info</strong>打印内存信息</li>
+<li><strong>kmem_cache_init</strong> 初始化SLAB分配器</li>
+<li><strong>kmemleak_init</strong> 初始化Kmemleak</li>
+<li><strong>pgtable_init</strong> 为启动后各进程的页表分配建立SLAB</li>
+<li><strong>debug_objects_mem_init</strong> 为debugobject功能分配SLAB内存</li>
+<li><strong>vmalloc_init</strong> </li>
+</ul>
+</li>
+<li><strong>kmem_cache_init_late</strong> 为SLAB分配器的后续初始化。如果编译时采用的是SLUB，此处无操作。</li>
+<li><strong>numa_policy_init</strong></li>
+<li><strong>anon_vma_init</strong></li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文是对初始化C代码中内存管理的概览，并没有介绍到每个子部分的细节，后续将会在专门的章节进行具体介绍。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8f5117c5.html" rel="bookmark">Linux内核内存管理 - 从内核启动过程透视内存管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/61304bbb.html" rel="bookmark">Linux内核内存管理 - 内核职责</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/20210923linuxmm4.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/5347665a.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(2)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/37327e44.html" rel="bookmark">Linux内核内存管理 - SLUB</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/75308136.html" rel="bookmark">Linux内核内存管理 - KFENCE</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/e84c7fac.html" rel="bookmark">Linux内核内存管理 - 进程内存</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8cc7cf15.html" rel="bookmark">Linux内核内存管理 - 文件mmap映射和反向映射</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/db78840c.html" rel="bookmark">Linux内核内存管理 - 缺页异常处理</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/1dc6adc2.html" rel="next" title="Linux内核内存管理 - 数据结构">
+                  <i class="fa fa-chevron-left"></i> Linux内核内存管理 - 数据结构
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/20210923linuxmm4.html" rel="prev" title="Linux内核内存管理 - Memblock和Buddy System(1)">
+                  Linux内核内存管理 - Memblock和Buddy System(1) <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#x86-64体系结构C代码处理"><span class="nav-number">1.</span> <span class="nav-text">x86_64体系结构C代码处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#start-kernel"><span class="nav-number">2.</span> <span class="nav-text">start_kernel</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

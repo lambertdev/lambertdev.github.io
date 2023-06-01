@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第六篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器  为了避免晦涩难懂，本文及之后均主要使用图表+文字描述，尽量避免涉及过多代码。专注点会在：  背景 架">
+<meta name="keywords" content="Linux,内存管理,SLAB,SLUB">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理 - SLUB">
+<meta property="og:url" content="http://l2h.site/p/37327e44.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第六篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器  为了避免晦涩难懂，本文及之后均主要使用图表+文字描述，尽量避免涉及过多代码。专注点会在：  背景 架">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://l2h.site/images/posts/20211007/Architecture-in-the-system.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20211007/SLUB.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20211007/slub_Detail.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.482Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理 - SLUB">
+<meta name="twitter:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第六篇  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器  为了避免晦涩难懂，本文及之后均主要使用图表+文字描述，尽量避免涉及过多代码。专注点会在：  背景 架">
+<meta name="twitter:image" content="http://l2h.site/images/posts/20211007/Architecture-in-the-system.png">
+  <link rel="canonical" href="http://l2h.site/p/37327e44">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理 - SLUB | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/37327e44.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理 - SLUB
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2021-10-07 10:48:24" itemprop="dateCreated datePublished" datetime="2021-10-07T10:48:24+08:00">2021-10-07</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：1.9k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/37327e44.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/37327e44.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>这是&lt;Linux内核内存管理&gt;系列的第六篇</p>
+<blockquote>
+<p><a href="/p/61304bbb.html">第一篇</a>为内核内存管理过程知识点的的简单梳理</p>
+<p><a href="/p/1dc6adc2.html">第二篇</a>介绍了内核的数据结构</p>
+<p><a href="/p/8f5117c5.html">第三篇</a>介绍了从内核第一行代码加载到跳转到C代码前的内存处理。</p>
+<p><a href="/p/94b22c5d.html">第四篇</a>概览了初始化C代码中的内存处理</p>
+<p><a href="/p/20210923linuxmm4.html">第五篇（上）</a>和<a href="/p/5347665a.html">第五篇（下）</a>介绍了Memblock和伙伴系统分配器</p>
+</blockquote>
+<p>为了避免晦涩难懂，本文及之后均主要使用图表+文字描述，尽量避免涉及过多代码。专注点会在：</p>
+<ol>
+<li>背景</li>
+<li>架构及其思想</li>
+<li>流程</li>
+<li>特殊处理及其原因</li>
+</ol>
+</blockquote><a id="more"></a>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>网络上介绍SLAB/SLUB的文章很多，也都很详细，本文以当前内核版本(<strong>5.14.X</strong>)来介绍被广泛采用的SLAB内存管理，希望尽可能地做到详尽易理解。一些更多的参考资料见，文中不再另外标注引用：</p>
+<ul>
+<li><a href="http://www.wowotech.net/memory_management/426.html" target="_blank" rel="noopener">图解Slub</a></li>
+<li><a href="https://www.kernel.org/doc/html/latest/vm/slub.html" target="_blank" rel="noopener">Short users guide for SLUB</a></li>
+</ul>
+<p><strong>kmalloc/kfree</strong> 大概是内核最常用的内存分配和释放函数，其背后的实现就是SLAB分配器。而SLUB是SLAB分配器的一种实现，另外的两种实现分别是SLAB和SLOB。从命名也可以看出SLAB是鼻祖，随着内核的发展，演进出了SLOB和SLUB分配器。</p>
+<ul>
+<li>SLOB分配器是为了应对嵌入式设备内存管理的特殊需求而生</li>
+<li>SLUB则是在SLAB的基础上演进而来，可以很好地适应各种平台的需求，更为有效地使用内存，同时增强了调试的容易度。</li>
+</ul>
+<p><strong>SLAB分配器解决的是什么问题？</strong>这个问题可以换种方式来问，为什么有了Buddy System，还要用SLAB分配器？ 解释如下：</p>
+<ul>
+<li>伙伴系统是以页为单位进行管理的，每页的大小一般为4096字节。内核程序在申请内存时，往往不会刚好申请页大小的倍数，如果我们按页进行分配，没过多久系统内存就会被耗尽。</li>
+<li>因为上述原因，必须采用更小的单位对内存进行管理。这需要考虑频繁内存分配释放造成的内存碎片问题。与此同时，需要考虑如何更有效地利用CPU缓存，以及尽量避免访问同一块内存区域造成的静态，等等。</li>
+</ul>
+<p><strong>为什么这三种分配器又都是SLAB分配器的实现</strong>？这是因为这三种分配器采用一样的数据结构名称和内存分配/释放API（注意，仅仅是“名称”一样）。例，其管理结构体，都叫<strong><em>struct kmem_cache</em></strong>。</p>
+<h2 id="内核配置"><a href="#内核配置" class="headerlink" title="内核配置"></a>内核配置</h2><p><a href="#前言">前言</a>讲到，SLAB/SLOB/SLUB采用相同的API，相同的结构体，那么他们一定是相互排他的，这从内核定义KConfig也可以看出：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">choice</span><br><span class="line">	prompt <span class="string">"Choose SLAB allocator"</span></span><br><span class="line">	<span class="keyword">default</span> SLUB</span><br><span class="line">	help</span><br><span class="line">	   This option allows to select a slab allocator.</span><br><span class="line"></span><br><span class="line"><span class="built_in">config</span> SLAB</span><br><span class="line">	<span class="keyword">bool</span> <span class="string">"SLAB"</span></span><br><span class="line">	select HAVE_HARDENED_USERCOPY_ALLOCATOR</span><br><span class="line">	help</span><br><span class="line">	  The regular slab allocator that is established <span class="keyword">and</span> known to work</span><br><span class="line">	  well in all environments. It organizes cache hot objects in</span><br><span class="line">	  per cpu <span class="keyword">and</span> per node queues.</span><br><span class="line"></span><br><span class="line"><span class="built_in">config</span> SLUB</span><br><span class="line">	<span class="keyword">bool</span> <span class="string">"SLUB (Unqueued Allocator)"</span></span><br><span class="line">	select HAVE_HARDENED_USERCOPY_ALLOCATOR</span><br><span class="line">	help</span><br><span class="line">	   SLUB is a slab allocator that minimizes cache <span class="built_in">line</span> usage</span><br><span class="line">	   instead of managing queues of cached objects (SLAB approach).</span><br><span class="line">	   Per cpu caching is realized <span class="keyword">using</span> slabs of objects instead</span><br><span class="line">	   of queues of objects. SLUB can use memory efficiently</span><br><span class="line">	   <span class="keyword">and</span> has enhanced diagnostics. SLUB is the <span class="keyword">default</span> choice <span class="keyword">for</span></span><br><span class="line">	   a slab allocator.</span><br><span class="line"></span><br><span class="line"><span class="built_in">config</span> SLOB</span><br><span class="line">	depends on EXPERT</span><br><span class="line">	<span class="keyword">bool</span> <span class="string">"SLOB (Simple Allocator)"</span></span><br><span class="line">	help</span><br><span class="line">	   SLOB replaces the stock allocator with a drastically simpler</span><br><span class="line">	   allocator. SLOB is generally more space efficient but</span><br><span class="line">	   does <span class="keyword">not</span> perform as well on large systems.</span><br><span class="line"></span><br><span class="line">endchoice</span><br></pre></td></tr></table></figure>
+
+<p>从中默认选项就是SLUB。</p>
+<blockquote>
+<p>KConfig相关知识可以参考<a href="https://www.kernel.org/doc/html/latest/kbuild/kconfig-language.html" target="_blank" rel="noopener">KConfig Language</a></p>
+</blockquote>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p>SLAB（下文中SLAB也统一代表SLUB）在系统中的位置如<strong>Figure 1</strong>所示.</p>
+<p><img src="/images/posts/20211007/Architecture-in-the-system.png" alt="SLUB在内存管理系统中位置" title="Figure 1.SLUB在内存管理系统中位置"></p>
+<p>简单说明如下:</p>
+<ul>
+<li>内存管理系统的最大管理单位是Node，被划分为多个Memory Zone（<font color="red">ToDo: 上一章Buddy System和第二章补充图片示意</font>）。</li>
+<li>在进行Page分配时（Page分配还记得吗？可以参考<a href="/p/20210923linuxmm4.html">第五篇（上）</a>和<a href="/p/5347665a.html">第五篇（下）</a>对<strong>Buddy System</strong>的介绍），是依据分配传入的参数，选择从哪个Memory Zone分配内存。</li>
+<li>SLAB的分配需要kmem_cache管理结构，而这些管理结构所需的内存也是从的kmem_cache来的。这里内核<u><strong>做了很巧妙的设计</strong></u>: <ul>
+<li>建立kmem_cache的slab所需的slab初始管理对象是boot_kmem_cache和boot_kmem_cache_node。它们被__init属性修饰，表示将会被放到.init.data段，并在内核初始化的后半段释放。</li>
+<li>在整个SLAB系统初始化过程中，会从boot_kmem_cache和boot_kmem_cache_node指向的SLAB，分配出全局SLAB对象kmem_cache和kmem_cache_node。</li>
+<li>之后将boot_kmem_cache和boot_kmem_cache_node内容拷贝到kmem_cache和kmem_cache_node。</li>
+<li>至此，使用全局SLAB对象kmem_cache和kmem_cache_node来进行SLUB管理。</li>
+</ul>
+</li>
+<li>kmalloc的内存也是内核初始化早期分配的。其实质上是建立了大小分别为2, 4, 8, ….的SLAB对象。</li>
+</ul>
+<h2 id="源文件"><a href="#源文件" class="headerlink" title="源文件"></a>源文件</h2><p>下表介绍SLAB及SLUB相关内核源文件：</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>slab.c</td>
+<td>SLAB分配器（三个分配器之一）的实现</td>
+</tr>
+<tr>
+<td>slab.h</td>
+<td>所有SLAB分配器的头文件定义</td>
+</tr>
+<tr>
+<td>slob.c</td>
+<td>SLOB分配器的实现</td>
+</tr>
+<tr>
+<td>slub.c</td>
+<td>SLUB分配器的实现</td>
+</tr>
+<tr>
+<td>slab_common.c</td>
+<td>所有SLAB分配器公用的，与实现无关的函数。大部分都会调用到具体的某个分配器。</td>
+</tr>
+</tbody></table>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>SLAB的重要的数据结构有三个，其内容和相互关系如下图：</p>
+<p><img src="/images/posts/20211007/SLUB.png" alt="SLUB数据结构" title="Figure 2.SLUB数据结构"></p>
+<p>其中：</p>
+<ul>
+<li>kmem_cache代表一个SLAB对象</li>
+<li>kmem_cache_cpu里存储了该SLAB对象在CPU本地的资源，这里<strong>__percpu</strong>修饰表示这是一个Per CPU对象（每个CPU有一份拷贝）</li>
+<li>kmem_cache_node是一个数组，每个数组成员代表该SLAB对象在每个<a href="/p/1dc6adc2.html#内存节点">内存结点</a>的内存资源。</li>
+</ul>
+<h2 id="管理方式"><a href="#管理方式" class="headerlink" title="管理方式"></a>管理方式</h2><p>SLUB的管理方式如下图：</p>
+<p><img src="/images/posts/20211007/slub_Detail.png" alt="SLUB管理" title="Figure3. SLUB管理方式"></p>
+<p>简单描述如下：</p>
+<ul>
+<li>每个SLUB管理结构分别有多个cpu本地slab和node slab。</li>
+<li>SLUB刚建立时，只有对应的管理结构。</li>
+<li>SLUB分配内存时<ul>
+<li>若此时该对象中没有页面可用，则从伙伴系统中分配页面、挂到cpu本地slab上，从中返回一个所需内存。</li>
+<li>若此时该对象中有可用页面，则从中分配内存。</li>
+<li>若当前kmem_cache_cpu已经没有可用页面(kmem_cache_cpu的freelist和partial所指向页都满)，则从kmem_cache_node的partial处分配内存</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>这样处理可以保证总是优先从该cpu的cache区域分配，提升资源的访问速度。</p>
+</blockquote>
+<ul>
+<li>释放内存：会先将内存释放到该内存所在页。 释放有如下情况：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>释放方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><u>释放前</u>该页上内存已经全部使用，per cpu partial链表上的空闲可用内存总数 <strong><font color="red">&gt;</font></strong> kmem_cache.cpu_partial</td>
+<td>1. 将kmem_cache_cpu的partial链表上的页挂到per node partial。 2.将该内存所在页放回kmem_cache_cpu的partial链表</td>
+</tr>
+<tr>
+<td><u>释放前</u>该页上内存已经全部使用，per cpu partial链表上的空闲可用内存总数 <strong><font color="red">&lt;=</font></strong> kmem_cache.cpu_partial</td>
+<td>将该内存所在页放回kmem_cache_cpu的partial链表</td>
+</tr>
+<tr>
+<td>1. 该页在per node partial 2.<u>释放后</u>，该页呈未分配状态 3.kmem_cache_node.nr_partial <strong><font color="red">&gt;</font></strong> kmem_cache.min_partial</td>
+<td><font color="blue">将该页归还给伙伴系统</font></td>
+</tr>
+<tr>
+<td>其他</td>
+<td>/</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>设置阈值的主要目的是为了避免SLAB占用过多的内存页，导致系统中其他对象想要分配内存时拿不到内存。</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了SLAB内存分配器，其是整个系统运行中，起重要且主要作用的内存分配器。介绍了：</p>
+<ul>
+<li>SLAB分配器的分类</li>
+<li>SLUB分配器的架构</li>
+<li>SLUB分配器的逻辑原理</li>
+</ul>
+<p>希望对您分析内核代码有所帮助。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8f5117c5.html" rel="bookmark">Linux内核内存管理 - 从内核启动过程透视内存管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/94b22c5d.html" rel="bookmark">Linux内核内存管理 - 初始化C代码中的内存处理概览</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/61304bbb.html" rel="bookmark">Linux内核内存管理 - 内核职责</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/20210923linuxmm4.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/5347665a.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(2)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/75308136.html" rel="bookmark">Linux内核内存管理 - KFENCE</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/e84c7fac.html" rel="bookmark">Linux内核内存管理 - 进程内存</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8cc7cf15.html" rel="bookmark">Linux内核内存管理 - 文件mmap映射和反向映射</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/db78840c.html" rel="bookmark">Linux内核内存管理 - 缺页异常处理</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+              <a href="/tags/SLAB/" rel="tag"># SLAB</a>
+            
+              <a href="/tags/SLUB/" rel="tag"># SLUB</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/5347665a.html" rel="next" title="Linux内核内存管理 - Memblock和Buddy System(2)">
+                  <i class="fa fa-chevron-left"></i> Linux内核内存管理 - Memblock和Buddy System(2)
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/c5b29752.html" rel="prev" title="PlantUML主题选项">
+                  PlantUML主题选项 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内核配置"><span class="nav-number">2.</span> <span class="nav-text">内核配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#架构"><span class="nav-number">3.</span> <span class="nav-text">架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#源文件"><span class="nav-number">4.</span> <span class="nav-text">源文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据结构"><span class="nav-number">5.</span> <span class="nav-text">数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#管理方式"><span class="nav-number">6.</span> <span class="nav-text">管理方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">7.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

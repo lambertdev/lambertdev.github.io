@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="书接前文，本文介绍《Memblock和Buddy System》的第二篇，第一篇见前文 伙伴系统Mem Block向Buddy System过渡伙伴系统便是使用页为单位对内存进行管理的方法。伙伴系统接管前，处理建立mem_section结构，也必须先从Mem Block中释放出不再使用的内存交给伙伴系统管理。本文Figure 2中略有体现，实现这个过渡的函数是memblock_free_all:">
+<meta name="keywords" content="Linux,内存管理,Buddy System,伙伴系统,Memblock">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理 - Memblock和Buddy System(2)">
+<meta property="og:url" content="http://l2h.site/p/5347665a.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="书接前文，本文介绍《Memblock和Buddy System》的第二篇，第一篇见前文 伙伴系统Mem Block向Buddy System过渡伙伴系统便是使用页为单位对内存进行管理的方法。伙伴系统接管前，处理建立mem_section结构，也必须先从Mem Block中释放出不再使用的内存交给伙伴系统管理。本文Figure 2中略有体现，实现这个过渡的函数是memblock_free_all:">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="https://pic.l2h.site/20211004_buddy_system.png">
+<meta property="og:image" content="https://pic.l2h.site/2021-10-04Buddy_Alloc.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.481Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理 - Memblock和Buddy System(2)">
+<meta name="twitter:description" content="书接前文，本文介绍《Memblock和Buddy System》的第二篇，第一篇见前文 伙伴系统Mem Block向Buddy System过渡伙伴系统便是使用页为单位对内存进行管理的方法。伙伴系统接管前，处理建立mem_section结构，也必须先从Mem Block中释放出不再使用的内存交给伙伴系统管理。本文Figure 2中略有体现，实现这个过渡的函数是memblock_free_all:">
+<meta name="twitter:image" content="https://pic.l2h.site/20211004_buddy_system.png">
+  <link rel="canonical" href="http://l2h.site/p/5347665a">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理 - Memblock和Buddy System(2) | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/5347665a.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理 - Memblock和Buddy System(2)
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2021-10-03 08:59:16" itemprop="dateCreated datePublished" datetime="2021-10-03T08:59:16+08:00">2021-10-03</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：1.9k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/5347665a.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/5347665a.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>书接前文，本文介绍《Memblock和Buddy System》的第二篇，第一篇见<a href="/p/20210923linuxmm4.html">前文</a></p>
+</blockquote><h2 id="伙伴系统"><a href="#伙伴系统" class="headerlink" title="伙伴系统"></a>伙伴系统</h2><h3 id="Mem-Block向Buddy-System过渡"><a href="#Mem-Block向Buddy-System过渡" class="headerlink" title="Mem Block向Buddy System过渡"></a>Mem Block向Buddy System过渡</h3><p>伙伴系统便是使用页为单位对内存进行管理的方法。伙伴系统接管前，处理建立mem_section结构，也必须先从Mem Block中释放出不再使用的内存交给伙伴系统管理。本文<a href="#%E9%87%8A%E6%94%BE">Figure 2</a>中略有体现，实现这个过渡的函数是memblock_free_all:</p><a id="more"></a>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> __init <span class="title">memblock_free_all</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> pages;</span><br><span class="line"></span><br><span class="line">	free_unused_memmap();</span><br><span class="line">	reset_all_zones_managed_pages();</span><br><span class="line">	pages = free_low_memory_core_early();</span><br><span class="line">	totalram_pages_add(pages);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><em>free_unused_memmap</em> 释放未使用mem_map内存。</p>
+</li>
+<li><p><em>reset_all_zones_managed_pages</em> 作用是将所有节点所有区域的managed_pages自动设置为0（<strong>managed_pages</strong>表示被伙伴系统管理的页的数量）。</p>
+</li>
+<li><p>_free_low_memory_core_early_主要做两个动作：</p>
+<ul>
+<li><p>将reserve类型的memblock和明确标记为Memory None的内存对应的页做标记为reserved(PG_reserved)</p>
+</li>
+<li><p>将Mem block类型为memory的区域free掉，并标记为Free页面</p>
+</li>
+</ul>
+</li>
+<li><p>_totalram_pages_add_增加 <em>_totalram_pages</em> ，用于标记系统中可用总页数。</p>
+</li>
+</ul>
+<h3 id="管理方式"><a href="#管理方式" class="headerlink" title="管理方式"></a>管理方式</h3><p>伙伴系统的管理方式可以参考&lt;<a href="http://ptgmedia.pearsoncmg.com/images/0131453483/downloads/gorman_book.pdf" target="_blank" rel="noopener">Understanding the Linux® Virtual Memory Manager</a>&gt;的图：</p>
+<p><img src="https://pic.l2h.site/20211004_buddy_system.png" alt="伙伴系统管理图示" title="Figure 1. 伙伴系统管理图示"></p>
+<p>每个内存区域(zone)，都有一个链表数组，数组元素用来存放 $2^{Order}$个页的链表。内存的分配和释放便围绕着这个表来管理。</p>
+<h3 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h3><p><a href="/p/1dc6adc2.html">数据结构</a>一文，我们已经介绍的struct page/struct zone/struct pglist_data等数据结构。我们回顾其中部分字段：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//include/linux/mmzone.h</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">zone</span> &#123;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pglist_data</span>	*<span class="title">zone_pgdat</span>;</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* zone_start_pfn == zone_start_paddr &gt;&gt; PAGE_SHIFT */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		zone_start_pfn;</span><br><span class="line">    ...</span><br><span class="line">	<span class="keyword">atomic_long_t</span>		managed_pages; <span class="comment">//managed_pages = present_pages - reserved_pages;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		spanned_pages; <span class="comment">//spanned_pages = zone_end_pfn - zone_start_pfn;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		present_pages; <span class="comment">//present_pages = spanned_pages - absent_pages(pages in holes);</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_CMA</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		cma_pages;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">/* free areas of different sizes */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">free_area</span>	<span class="title">free_area</span>[<span class="title">MAX_ORDER</span>];</span></span><br><span class="line">    ...</span><br><span class="line">&#125; ____cacheline_internodealigned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<p><strong>zone</strong></p>
+<ul>
+<li>zone_pgdat: 表示该内存区域所在的内存结点</li>
+<li>zone_start_pfn: 表示该内存区域的起始页帧号</li>
+<li>managed_pages: 表示该区域内由伙伴系统管理的页数</li>
+<li>spanned_pages: 表示该区域跨越的总页数</li>
+<li>present_pages：表示该区域内去掉内存空洞的总页数 （含系统保留页）</li>
+<li>free_area:  如前文，存放伙伴系统有关的可用区域。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">pglist_data</span> &#123;</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * node_zones contains just the zones for THIS node. Not all of the</span></span><br><span class="line"><span class="comment">	 * zones may be populated, but it is the full list. It is referenced by</span></span><br><span class="line"><span class="comment">	 * this node's node_zonelists as well as other node's node_zonelists.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">zone</span> <span class="title">node_zones</span>[<span class="title">MAX_NR_ZONES</span>];</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * node_zonelists contains references to all zones in all nodes.</span></span><br><span class="line"><span class="comment">	 * Generally the first zones will be references to this node's</span></span><br><span class="line"><span class="comment">	 * node_zones.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">zonelist</span> <span class="title">node_zonelists</span>[<span class="title">MAX_ZONELISTS</span>];</span></span><br><span class="line">    ...</span><br><span class="line">	<span class="keyword">wait_queue_head_t</span> kswapd_wait;</span><br><span class="line">	...</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">kswapd</span>;</span>	<span class="comment">/* Protected by</span></span><br><span class="line"><span class="comment">					   mem_hotplug_begin/end() */</span></span><br><span class="line">	<span class="keyword">int</span> kswapd_order;</span><br><span class="line">	<span class="keyword">enum</span> zone_type kswapd_highest_zoneidx;</span><br><span class="line">	<span class="keyword">int</span> kswapd_failures;		<span class="comment">/* Number of 'reclaimed == 0' runs */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		totalreserve_pages;</span><br><span class="line">    ...</span><br><span class="line">&#125; <span class="keyword">pg_data_t</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>pglist_data</strong></p>
+<ul>
+<li>node_zones: 该数组存储该内存节点内所有的内存区域</li>
+<li>node_zonelists：保护所有内存节点中所有内存区域的应用</li>
+<li>kswapd_wait、kswapd、kswapd_order等: kswpad线程运行所需字段。</li>
+</ul>
+<h3 id="内存分配"><a href="#内存分配" class="headerlink" title="内存分配"></a>内存分配</h3><p>内存分配使用<strong>alloc_pages*</strong>系列函数，其核心代码__alloc_pages代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">page</span> *__<span class="title">alloc_pages</span>(<span class="title">gfp_t</span> <span class="title">gfp</span>, <span class="title">unsigned</span> <span class="title">int</span> <span class="title">order</span>, <span class="title">int</span> <span class="title">preferred_nid</span>,</span></span><br><span class="line"><span class="class">							<span class="title">nodemask_t</span> *<span class="title">nodemask</span>)</span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    ....</span><br><span class="line">    ....</span><br><span class="line">	<span class="keyword">if</span> (!prepare_alloc_pages(gfp, order, preferred_nid, nodemask, &amp;ac,</span><br><span class="line">			&amp;alloc_gfp, &amp;alloc_flags))</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    ....</span><br><span class="line">	<span class="comment">/* First allocation attempt */</span></span><br><span class="line">	page = get_page_from_freelist(alloc_gfp, order, alloc_flags, &amp;ac);</span><br><span class="line">	<span class="keyword">if</span> (likely(page))</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">    ...</span><br><span class="line">	page = __alloc_pages_slowpath(alloc_gfp, order, &amp;ac);</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	<span class="keyword">if</span> (memcg_kmem_enabled() &amp;&amp; (gfp &amp; __GFP_ACCOUNT) &amp;&amp; page &amp;&amp;</span><br><span class="line">	    unlikely(__memcg_kmem_charge_page(page, gfp, order) != <span class="number">0</span>)) &#123;</span><br><span class="line">		__free_pages(page, order);</span><br><span class="line">		page = <span class="literal">NULL</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	trace_mm_page_alloc(page, order, alloc_gfp, ac.migratetype);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> page;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码很多，但是核心部分就是下面三个函数：</p>
+<ul>
+<li><strong>prepare_alloc_pages</strong>: 主要作用是，分配前准备页面分配的上下文，特别是选取合适的内存节点的内存区域（Zone）</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">bool</span> <span class="title">prepare_alloc_pages</span><span class="params">(<span class="keyword">gfp_t</span> gfp_mask, <span class="keyword">unsigned</span> <span class="keyword">int</span> order,</span></span></span><br><span class="line"><span class="function"><span class="params">		<span class="keyword">int</span> preferred_nid, <span class="keyword">nodemask_t</span> *nodemask,</span></span></span><br><span class="line"><span class="function"><span class="params">		struct alloc_context *ac, <span class="keyword">gfp_t</span> *alloc_gfp,</span></span></span><br><span class="line"><span class="function"><span class="params">		<span class="keyword">unsigned</span> <span class="keyword">int</span> *alloc_flags)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	ac-&gt;highest_zoneidx = gfp_zone(gfp_mask);</span><br><span class="line">	ac-&gt;zonelist = node_zonelist(preferred_nid, gfp_mask);</span><br><span class="line">	ac-&gt;nodemask = nodemask;</span><br><span class="line">	ac-&gt;migratetype = gfp_migratetype(gfp_mask);</span><br><span class="line">    </span><br><span class="line">    ........</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * The preferred zone is used for statistics but crucially it is</span></span><br><span class="line"><span class="comment">	 * also used as the starting point for the zonelist iterator. It</span></span><br><span class="line"><span class="comment">	 * may get reset for allocations that ignore memory policies.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	ac-&gt;preferred_zoneref = first_zones_zonelist(ac-&gt;zonelist,</span><br><span class="line">					ac-&gt;highest_zoneidx, ac-&gt;nodemask);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>get_page_from_freelist</strong>: 作用是根据传入的分配参数不断尝试来分配内存。同样引用&lt;<a href="http://ptgmedia.pearsoncmg.com/images/0131453483/downloads/gorman_book.pdf" target="_blank" rel="noopener">Understanding the Linux® Virtual Memory Manager</a>&gt;的图，当所需order的页数不足时，会将更大order的free_area拆分来满足返回对应的page指针。当无法分配成功时，则返回NULL。</li>
+</ul>
+<p><img src="https://pic.l2h.site/2021-10-04Buddy_Alloc.png" alt="伙伴系统分配" title="伙伴系统分配"></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">page</span> *</span></span><br><span class="line"><span class="class"><span class="title">get_page_from_freelist</span>(<span class="title">gfp_t</span> <span class="title">gfp_mask</span>, <span class="title">unsigned</span> <span class="title">int</span> <span class="title">order</span>, <span class="title">int</span> <span class="title">alloc_flags</span>,</span></span><br><span class="line"><span class="class">						<span class="title">const</span> <span class="title">struct</span> <span class="title">alloc_context</span> *<span class="title">ac</span>)</span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">zoneref</span> *<span class="title">z</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">zone</span> *<span class="title">zone</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">pglist_data</span> *<span class="title">last_pgdat_dirty_limit</span> = <span class="title">NULL</span>;</span></span><br><span class="line">	<span class="keyword">bool</span> no_fallback;</span><br><span class="line"></span><br><span class="line">retry:</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Scan zonelist, looking for a zone with enough free.</span></span><br><span class="line"><span class="comment">	 * See also __cpuset_node_allowed() comment in kernel/cpuset.c.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	no_fallback = alloc_flags &amp; ALLOC_NOFRAGMENT;</span><br><span class="line">	z = ac-&gt;preferred_zoneref;</span><br><span class="line">	for_next_zone_zonelist_nodemask(zone, z, ac-&gt;highest_zoneidx,</span><br><span class="line">					ac-&gt;nodemask) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">page</span> *<span class="title">page</span>;</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> mark;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (cpusets_enabled() &amp;&amp;</span><br><span class="line">			(alloc_flags &amp; ALLOC_CPUSET) &amp;&amp;</span><br><span class="line">			!__cpuset_zone_allowed(zone, gfp_mask))</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">		<span class="keyword">if</span> (ac-&gt;spread_dirty_pages) &#123;</span><br><span class="line">			<span class="keyword">if</span> (last_pgdat_dirty_limit == zone-&gt;zone_pgdat)</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (!node_dirty_ok(zone-&gt;zone_pgdat)) &#123;</span><br><span class="line">				last_pgdat_dirty_limit = zone-&gt;zone_pgdat;</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (no_fallback &amp;&amp; nr_online_nodes &gt; <span class="number">1</span> &amp;&amp;</span><br><span class="line">		    zone != ac-&gt;preferred_zoneref-&gt;zone) &#123;</span><br><span class="line">			<span class="keyword">int</span> local_nid;</span><br><span class="line"></span><br><span class="line">			<span class="comment">/*</span></span><br><span class="line"><span class="comment">			 * If moving to a remote node, retry but allow</span></span><br><span class="line"><span class="comment">			 * fragmenting fallbacks. Locality is more important</span></span><br><span class="line"><span class="comment">			 * than fragmentation avoidance.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			local_nid = zone_to_nid(ac-&gt;preferred_zoneref-&gt;zone);</span><br><span class="line">			<span class="keyword">if</span> (zone_to_nid(zone) != local_nid) &#123;</span><br><span class="line">				alloc_flags &amp;= ~ALLOC_NOFRAGMENT;</span><br><span class="line">				<span class="keyword">goto</span> retry;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		mark = wmark_pages(zone, alloc_flags &amp; ALLOC_WMARK_MASK);</span><br><span class="line">		<span class="keyword">if</span> (!zone_watermark_fast(zone, order, mark,</span><br><span class="line">				       ac-&gt;highest_zoneidx, alloc_flags,</span><br><span class="line">				       gfp_mask)) &#123;</span><br><span class="line">			<span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">            ...</span><br><span class="line">			<span class="comment">/* Checked here to keep the fast path fast */</span></span><br><span class="line">			BUILD_BUG_ON(ALLOC_NO_WATERMARKS &lt; NR_WMARK);</span><br><span class="line">			<span class="keyword">if</span> (alloc_flags &amp; ALLOC_NO_WATERMARKS)</span><br><span class="line">				<span class="keyword">goto</span> try_this_zone;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (!node_reclaim_enabled() ||</span><br><span class="line">			    !zone_allows_reclaim(ac-&gt;preferred_zoneref-&gt;zone, zone))</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">			ret = node_reclaim(zone-&gt;zone_pgdat, gfp_mask, order);</span><br><span class="line">			<span class="keyword">switch</span> (ret) &#123;</span><br><span class="line">			<span class="keyword">case</span> NODE_RECLAIM_NOSCAN:</span><br><span class="line">				<span class="comment">/* did not scan */</span></span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			<span class="keyword">case</span> NODE_RECLAIM_FULL:</span><br><span class="line">				<span class="comment">/* scanned but unreclaimable */</span></span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">				<span class="comment">/* did we reclaim enough */</span></span><br><span class="line">				<span class="keyword">if</span> (zone_watermark_ok(zone, order, mark,</span><br><span class="line">					ac-&gt;highest_zoneidx, alloc_flags))</span><br><span class="line">					<span class="keyword">goto</span> try_this_zone;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">try_this_zone:</span><br><span class="line">		page = rmqueue(ac-&gt;preferred_zoneref-&gt;zone, zone, order,</span><br><span class="line">				gfp_mask, alloc_flags, ac-&gt;migratetype);</span><br><span class="line">		<span class="keyword">if</span> (page) &#123;</span><br><span class="line">			prep_new_page(page, order, gfp_mask, alloc_flags);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (unlikely(order &amp;&amp; (alloc_flags &amp; ALLOC_HARDER)))</span><br><span class="line">				reserve_highatomic_pageblock(page, zone, order);</span><br><span class="line">			<span class="keyword">return</span> page;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (no_fallback) &#123;</span><br><span class="line">		alloc_flags &amp;= ~ALLOC_NOFRAGMENT;</span><br><span class="line">		<span class="keyword">goto</span> retry;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>__alloc_pages_slowpath</strong>:如果get_page_from_freelist分配页面失败，则进行慢速分配。这个函数会尝试回收内存，采用以下顺序：<ul>
+<li>触发kswapd尝试回收内存。</li>
+<li>如果回收失败，则尝试杀掉进程回收内存。</li>
+</ul>
+</li>
+</ul>
+<h3 id="内存释放"><a href="#内存释放" class="headerlink" title="内存释放"></a>内存释放</h3><p>内存释放最后会调用到*<em>__free_one_page *</em>：释放过程比较容易来讲，找到可以合并的Buddy页帧号向上一级Order合并直到不能合并，将合并好的页加入到对应Order的free_area。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> __free_one_page(struct page *page,</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> pfn,</span><br><span class="line">		struct zone *zone, <span class="keyword">unsigned</span> <span class="keyword">int</span> order,</span><br><span class="line">		<span class="keyword">int</span> migratetype, <span class="keyword">fpi_t</span> fpi_flags)</span><br><span class="line">&#123;   .....</span><br><span class="line">	max_order = <span class="keyword">min_t</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span>, MAX_ORDER - <span class="number">1</span>, pageblock_order);</span><br><span class="line">    .....</span><br><span class="line">continue_merging:</span><br><span class="line">	<span class="keyword">while</span> (order &lt; max_order) &#123;</span><br><span class="line">		<span class="keyword">if</span> (compaction_capture(capc, page, order, migratetype)) &#123;</span><br><span class="line">			__mod_zone_freepage_state(zone, -(<span class="number">1</span> &lt;&lt; order),</span><br><span class="line">								migratetype);</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		buddy_pfn = __find_buddy_pfn(pfn, order);</span><br><span class="line">		buddy = page + (buddy_pfn - pfn);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!pfn_valid_within(buddy_pfn))</span><br><span class="line">			<span class="keyword">goto</span> done_merging;</span><br><span class="line">		<span class="keyword">if</span> (!page_is_buddy(page, buddy, order))</span><br><span class="line">			<span class="keyword">goto</span> done_merging;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * Our buddy is free or it is CONFIG_DEBUG_PAGEALLOC guard page,</span></span><br><span class="line"><span class="comment">		 * merge with it and move up one order.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (page_is_guard(buddy))</span><br><span class="line">			clear_page_guard(zone, buddy, order, migratetype);</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			del_page_from_free_list(buddy, zone, order);</span><br><span class="line">		combined_pfn = buddy_pfn &amp; pfn;</span><br><span class="line">		page = page + (combined_pfn - pfn);</span><br><span class="line">		pfn = combined_pfn;</span><br><span class="line">		order++;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (order &lt; MAX_ORDER - <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="comment">/* If we are here, it means order is &gt;= pageblock_order.</span></span><br><span class="line"><span class="comment">		 * We want to prevent merge between freepages on isolate</span></span><br><span class="line"><span class="comment">		 * pageblock and normal pageblock. Without this, pageblock</span></span><br><span class="line"><span class="comment">		 * isolation could cause incorrect freepage or CMA accounting.</span></span><br><span class="line"><span class="comment">		 *</span></span><br><span class="line"><span class="comment">		 * We don't want to hit this code for the more frequent</span></span><br><span class="line"><span class="comment">		 * low-order merging.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (unlikely(has_isolate_pageblock(zone))) &#123;</span><br><span class="line">			<span class="keyword">int</span> buddy_mt;</span><br><span class="line"></span><br><span class="line">			buddy_pfn = __find_buddy_pfn(pfn, order);</span><br><span class="line">			buddy = page + (buddy_pfn - pfn);</span><br><span class="line">			buddy_mt = get_pageblock_migratetype(buddy);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> (migratetype != buddy_mt</span><br><span class="line">					&amp;&amp; (is_migrate_isolate(migratetype) ||</span><br><span class="line">						is_migrate_isolate(buddy_mt)))</span><br><span class="line">				<span class="keyword">goto</span> done_merging;</span><br><span class="line">		&#125;</span><br><span class="line">		max_order = order + <span class="number">1</span>;</span><br><span class="line">		<span class="keyword">goto</span> continue_merging;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">done_merging:</span><br><span class="line">	set_buddy_order(page, order);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (fpi_flags &amp; FPI_TO_TAIL)</span><br><span class="line">		to_tail = <span class="literal">true</span>;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (is_shuffle_order(order))</span><br><span class="line">		to_tail = shuffle_pick_tail();</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		to_tail = buddy_merge_likely(pfn, buddy_pfn, page, order);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (to_tail)</span><br><span class="line">		add_to_free_list_tail(page, zone, order, migratetype);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		add_to_free_list(page, zone, order, migratetype);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Notify page reporting subsystem of freed page */</span></span><br><span class="line">	<span class="keyword">if</span> (!(fpi_flags &amp; FPI_SKIP_REPORT_NOTIFY))</span><br><span class="line">		page_reporting_notify_free(order);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="kswapd"><a href="#kswapd" class="headerlink" title="kswapd"></a>kswapd</h3><p>见<a href="#内存分配">内存分配</a>一节，_alloc_pages_slowpath会触发kswapd来回收内存。kswapd在每个内存节点都有一个，其定义和代码如下。其实这里就是调用了balance_pgdat进行内存回收。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kswapd_run</span><span class="params">(<span class="keyword">int</span> nid)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">pg_data_t</span> *pgdat = NODE_DATA(nid);</span><br><span class="line">    ...</span><br><span class="line">	pgdat-&gt;kswapd = kthread_run(kswapd, pgdat, <span class="string">"kswapd%d"</span>, nid);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">kswapd</span><span class="params">(<span class="keyword">void</span> *p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">	<span class="keyword">for</span> ( ; ; ) &#123;</span><br><span class="line">		<span class="keyword">bool</span> ret;</span><br><span class="line"></span><br><span class="line">		alloc_order = reclaim_order = READ_ONCE(pgdat-&gt;kswapd_order);</span><br><span class="line">		highest_zoneidx = kswapd_highest_zoneidx(pgdat,</span><br><span class="line">							highest_zoneidx);</span><br><span class="line"></span><br><span class="line">kswapd_try_sleep:</span><br><span class="line">		kswapd_try_to_sleep(pgdat, alloc_order, reclaim_order,</span><br><span class="line">					highest_zoneidx);</span><br><span class="line">        ......</span><br><span class="line">		ret = try_to_freeze();</span><br><span class="line">		<span class="keyword">if</span> (kthread_should_stop())</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">        ......</span><br><span class="line">		trace_mm_vmscan_kswapd_wake(pgdat-&gt;node_id, highest_zoneidx,</span><br><span class="line">						alloc_order);</span><br><span class="line">		reclaim_order = balance_pgdat(pgdat, alloc_order,</span><br><span class="line">						highest_zoneidx);</span><br><span class="line">		<span class="keyword">if</span> (reclaim_order &lt; alloc_order)</span><br><span class="line">			<span class="keyword">goto</span> kswapd_try_sleep;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	tsk-&gt;flags &amp;= ~(PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文是自己学习Linux内存管理的简单梳理，介绍了：</p>
+<ul>
+<li>Linux初始化早期的Memblock内存管理</li>
+<li>Linux物理内存模型</li>
+<li>Linux伙伴系统（Buddy Allocator）</li>
+</ul>
+<p>希望也对您理解Linux的内存管理有一些帮助。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li>内核代码. <a href="https://elixir.bootlin.com/linux/latest/source/" target="_blank" rel="noopener">https://elixir.bootlin.com/linux/latest/source/</a>.</li>
+<li>内核手册. <a href="https://www.kernel.org/doc/html/latest/vm/index.html" target="_blank" rel="noopener">https://www.kernel.org/doc/html/latest/vm/index.html</a>.</li>
+<li>Understanding the Linux® Virtual Memory Manager. Mel Gorman. <a href="http://ptgmedia.pearsoncmg.com/images/0131453483/downloads/gorman_book.pdf" target="_blank" rel="noopener">http://ptgmedia.pearsoncmg.com/images/0131453483/downloads/gorman_book.pdf</a>.</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/20210923linuxmm4.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8f5117c5.html" rel="bookmark">Linux内核内存管理 - 从内核启动过程透视内存管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/94b22c5d.html" rel="bookmark">Linux内核内存管理 - 初始化C代码中的内存处理概览</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/61304bbb.html" rel="bookmark">Linux内核内存管理 - 内核职责</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/37327e44.html" rel="bookmark">Linux内核内存管理 - SLUB</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/75308136.html" rel="bookmark">Linux内核内存管理 - KFENCE</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/e84c7fac.html" rel="bookmark">Linux内核内存管理 - 进程内存</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8cc7cf15.html" rel="bookmark">Linux内核内存管理 - 文件mmap映射和反向映射</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/db78840c.html" rel="bookmark">Linux内核内存管理 - 缺页异常处理</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+              <a href="/tags/Buddy-System/" rel="tag"># Buddy System</a>
+            
+              <a href="/tags/伙伴系统/" rel="tag"># 伙伴系统</a>
+            
+              <a href="/tags/Memblock/" rel="tag"># Memblock</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/20210923linuxmm4.html" rel="next" title="Linux内核内存管理 - Memblock和Buddy System(1)">
+                  <i class="fa fa-chevron-left"></i> Linux内核内存管理 - Memblock和Buddy System(1)
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/37327e44.html" rel="prev" title="Linux内核内存管理 - SLUB">
+                  Linux内核内存管理 - SLUB <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#伙伴系统"><span class="nav-number">1.</span> <span class="nav-text">伙伴系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Mem-Block向Buddy-System过渡"><span class="nav-number">1.1.</span> <span class="nav-text">Mem Block向Buddy System过渡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#管理方式"><span class="nav-number">1.2.</span> <span class="nav-text">管理方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据结构"><span class="nav-number">1.3.</span> <span class="nav-text">数据结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存分配"><span class="nav-number">1.4.</span> <span class="nav-text">内存分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存释放"><span class="nav-number">1.5.</span> <span class="nav-text">内存释放</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kswapd"><span class="nav-number">1.6.</span> <span class="nav-text">kswapd</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">2.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">3.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

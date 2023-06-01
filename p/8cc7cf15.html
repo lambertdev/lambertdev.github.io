@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第八篇:  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器 第六篇介绍了内存检测工具KFence工作原理 第七篇介绍了进程内存分配malloc的原理">
+<meta name="keywords" content="Linux,内存管理,进程内存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理 - 文件mmap映射和反向映射">
+<meta property="og:url" content="http://l2h.site/p/8cc7cf15.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第八篇:  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器 第六篇介绍了内存检测工具KFence工作原理 第七篇介绍了进程内存分配malloc的原理">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://l2h.site/images/posts/20211113/mmap.png">
+<meta property="og:image" content="https://static.lwn.net/images/ns/ormap.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20211113/mmap2.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.484Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理 - 文件mmap映射和反向映射">
+<meta name="twitter:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第八篇:  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器 第六篇介绍了内存检测工具KFence工作原理 第七篇介绍了进程内存分配malloc的原理">
+<meta name="twitter:image" content="http://l2h.site/images/posts/20211113/mmap.png">
+  <link rel="canonical" href="http://l2h.site/p/8cc7cf15">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理 - 文件mmap映射和反向映射 | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/8cc7cf15.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理 - 文件mmap映射和反向映射
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2021-11-13 21:45:55" itemprop="dateCreated datePublished" datetime="2021-11-13T21:45:55+08:00">2021-11-13</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：2.5k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/8cc7cf15.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/8cc7cf15.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>这是&lt;Linux内核内存管理&gt;系列的第八篇:</p>
+<blockquote>
+<p><a href="/p/61304bbb.html">第一篇</a>为内核内存管理过程知识点的的简单梳理</p>
+<p><a href="/p/1dc6adc2.html">第二篇</a>介绍了内核的数据结构</p>
+<p><a href="/p/8f5117c5.html">第三篇</a>介绍了从内核第一行代码加载到跳转到C代码前的内存处理。</p>
+<p><a href="/p/94b22c5d.html">第四篇</a>概览了初始化C代码中的内存处理</p>
+<p><a href="/p/20210923linuxmm4.html">第五篇（上）</a>和<a href="/p/5347665a.html">第五篇（下）</a>介绍了Memblock和伙伴系统分配器</p>
+<p><a href="/p/75308136.html">第六篇</a>介绍了内存检测工具KFence工作原理</p>
+<p><a href="/p/e84c7fac.html">第七篇</a>介绍了进程内存分配malloc的原理</p>
+</blockquote>
+</blockquote><a id="more"></a>
+<h2 id="mmap和munmap"><a href="#mmap和munmap" class="headerlink" title="mmap和munmap"></a>mmap和munmap</h2><p><a href="https://man7.org/linux/man-pages/man2/mmap.2.html" target="_blank" rel="noopener"><strong><em>mmap()</em></strong></a>的主要作用是将文件（普通文件或者设备文件）映射到进程的内存地址空间中，让应用程序可以以读写内存的方式来访问文件。与之对应的操作是<a href="https://man7.org/linux/man-pages/man3/munmap.3p.html" target="_blank" rel="noopener"><strong><em>munmap()</em></strong></a>。</p>
+<p>一段示例代码来自<a href="https://en.wikipedia.org/wiki/Mmap" target="_blank" rel="noopener">维基百科</a>如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/mman.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;err.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">const</span> <span class="keyword">char</span> str1[] = <span class="string">"string 1"</span>;</span><br><span class="line">        <span class="keyword">const</span> <span class="keyword">char</span> str2[] = <span class="string">"string 2"</span>;</span><br><span class="line">        <span class="keyword">pid_t</span> parpid = getpid(), childpid;</span><br><span class="line">        <span class="keyword">int</span> fd = <span class="number">-1</span>;</span><br><span class="line">        <span class="keyword">char</span> *anon, *zero;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ((fd = <span class="built_in">open</span>(<span class="string">"/dev/zero"</span>, O_RDWR, <span class="number">0</span>)) == <span class="number">-1</span>)</span><br><span class="line">                err(<span class="number">1</span>, <span class="string">"open"</span>);</span><br><span class="line"></span><br><span class="line">        anon = (<span class="keyword">char</span>*)mmap(<span class="literal">NULL</span>, <span class="number">4096</span>, PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">        zero = (<span class="keyword">char</span>*)mmap(<span class="literal">NULL</span>, <span class="number">4096</span>, PROT_READ|PROT_WRITE, MAP_SHARED, fd, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (anon == MAP_FAILED || zero == MAP_FAILED)</span><br><span class="line">                errx(<span class="number">1</span>, <span class="string">"either mmap"</span>);</span><br><span class="line"></span><br><span class="line">        <span class="built_in">strcpy</span>(anon, str1);</span><br><span class="line">        <span class="built_in">strcpy</span>(zero, str1);</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"PID %d:\tanonymous %s, zero-backed %s\n"</span>, parpid, anon, zero);</span><br><span class="line">        <span class="keyword">switch</span> ((childpid = fork())) &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="number">-1</span>:</span><br><span class="line">                err(<span class="number">1</span>, <span class="string">"fork"</span>);</span><br><span class="line">                <span class="comment">/* NOTREACHED */</span></span><br><span class="line">        <span class="keyword">case</span> <span class="number">0</span>:</span><br><span class="line">                childpid = getpid();</span><br><span class="line">                <span class="built_in">printf</span>(<span class="string">"PID %d:\tanonymous %s, zero-backed %s\n"</span>, childpid, anon, zero);</span><br><span class="line">                sleep(<span class="number">3</span>);</span><br><span class="line"></span><br><span class="line">                <span class="built_in">printf</span>(<span class="string">"PID %d:\tanonymous %s, zero-backed %s\n"</span>, childpid, anon, zero);</span><br><span class="line">                munmap(anon, <span class="number">4096</span>);</span><br><span class="line">                munmap(zero, <span class="number">4096</span>);</span><br><span class="line">                <span class="built_in">close</span>(fd);</span><br><span class="line">                <span class="keyword">return</span> EXIT_SUCCESS;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        sleep(<span class="number">2</span>);</span><br><span class="line">        <span class="built_in">strcpy</span>(anon, str2);</span><br><span class="line">        <span class="built_in">strcpy</span>(zero, str2);</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"PID %d:\tanonymous %s, zero-backed %s\n"</span>, parpid, anon, zero);</span><br><span class="line">        munmap(anon, <span class="number">4096</span>);</span><br><span class="line">        munmap(zero, <span class="number">4096</span>);</span><br><span class="line">        <span class="built_in">close</span>(fd);</span><br><span class="line">        <span class="keyword">return</span> EXIT_SUCCESS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码的输出是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PID 22475:      anonymous string 1, zero-backed string 1</span><br><span class="line">PID 22476:      anonymous string 1, zero-backed string 1</span><br><span class="line">PID 22475:      anonymous string 2, zero-backed string 2</span><br><span class="line">PID 22476:      anonymous string 2, zero-backed string 2</span><br></pre></td></tr></table></figure>
+
+<p>主要作用是创建了两个匿名映射，父进程和子进程可以通过匿名映射来访问共享的内存。</p>
+<p>mmap和munmap的架构如图所示，与<a href="/p/e84c7fac.html">上篇文章</a>中介绍的<strong>malloc()</strong>工作原理类似：</p>
+<ul>
+<li>应用程序通过libc的API <strong><em>mmap()</em></strong>和<strong><em>munmap()</em></strong>来创建和销毁映射</li>
+<li>libc执行对应的系统调用SYS_mmap和SYS_munmap等</li>
+<li><strong><em>mmap()</em></strong>，内核根据传入的地址，映射长度，文件信息进行<a href="/p/e84c7fac.html#VMA">VMA映射</a>的创建</li>
+<li><strong><em>munmap()</em></strong>则根据地址信息进行VMA映射的删除</li>
+</ul>
+<p><img src="/images/posts/20211113/mmap.png" alt="mmap and munmap" title="mmap and munmap"></p>
+<p>内核实现mmap的核心函数是<strong><em><a href="https://elixir.bootlin.com/linux/latest/source/mm/mmap.c#L1404" target="_blank" rel="noopener">do_mmap()</a></em></strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">do_mmap</span><span class="params">(struct file *file, <span class="keyword">unsigned</span> <span class="keyword">long</span> addr,</span></span></span><br><span class="line"><span class="function"><span class="params">			<span class="keyword">unsigned</span> <span class="keyword">long</span> len, <span class="keyword">unsigned</span> <span class="keyword">long</span> prot,</span></span></span><br><span class="line"><span class="function"><span class="params">			<span class="keyword">unsigned</span> <span class="keyword">long</span> flags, <span class="keyword">unsigned</span> <span class="keyword">long</span> pgoff,</span></span></span><br><span class="line"><span class="function"><span class="params">			<span class="keyword">unsigned</span> <span class="keyword">long</span> *populate, struct list_head *uf)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">mm</span> = <span class="title">current</span>-&gt;<span class="title">mm</span>;</span></span><br><span class="line">.....................</span><br><span class="line">	<span class="keyword">if</span> ((prot &amp; PROT_READ) &amp;&amp; (current-&gt;personality &amp; READ_IMPLIES_EXEC))</span><br><span class="line">		<span class="keyword">if</span> (!(file &amp;&amp; path_noexec(&amp;file-&gt;f_path)))</span><br><span class="line">			prot |= PROT_EXEC;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* force arch specific MAP_FIXED handling in get_unmapped_area */</span></span><br><span class="line">	<span class="keyword">if</span> (flags &amp; MAP_FIXED_NOREPLACE)</span><br><span class="line">		flags |= MAP_FIXED;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!(flags &amp; MAP_FIXED))</span><br><span class="line">		addr = round_hint_to_min(addr);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Careful about overflows.. */</span></span><br><span class="line">	len = PAGE_ALIGN(len);</span><br><span class="line">	<span class="keyword">if</span> (!len)</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* offset overflow? */</span></span><br><span class="line">	<span class="keyword">if</span> ((pgoff + (len &gt;&gt; PAGE_SHIFT)) &lt; pgoff)</span><br><span class="line">		<span class="keyword">return</span> -EOVERFLOW;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Too many mappings? */</span></span><br><span class="line">	<span class="keyword">if</span> (mm-&gt;map_count &gt; sysctl_max_map_count)</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line">.........</span><br><span class="line">	<span class="keyword">if</span> (flags &amp; MAP_NORESERVE) &#123;</span><br><span class="line">		<span class="comment">/* We honor MAP_NORESERVE if allowed to overcommit */</span></span><br><span class="line">		<span class="keyword">if</span> (sysctl_overcommit_memory != OVERCOMMIT_NEVER)</span><br><span class="line">			vm_flags |= VM_NORESERVE;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* hugetlb applies strict overcommit unless MAP_NORESERVE */</span></span><br><span class="line">		<span class="keyword">if</span> (file &amp;&amp; is_file_hugepages(file))</span><br><span class="line">			vm_flags |= VM_NORESERVE;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	addr = mmap_region(file, addr, len, vm_flags, pgoff, uf);</span><br><span class="line">	<span class="keyword">if</span> (!IS_ERR_VALUE(addr) &amp;&amp;</span><br><span class="line">	    ((vm_flags &amp; VM_LOCKED) ||</span><br><span class="line">	     (flags &amp; (MAP_POPULATE | MAP_NONBLOCK)) == MAP_POPULATE))</span><br><span class="line">		*populate = len;</span><br><span class="line">	<span class="keyword">return</span> addr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该函数主要就是根据输入参数做一系列检查，并根据参数配置vm_flags，最终传入<strong><em>mmap_region()</em></strong>函数开始创建映射。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">mmap_region</span><span class="params">(struct file *file, <span class="keyword">unsigned</span> <span class="keyword">long</span> addr,</span></span></span><br><span class="line"><span class="function"><span class="params">		<span class="keyword">unsigned</span> <span class="keyword">long</span> len, <span class="keyword">vm_flags_t</span> vm_flags, <span class="keyword">unsigned</span> <span class="keyword">long</span> pgoff,</span></span></span><br><span class="line"><span class="function"><span class="params">		struct list_head *uf)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">mm</span> = <span class="title">current</span>-&gt;<span class="title">mm</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">vma</span>, *<span class="title">prev</span>, *<span class="title">merge</span>;</span></span><br><span class="line">	<span class="keyword">int</span> error;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rb_node</span> **<span class="title">rb_link</span>, *<span class="title">rb_parent</span>;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> charged = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Check against address space limit. */</span></span><br><span class="line">	<span class="keyword">if</span> (!may_expand_vm(mm, vm_flags, len &gt;&gt; PAGE_SHIFT)) &#123;</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> nr_pages;</span><br><span class="line">		nr_pages = count_vma_pages_range(mm, addr, addr + len);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!may_expand_vm(mm, vm_flags,</span><br><span class="line">					(len &gt;&gt; PAGE_SHIFT) - nr_pages))</span><br><span class="line">			<span class="keyword">return</span> -ENOMEM;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Clear old maps, set up prev, rb_link, rb_parent, and uf */</span></span><br><span class="line">	<span class="keyword">if</span> (munmap_vma_range(mm, addr, len, &amp;prev, &amp;rb_link, &amp;rb_parent, uf))</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Private writable mapping: check memory availability</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (accountable_mapping(file, vm_flags)) &#123;</span><br><span class="line">		charged = len &gt;&gt; PAGE_SHIFT;</span><br><span class="line">		<span class="keyword">if</span> (security_vm_enough_memory_mm(mm, charged))</span><br><span class="line">			<span class="keyword">return</span> -ENOMEM;</span><br><span class="line">		vm_flags |= VM_ACCOUNT;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	vma = vma_merge(mm, prev, addr, addr + len, vm_flags,</span><br><span class="line">			<span class="literal">NULL</span>, file, pgoff, <span class="literal">NULL</span>, NULL_VM_UFFD_CTX);</span><br><span class="line">	<span class="keyword">if</span> (vma)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	vma = vm_area_alloc(mm);</span><br><span class="line">	<span class="keyword">if</span> (!vma) &#123;</span><br><span class="line">		error = -ENOMEM;</span><br><span class="line">		<span class="keyword">goto</span> unacct_error;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	vma-&gt;vm_start = addr;</span><br><span class="line">	vma-&gt;vm_end = addr + len;</span><br><span class="line">	vma-&gt;vm_flags = vm_flags;</span><br><span class="line">	vma-&gt;vm_page_prot = vm_get_page_prot(vm_flags);</span><br><span class="line">	vma-&gt;vm_pgoff = pgoff;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (file) &#123;</span><br><span class="line">		<span class="keyword">if</span> (vm_flags &amp; VM_SHARED) &#123;</span><br><span class="line">			error = mapping_map_writable(file-&gt;f_mapping);</span><br><span class="line">			<span class="keyword">if</span> (error)</span><br><span class="line">				<span class="keyword">goto</span> free_vma;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		vma-&gt;vm_file = get_file(file);</span><br><span class="line">		error = call_mmap(file, vma);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> unmap_and_free_vma;</span><br><span class="line"></span><br><span class="line">		WARN_ON_ONCE(addr != vma-&gt;vm_start);</span><br><span class="line"></span><br><span class="line">		addr = vma-&gt;vm_start;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* If vm_flags changed after call_mmap(), we should try merge vma again</span></span><br><span class="line"><span class="comment">		 * as we may succeed this time.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (unlikely(vm_flags != vma-&gt;vm_flags &amp;&amp; prev)) &#123;</span><br><span class="line">			merge = vma_merge(mm, prev, vma-&gt;vm_start, vma-&gt;vm_end, vma-&gt;vm_flags,</span><br><span class="line">				<span class="literal">NULL</span>, vma-&gt;vm_file, vma-&gt;vm_pgoff, <span class="literal">NULL</span>, NULL_VM_UFFD_CTX);</span><br><span class="line">			<span class="keyword">if</span> (merge) &#123;</span><br><span class="line">				<span class="comment">/* -&gt;mmap() can change vma-&gt;vm_file and fput the original file. So</span></span><br><span class="line"><span class="comment">				 * fput the vma-&gt;vm_file here or we would add an extra fput for file</span></span><br><span class="line"><span class="comment">				 * and cause general protection fault ultimately.</span></span><br><span class="line"><span class="comment">				 */</span></span><br><span class="line">				fput(vma-&gt;vm_file);</span><br><span class="line">				vm_area_free(vma);</span><br><span class="line">				vma = merge;</span><br><span class="line">				<span class="comment">/* Update vm_flags to pick up the change. */</span></span><br><span class="line">				vm_flags = vma-&gt;vm_flags;</span><br><span class="line">				<span class="keyword">goto</span> unmap_writable;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		vm_flags = vma-&gt;vm_flags;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (vm_flags &amp; VM_SHARED) &#123;</span><br><span class="line">		error = shmem_zero_setup(vma);</span><br><span class="line">		<span class="keyword">if</span> (error)</span><br><span class="line">			<span class="keyword">goto</span> free_vma;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		vma_set_anonymous(vma);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Allow architectures to sanity-check the vm_flags */</span></span><br><span class="line">	<span class="keyword">if</span> (!arch_validate_flags(vma-&gt;vm_flags)) &#123;</span><br><span class="line">		error = -EINVAL;</span><br><span class="line">		<span class="keyword">if</span> (file)</span><br><span class="line">			<span class="keyword">goto</span> unmap_and_free_vma;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			<span class="keyword">goto</span> free_vma;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	vma_link(mm, vma, prev, rb_link, rb_parent);</span><br><span class="line">	<span class="comment">/* Once vma denies write, undo our temporary denial count */</span></span><br><span class="line">unmap_writable:</span><br><span class="line">	<span class="keyword">if</span> (file &amp;&amp; vm_flags &amp; VM_SHARED)</span><br><span class="line">		mapping_unmap_writable(file-&gt;f_mapping);</span><br><span class="line">	file = vma-&gt;vm_file;</span><br><span class="line">out:</span><br><span class="line">	perf_event_mmap(vma);</span><br><span class="line"></span><br><span class="line">	vm_stat_account(mm, vm_flags, len &gt;&gt; PAGE_SHIFT);</span><br><span class="line">	<span class="keyword">if</span> (vm_flags &amp; VM_LOCKED) &#123;</span><br><span class="line">		<span class="keyword">if</span> ((vm_flags &amp; VM_SPECIAL) || vma_is_dax(vma) ||</span><br><span class="line">					is_vm_hugetlb_page(vma) ||</span><br><span class="line">					vma == get_gate_vma(current-&gt;mm))</span><br><span class="line">			vma-&gt;vm_flags &amp;= VM_LOCKED_CLEAR_MASK;</span><br><span class="line">		<span class="keyword">else</span></span><br><span class="line">			mm-&gt;locked_vm += (len &gt;&gt; PAGE_SHIFT);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (file)</span><br><span class="line">		uprobe_mmap(vma);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * New (or expanded) vma always get soft dirty status.</span></span><br><span class="line"><span class="comment">	 * Otherwise user-space soft-dirty page tracker won't</span></span><br><span class="line"><span class="comment">	 * be able to distinguish situation when vma area unmapped,</span></span><br><span class="line"><span class="comment">	 * then new mapped in-place (which must be aimed as</span></span><br><span class="line"><span class="comment">	 * a completely new data area).</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	vma-&gt;vm_flags |= VM_SOFTDIRTY;</span><br><span class="line">	vma_set_page_prot(vma);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> addr;</span><br><span class="line">........</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong><em>mmap_region()</em></strong>函数的实现也比较简单，这里不做过多解释。值得注意的是：如果传入的文件为空，则表示创建匿名映射。若连共享标记VM_SHARED也未指定，则与使用malloc()分配内存相同，仅为对应虚拟地址创建内存映射。</p>
+<p><strong><em>munmap()</em></strong>的内核实现仅为移除对应VMA映射，本文也不再做分析。</p>
+<h2 id="反向映射"><a href="#反向映射" class="headerlink" title="反向映射"></a>反向映射</h2><p><a href="https://lwn.net/Articles/23732/" target="_blank" rel="noopener">反向映射</a>的作用是给定物理页面，找到与其对应的所有进程的VMA。为什么会有这样的查找呢？这是因为所有进程的虚拟内存总大小往往远大于物理内存，为了支撑Linux系统的有效运作，内核在管理内存时，会将暂时不用的物理内存页换出到磁盘上，在有需要时再换入到内存中。</p>
+<p>这种情况下，如何确定该物理内存有哪些进程正在使用？这便需要反向映射。</p>
+<p>系统中内存页很多，在管理反向映射时，即使引入很小的数据结构，也会带来很大的额外内存开销。同时，因为反向映射使用比较频繁，也需要最优化查找效率，避免成为系统瓶颈。</p>
+<p>回顾一下<strong><em>struct page</em></strong>，为了节省管理开销，其定义了很多联合体。其中与逆向映射有关的储存在mapping，_mapcount，index等成员中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">page</span> &#123;</span></span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span>	<span class="comment">/* Page cache and anonymous pages */</span></span><br><span class="line">			<span class="comment">/**</span></span><br><span class="line"><span class="comment">			 * @lru: Pageout list, eg. active_list protected by</span></span><br><span class="line"><span class="comment">			 * lruvec-&gt;lru_lock.  Sometimes used as a generic list</span></span><br><span class="line"><span class="comment">			 * by the page owner.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">lru</span>;</span></span><br><span class="line">			<span class="comment">/* See page-flags.h for PAGE_MAPPING_FLAGS */</span></span><br><span class="line">			<span class="class"><span class="keyword">struct</span> <span class="title">address_space</span> *<span class="title">mapping</span>;</span></span><br><span class="line">			<span class="keyword">pgoff_t</span> index;		<span class="comment">/* Our offset within mapping. */</span></span><br><span class="line">			<span class="comment">/**</span></span><br><span class="line"><span class="comment">			 * @private: Mapping-private opaque data.</span></span><br><span class="line"><span class="comment">			 * Usually used for buffer_heads if PagePrivate.</span></span><br><span class="line"><span class="comment">			 * Used for swp_entry_t if PageSwapCache.</span></span><br><span class="line"><span class="comment">			 * Indicates order in the buddy system if PageBuddy.</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">private</span>;</span><br><span class="line">		&#125;;</span><br><span class="line">.............</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">union</span> &#123;		<span class="comment">/* This union is 4 bytes in size. */</span></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * If the page can be mapped to userspace, encodes the number</span></span><br><span class="line"><span class="comment">		 * of times this page is referenced by a page table.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">atomic_t</span> _mapcount;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">int</span> page_type;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">int</span> active;		<span class="comment">/* SLAB */</span></span><br><span class="line">		<span class="keyword">int</span> units;			<span class="comment">/* SLOB */</span></span><br><span class="line">	&#125;;</span><br><span class="line">.............</span><br><span class="line">&#125; _struct_page_alignment;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://lwn.net/Articles/23732/" target="_blank" rel="noopener">内核文档</a>对这种映射有个直观的描述如下图:</p>
+<p><img src="https://static.lwn.net/images/ns/ormap.png" alt="反向映射图示" title="反向映射图示"></p>
+<p>简单一点讲：物理页结构体<strong><em>struct page</em></strong>使用<strong><em>mapping</em></strong>成员查找所有该页对应的VMA，从而找到所有正在使用该物理页的虚拟页。</p>
+<p>mapping成员查找VMA的方法并非如上图那样容易理解。实际需要考虑很多情况，因此内核设计了如下数据结构：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The anon_vma heads a list of private "related" vmas, to scan if</span></span><br><span class="line"><span class="comment"> * an anonymous page pointing to this anon_vma needs to be unmapped:</span></span><br><span class="line"><span class="comment"> * the vmas on the list will be related by forking, or by splitting.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Since vmas come and go as they are split and merged (particularly</span></span><br><span class="line"><span class="comment"> * in mprotect), the mapping field of an anonymous page cannot point</span></span><br><span class="line"><span class="comment"> * directly to a vma: instead it points to an anon_vma, on whose list</span></span><br><span class="line"><span class="comment"> * the related vmas can be easily linked or unlinked.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * After unlinking the last vma on the list, we must garbage collect</span></span><br><span class="line"><span class="comment"> * the anon_vma object itself: we're guaranteed no page can be</span></span><br><span class="line"><span class="comment"> * pointing to this anon_vma once its vma list is empty.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">root</span>;</span>		<span class="comment">/* Root of this anon_vma tree */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rw_semaphore</span> <span class="title">rwsem</span>;</span>	<span class="comment">/* W: modification, R: walking the list */</span></span><br><span class="line">	<span class="keyword">atomic_t</span> refcount;</span><br><span class="line">	<span class="keyword">unsigned</span> degree;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">parent</span>;</span>	<span class="comment">/* Parent of this anon_vma */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rb_root_cached</span> <span class="title">rb_root</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The copy-on-write semantics of fork mean that an anon_vma</span></span><br><span class="line"><span class="comment"> * can become associated with multiple processes. Furthermore,</span></span><br><span class="line"><span class="comment"> * each child process will have its own anon_vma, where new</span></span><br><span class="line"><span class="comment"> * pages for that process are instantiated.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * This structure allows us to find the anon_vmas associated</span></span><br><span class="line"><span class="comment"> * with a VMA, or the VMAs associated with an anon_vma.</span></span><br><span class="line"><span class="comment"> * The "same_vma" list contains the anon_vma_chains linking</span></span><br><span class="line"><span class="comment"> * all the anon_vmas associated with this VMA.</span></span><br><span class="line"><span class="comment"> * The "rb" field indexes on an interval tree the anon_vma_chains</span></span><br><span class="line"><span class="comment"> * which link all the VMAs associated with this anon_vma.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">anon_vma_chain</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">vma</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">anon_vma</span> *<span class="title">anon_vma</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">same_vma</span>;</span>   <span class="comment">/* locked by mmap_lock &amp; page_table_lock */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rb_node</span> <span class="title">rb</span>;</span>			<span class="comment">/* locked by anon_vma-&gt;rwsem */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> rb_subtree_last;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_DEBUG_VM_RB</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> cached_vma_start, cached_vma_last;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>事实上，数据结构定义有描述为什么需要这样的数据结构而不是直接由mapping指向vma_area_struct。即：vm_area_struct可能会被合并、拆分等。</p>
+<p>下图描述了当fork一个新进程时，反向映射相关字段的变化状况。</p>
+<ul>
+<li>Fork新进程会将每个VM area(vm_area_struct)进行复制</li>
+<li>将每一个VM area的anon_vma_chain链表的anon_vma_chain进行复制，并与父进程的anon_vma关联</li>
+<li>对每个VM area，创建新的anon_vma和anon_vma_chain，与父进程的anon_vma关联</li>
+</ul>
+<p>这样的关联建立起来后，通过物理页结构体struct page就可以查找到所有的关联VM area。</p>
+<p><img src="/images/posts/20211113/mmap2.png" alt="反向映射数据结构关系" title="反向映射数据结构关系"></p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>本文概要介绍了mmap和反向映射的原理。</p>
+<ul>
+<li>mmap主要用于用户空间态进程映射一段虚拟地址，用以共享、分配内存或者使用访问内存的方式来访问文件节点。</li>
+<li>反向映射用于内核查找一个物理页面对应的所有虚拟地址，以便系统换页时使用。</li>
+</ul>
+<p>内存管理系统内容纷繁，也是内核工作者集体智慧的结晶，笔者在理解时不免有遗失或者偏差之处。如您有问题或者建议，请留言提出讨论。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/e84c7fac.html" rel="bookmark">Linux内核内存管理 - 进程内存</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/db78840c.html" rel="bookmark">Linux内核内存管理 - 缺页异常处理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8f5117c5.html" rel="bookmark">Linux内核内存管理 - 从内核启动过程透视内存管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/94b22c5d.html" rel="bookmark">Linux内核内存管理 - 初始化C代码中的内存处理概览</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/61304bbb.html" rel="bookmark">Linux内核内存管理 - 内核职责</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/20210923linuxmm4.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/5347665a.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(2)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/37327e44.html" rel="bookmark">Linux内核内存管理 - SLUB</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/75308136.html" rel="bookmark">Linux内核内存管理 - KFENCE</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+              <a href="/tags/进程内存/" rel="tag"># 进程内存</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/e84c7fac.html" rel="next" title="Linux内核内存管理 - 进程内存">
+                  <i class="fa fa-chevron-left"></i> Linux内核内存管理 - 进程内存
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/db78840c.html" rel="prev" title="Linux内核内存管理 - 缺页异常处理">
+                  Linux内核内存管理 - 缺页异常处理 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#mmap和munmap"><span class="nav-number">1.</span> <span class="nav-text">mmap和munmap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反向映射"><span class="nav-number">2.</span> <span class="nav-text">反向映射</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结语"><span class="nav-number">3.</span> <span class="nav-text">结语</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

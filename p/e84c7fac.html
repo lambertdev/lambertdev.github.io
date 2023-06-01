@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第七篇:  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器 第六篇介绍了内存检测工具KFence工作原理">
+<meta name="keywords" content="Linux,内存管理,进程内存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核内存管理 - 进程内存">
+<meta property="og:url" content="http://l2h.site/p/e84c7fac.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第七篇:  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器 第六篇介绍了内存检测工具KFence工作原理">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://l2h.site/images/posts/20211106/arch.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20211106/process_vma.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20211106/Load_ELF.png">
+<meta property="og:image" content="http://l2h.site/images/posts/20211106/vma.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.483Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux内核内存管理 - 进程内存">
+<meta name="twitter:description" content="这是&amp;lt;Linux内核内存管理&amp;gt;系列的第七篇:  第一篇为内核内存管理过程知识点的的简单梳理 第二篇介绍了内核的数据结构 第三篇介绍了从内核第一行代码加载到跳转到C代码前的内存处理。 第四篇概览了初始化C代码中的内存处理 第五篇（上）和第五篇（下）介绍了Memblock和伙伴系统分配器 第六篇介绍了内存检测工具KFence工作原理">
+<meta name="twitter:image" content="http://l2h.site/images/posts/20211106/arch.png">
+  <link rel="canonical" href="http://l2h.site/p/e84c7fac">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux内核内存管理 - 进程内存 | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/e84c7fac.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux内核内存管理 - 进程内存
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2021-11-03 21:45:55" itemprop="dateCreated datePublished" datetime="2021-11-03T21:45:55+08:00">2021-11-03</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux内存管理/" itemprop="url" rel="index"><span itemprop="name">Linux内存管理</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：2.5k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/e84c7fac.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/e84c7fac.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>这是&lt;Linux内核内存管理&gt;系列的第七篇:</p>
+<blockquote>
+<p><a href="/p/61304bbb.html">第一篇</a>为内核内存管理过程知识点的的简单梳理</p>
+<p><a href="/p/1dc6adc2.html">第二篇</a>介绍了内核的数据结构</p>
+<p><a href="/p/8f5117c5.html">第三篇</a>介绍了从内核第一行代码加载到跳转到C代码前的内存处理。</p>
+<p><a href="/p/94b22c5d.html">第四篇</a>概览了初始化C代码中的内存处理</p>
+<p><a href="/p/20210923linuxmm4.html">第五篇（上）</a>和<a href="/p/5347665a.html">第五篇（下）</a>介绍了Memblock和伙伴系统分配器</p>
+<p><a href>第六篇</a>介绍了内存检测工具KFence工作原理</p>
+</blockquote>
+</blockquote><a id="more"></a>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><strong><em><a href="https://man7.org/linux/man-pages/man3/realloc.3.html" target="_blank" rel="noopener">malloc()</a></em></strong> 大概是在Linux平台上用户空间态编程，最常用的内存分配函数。大家可能会想，</p>
+<ul>
+<li><p>这个函数是如何拿到内存的？内核如何为它做的映射？</p>
+</li>
+<li><p>另外，一个可执行程序有自己的代码和静态数据，内核如何将这个可执行程序代码加载到内存中执行？其对应的静态变量，全局变量等所需内存又是如何分配的？</p>
+</li>
+</ul>
+<p>以上问题是开发用户空间态程序时，容易被忽略的、甚至完全不会被注意到的问题。因为这些都是由程序所链接的C库和底层内核实现的，程序开发者往往无需在意这些细节。</p>
+<p>一般情况下，这并不影响大家写出一个像样的程序。但是当面临一些疑难问题时，仅有如何使用C函数的知识，是无法胜任和处理的。</p>
+<p>本文意在从以下几点剖析内核处理进程内存有关的过程:</p>
+<ul>
+<li>进程创建过程的段映射</li>
+<li>进程内存分配过程的堆映射</li>
+</ul>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p>下图简要描述了Linux内存管理架构：</p>
+<ul>
+<li>用户空间态程序使用GLIBC来创建进程或管理内存</li>
+</ul>
+<blockquote>
+<p>这里GLIBC并不是唯一选项，也有许多其替代。例如：<a href="http://musl.libc.org/" target="_blank" rel="noopener">musl Libc</a>, 嵌入式设备常用的<a href="https://www.uclibc.org/about.html" target="_blank" rel="noopener">uClibc</a>等。</p>
+</blockquote>
+<ul>
+<li>内核态和用户空间态处理内存分配和进程管理的接口是系统调用。</li>
+</ul>
+<blockquote>
+<p>当然除了系统调用之外，内核和用户空间态通信方式还有<a href="https://en.wikipedia.org/wiki/Netlink" target="_blank" rel="noopener">Netlink</a>等。</p>
+</blockquote>
+<ul>
+<li><strong><em>malloc()</em></strong>、<strong><em>free()</em></strong>等函数并不会直接跟系统要内存，反而会在必要时才会使用系统调用向内核申请内存。</li>
+<li>启动程序时，使用系统调用<strong><em>fork</em></strong>或者<strong><em>clone</em></strong>创建进程，调用<strong><em>execv</em></strong>加载ELF，为进程创建必要的数据结构、分配必要的内存和页表。</li>
+<li>内核内存管理如系列文章所述，有按页分配的伙伴系统、更小级别的分配器SLAB。</li>
+<li>系统调用通过虚拟地址映射管理VMA来为进程分配和管理内存。</li>
+<li>内核根据需要，会将暂时不需要使用的进程内存换出。而当有使用需求时，再将对应内存换入。这就需要内核的缺页中断处理程序及换页机制来保障。</li>
+</ul>
+<p><img src="/images/posts/20211106/arch.png" alt="Linux内存管理架构" title="Linux内存管理架构"></p>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>内核为每个进程分配了一个数据结构<strong><em>task_struct</em></strong>，而其中管理内存的部分是<strong><em>mm_struct</em></strong>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">mmap</span>;</span>		<span class="comment">/* list of VMAs */</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rb_root</span> <span class="title">mm_rb</span>;</span></span><br><span class="line">....</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> mmap_base;	<span class="comment">/* base of mmap area */</span></span><br><span class="line">...</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> task_size;	<span class="comment">/* size of task vm space */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> highest_vm_end;	<span class="comment">/* highest vma end address */</span></span><br><span class="line">		<span class="keyword">pgd_t</span> * pgd;</span><br><span class="line">...</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">mmlist</span>;</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> total_vm;	   <span class="comment">/* Total pages mapped */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> locked_vm;   <span class="comment">/* Pages that have PG_mlocked set */</span></span><br><span class="line">		<span class="keyword">atomic64_t</span>    pinned_vm;   <span class="comment">/* Refcount permanently increased */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> data_vm;	   <span class="comment">/* VM_WRITE &amp; ~VM_SHARED &amp; ~VM_STACK */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> exec_vm;	   <span class="comment">/* VM_EXEC &amp; ~VM_WRITE &amp; ~VM_STACK */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> stack_vm;	   <span class="comment">/* VM_STACK */</span></span><br><span class="line">...</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> start_code, end_code, start_data, end_data;</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> start_brk, brk, start_stack;</span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">long</span> arg_start, arg_end, env_start, env_end;</span><br><span class="line">...</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">linux_binfmt</span> *<span class="title">binfmt</span>;</span></span><br><span class="line">...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>其中所结构体栏位的意义标注如下图：</p>
+<ul>
+<li>mmap_base指向进程的MMAP空间</li>
+<li>brk和start_brk分别指向进程堆的当前位置（若进程需要申请更大的堆，则从该位置开始分配）和起始地址。</li>
+<li>start_code和end_code分别指向代码段的起始地址和结束地址。</li>
+<li>start_data和end_data分别指向数据段的起始地址和结束地址。</li>
+<li>start_stack指向栈的初始地址。</li>
+<li>除此之外，还有为该进程参数、环境变量所分配的内存(arg_start/arg_end/env_start/env_end)。</li>
+</ul>
+<blockquote>
+<p>以上地址皆为虚拟地址，是内核进程启动的过程中，由内核所初始化。</p>
+</blockquote>
+<ul>
+<li>mmap和mm_rb下管理内核所以为该进程分配的虚拟内存，分别使用红黑树和链表管理。</li>
+<li>pgd指向该进程的页目录</li>
+</ul>
+<p><img src="/images/posts/20211106/process_vma.png" alt="Linux进程内存管理" title="Linux进程内存管理"></p>
+<h2 id="进程创建时内存管理"><a href="#进程创建时内存管理" class="headerlink" title="进程创建时内存管理"></a>进程创建时内存管理</h2><p>您可能会想知道，前一节所提及的那些段地址，内核是如何确定的？其实这跟<a href="https://en.wikipedia.org/wiki/Executable_and_Linkable_Format" target="_blank" rel="noopener">ELF格式</a>有关。</p>
+<ul>
+<li>所有的Linux进程都遵循ELF格式，在链接的过程中，链接器按照<a href="https://sourceware.org/binutils/docs/ld/Scripts.html" target="_blank" rel="noopener">Linker Script</a>的指定将程序打包成ELF。</li>
+</ul>
+<blockquote>
+<p>如果没有明确指定，GCC会指定一个默认的Linker Script</p>
+</blockquote>
+<ul>
+<li>内核创建进程时，会初始化<strong><em>mm_struct</em></strong>。</li>
+<li>内核加载进程的过程中，按照ELF头部信息为该进程分配内存。</li>
+</ul>
+<p>一张图描述上述过程。</p>
+<p><img src="/images/posts/20211106/Load_ELF.png" alt="Linux进程内存初始化" title="Linux进程内存初始化"></p>
+<p>内核加载进程执行，也遵守ELF规范，在此期间为进程分配虚拟内存VMA。</p>
+<h2 id="内存分配"><a href="#内存分配" class="headerlink" title="内存分配"></a>内存分配</h2><h3 id="用户空间态"><a href="#用户空间态" class="headerlink" title="用户空间态"></a>用户空间态</h3><p>使用musl Libc来对<strong><em>malloc()</em></strong>进行介绍。</p>
+<blockquote>
+<p>没有选择Glibc分析的原因，是因为没有搞懂<strong><em><a href="https://sourceware.org/systemtap/wiki/UserSpaceProbeImplementation" target="_blank" rel="noopener">Systemtap</a></em></strong>的原理。使用musl Libc分析不会影响理解。</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> *__simple_malloc(<span class="keyword">size_t</span> n)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">uintptr_t</span> brk, cur, <span class="built_in">end</span>;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">unsigned</span> mmap_step;</span><br><span class="line">	<span class="keyword">size_t</span> align=<span class="number">1</span>;</span><br><span class="line">	<span class="keyword">void</span> *p;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (n &gt; SIZE_MAX/<span class="number">2</span>) &#123;</span><br><span class="line">		errno = ENOMEM;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (!n) n++;</span><br><span class="line">	<span class="keyword">while</span> (align&lt;n &amp;&amp; align&lt;ALIGN)</span><br><span class="line">		align += align;</span><br><span class="line"></span><br><span class="line">	LOCK(lock);</span><br><span class="line"></span><br><span class="line">	cur += -cur &amp; align<span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (n &gt; <span class="built_in">end</span>-cur) &#123;</span><br><span class="line">		<span class="keyword">size_t</span> req = n - (<span class="built_in">end</span>-cur) + PAGE_SIZE<span class="number">-1</span> &amp; -PAGE_SIZE;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!cur) &#123;</span><br><span class="line">			brk = __syscall(SYS_brk, <span class="number">0</span>);</span><br><span class="line">			brk += -brk &amp; PAGE_SIZE<span class="number">-1</span>;</span><br><span class="line">			cur = <span class="built_in">end</span> = brk;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (brk == <span class="built_in">end</span> &amp;&amp; req &lt; SIZE_MAX-brk</span><br><span class="line">		    &amp;&amp; !traverses_stack_p(brk, brk+req)</span><br><span class="line">		    &amp;&amp; __syscall(SYS_brk, brk+req)==brk+req) &#123;</span><br><span class="line">			brk = <span class="built_in">end</span> += req;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">int</span> new_area = <span class="number">0</span>;</span><br><span class="line">			req = n + PAGE_SIZE<span class="number">-1</span> &amp; -PAGE_SIZE;</span><br><span class="line">			<span class="comment">/* Only make a new area rather than individual mmap</span></span><br><span class="line"><span class="comment">			 * if wasted space would be over 1/8 of the map. */</span></span><br><span class="line">			<span class="keyword">if</span> (req-n &gt; req/<span class="number">8</span>) &#123;</span><br><span class="line">				<span class="comment">/* Geometric area size growth up to 64 pages,</span></span><br><span class="line"><span class="comment">				 * bounding waste by 1/8 of the area. */</span></span><br><span class="line">				<span class="keyword">size_t</span> <span class="built_in">min</span> = PAGE_SIZE&lt;&lt;(mmap_step/<span class="number">2</span>);</span><br><span class="line">				<span class="keyword">if</span> (<span class="built_in">min</span>-n &gt; <span class="built_in">end</span>-cur) &#123;</span><br><span class="line">					<span class="keyword">if</span> (req &lt; <span class="built_in">min</span>) &#123;</span><br><span class="line">						req = <span class="built_in">min</span>;</span><br><span class="line">						<span class="keyword">if</span> (mmap_step &lt; <span class="number">12</span>)</span><br><span class="line">							mmap_step++;</span><br><span class="line">					&#125;</span><br><span class="line">					new_area = <span class="number">1</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">void</span> *mem = __mmap(<span class="number">0</span>, req, PROT_READ|PROT_WRITE,</span><br><span class="line">				MAP_PRIVATE|MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">			<span class="keyword">if</span> (mem == MAP_FAILED || !new_area) &#123;</span><br><span class="line">				UNLOCK(lock);</span><br><span class="line">				<span class="keyword">return</span> mem==MAP_FAILED ? <span class="number">0</span> : mem;</span><br><span class="line">			&#125;</span><br><span class="line">			cur = (<span class="keyword">uintptr_t</span>)mem;</span><br><span class="line">			<span class="built_in">end</span> = cur + req;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	p = (<span class="keyword">void</span> *)cur;</span><br><span class="line">	cur += n;</span><br><span class="line">	UNLOCK(lock);</span><br><span class="line">	<span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br><span class="line">weak_alias(__simple_malloc, __libc_malloc_impl);</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> *__libc_malloc(<span class="keyword">size_t</span> n)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> __libc_malloc_impl(n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码比较容易理解,我们只关注其中<strong><em>__syscall(SYS_brk, ….)</em></strong>。它的作用就是使用brk这个系统调用向内核要内存。</p>
+<blockquote>
+<p> <strong><em>weak_alias</em></strong>的定义如下：</p>
+</blockquote>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#<span class="meta">#<span class="meta-keyword">define</span> weak_alias(old,new) __attribute__((__weak__, __alias__(old)))</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>其中<a href="https://gcc.gnu.org/onlinedocs/gcc-4.3.5/gcc/Function-Attributes.html" target="_blank" rel="noopener">Weak Alias</a>的意义即给<strong><em>old</em></strong> symbol设置一个别名<strong><em>new</em></strong>。</p>
+</blockquote>
+<h3 id="内核空间态"><a href="#内核空间态" class="headerlink" title="内核空间态"></a>内核空间态</h3><p>内核空间态处理brk系统调用的代码如下：</p>
+<ul>
+<li>首先做一些必要的检查，如检查所申请的堆大小是否超过系统的rlimit，出错则退出返回错误。解释如下：</li>
+</ul>
+<blockquote>
+<p><strong>RLIMIT_DATA</strong></p>
+<p>The maximum size of the process’s data segment (initialized data, uninitialized data, and heap). This limit affects calls to <strong><a href="https://linux.die.net/man/2/brk" target="_blank" rel="noopener">brk</a></strong>(2) and <strong><a href="https://linux.die.net/man/2/sbrk" target="_blank" rel="noopener">sbrk</a></strong>(2), which fail with the error <strong>ENOMEM</strong> upon encountering the soft limit of this resource.</p>
+</blockquote>
+<ul>
+<li>如果当前brk大于所需brk，则将多出的部分从该进程的堆VM映射中移除并返回。</li>
+<li>如果当前brk小于所需brk，则为其扩展堆的VM映射并返回。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE1(brk, <span class="keyword">unsigned</span> <span class="keyword">long</span>, brk)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> newbrk, oldbrk, origbrk;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">mm</span> = <span class="title">current</span>-&gt;<span class="title">mm</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span> *<span class="title">next</span>;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> min_brk;</span><br><span class="line">	<span class="keyword">bool</span> populate;</span><br><span class="line">	<span class="keyword">bool</span> downgraded = <span class="literal">false</span>;</span><br><span class="line">	LIST_HEAD(uf);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (mmap_write_lock_killable(mm))</span><br><span class="line">		<span class="keyword">return</span> -EINTR;</span><br><span class="line"></span><br><span class="line">	origbrk = mm-&gt;brk;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_COMPAT_BRK</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * CONFIG_COMPAT_BRK can still be overridden by setting</span></span><br><span class="line"><span class="comment">	 * randomize_va_space to 2, which will still cause mm-&gt;start_brk</span></span><br><span class="line"><span class="comment">	 * to be arbitrarily shifted</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (current-&gt;brk_randomized)</span><br><span class="line">		min_brk = mm-&gt;start_brk;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		min_brk = mm-&gt;end_data;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">	min_brk = mm-&gt;start_brk;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	<span class="keyword">if</span> (brk &lt; min_brk)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Check against rlimit here. If this check is done later after the test</span></span><br><span class="line"><span class="comment">	 * of oldbrk with newbrk then it can escape the test and let the data</span></span><br><span class="line"><span class="comment">	 * segment grow beyond its set limit the in case where the limit is</span></span><br><span class="line"><span class="comment">	 * not page aligned -Ram Gupta</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (check_data_rlimit(rlimit(RLIMIT_DATA), brk, mm-&gt;start_brk,</span><br><span class="line">			      mm-&gt;end_data, mm-&gt;start_data))</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	newbrk = PAGE_ALIGN(brk);</span><br><span class="line">	oldbrk = PAGE_ALIGN(mm-&gt;brk);</span><br><span class="line">	<span class="keyword">if</span> (oldbrk == newbrk) &#123;</span><br><span class="line">		mm-&gt;brk = brk;</span><br><span class="line">		<span class="keyword">goto</span> success;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Always allow shrinking brk.</span></span><br><span class="line"><span class="comment">	 * __do_munmap() may downgrade mmap_lock to read.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (brk &lt;= mm-&gt;brk) &#123;</span><br><span class="line">		<span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * mm-&gt;brk must to be protected by write mmap_lock so update it</span></span><br><span class="line"><span class="comment">		 * before downgrading mmap_lock. When __do_munmap() fails,</span></span><br><span class="line"><span class="comment">		 * mm-&gt;brk will be restored from origbrk.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		mm-&gt;brk = brk;</span><br><span class="line">		ret = __do_munmap(mm, newbrk, oldbrk-newbrk, &amp;uf, <span class="literal">true</span>);</span><br><span class="line">		<span class="keyword">if</span> (ret &lt; <span class="number">0</span>) &#123;</span><br><span class="line">			mm-&gt;brk = origbrk;</span><br><span class="line">			<span class="keyword">goto</span> out;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> (ret == <span class="number">1</span>) &#123;</span><br><span class="line">			downgraded = <span class="literal">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">goto</span> success;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Check against existing mmap mappings. */</span></span><br><span class="line">	next = find_vma(mm, oldbrk);</span><br><span class="line">	<span class="keyword">if</span> (next &amp;&amp; newbrk + PAGE_SIZE &gt; vm_start_gap(next))</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Ok, looks good - let it rip. */</span></span><br><span class="line">	<span class="keyword">if</span> (do_brk_flags(oldbrk, newbrk-oldbrk, <span class="number">0</span>, &amp;uf) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	mm-&gt;brk = brk;</span><br><span class="line"></span><br><span class="line">success:</span><br><span class="line">	populate = newbrk &gt; oldbrk &amp;&amp; (mm-&gt;def_flags &amp; VM_LOCKED) != <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">if</span> (downgraded)</span><br><span class="line">		mmap_read_unlock(mm);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		mmap_write_unlock(mm);</span><br><span class="line">	userfaultfd_unmap_complete(mm, &amp;uf);</span><br><span class="line">	<span class="keyword">if</span> (populate)</span><br><span class="line">		mm_populate(oldbrk, newbrk - oldbrk);</span><br><span class="line">	<span class="keyword">return</span> brk;</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	mmap_write_unlock(mm);</span><br><span class="line">	<span class="keyword">return</span> origbrk;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="VMA"><a href="#VMA" class="headerlink" title="VMA"></a>VMA</h2><p>要更进一步理解以上过程，皆需理解VMA的管理方式。引用&lt;深入理解Linux内核架构&gt;一书的介绍：</p>
+<p><img src="/images/posts/20211106/vma.png" alt="VMA管理" title="VMA管理"></p>
+<ul>
+<li><p>如果一个新区域紧接着现存区域前后直接添加(因此也包括在两个现存区域之间的情况)，内核将涉及的数据结构合并为一个。当然，前提是涉及的所有区域的访问权限相同，而且是从同一后备存储器映射的连续数据。</p>
+</li>
+<li><p>如果在区域的开始或结束处进行删除，则必须据此截断现存的数据结构。</p>
+</li>
+<li><p>如果删除两个区域之间的一个区域，那么一方面需要减小现存数据结构的长度，另一方面需</p>
+<p>要为形成的新区域创建一个新的数据结构。</p>
+</li>
+</ul>
+<p>代码部分不做进一步分析，大家可以直接看<a href="https://elixir.bootlin.com/linux/latest/source/include/linux/mm.h#L2713" target="_blank" rel="noopener">内核源码</a>或者找相关资料学习。</p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>本文概要介绍了Linux内核对进程内存的管理方式。主要有：</p>
+<ul>
+<li>进程内存管理架构</li>
+<li>进程加载执行时内存分配</li>
+<li>堆管理</li>
+<li>VMA的管理方式</li>
+</ul>
+<p>进程内存管理还涉及到以下知识，将会在之后的文章中介绍：</p>
+<ul>
+<li>内存映射mmap</li>
+<li>反向映射</li>
+<li>缺页管理</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8cc7cf15.html" rel="bookmark">Linux内核内存管理 - 文件mmap映射和反向映射</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/db78840c.html" rel="bookmark">Linux内核内存管理 - 缺页异常处理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8f5117c5.html" rel="bookmark">Linux内核内存管理 - 从内核启动过程透视内存管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/94b22c5d.html" rel="bookmark">Linux内核内存管理 - 初始化C代码中的内存处理概览</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/61304bbb.html" rel="bookmark">Linux内核内存管理 - 内核职责</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/20210923linuxmm4.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(1)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/5347665a.html" rel="bookmark">Linux内核内存管理 - Memblock和Buddy System(2)</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/37327e44.html" rel="bookmark">Linux内核内存管理 - SLUB</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/75308136.html" rel="bookmark">Linux内核内存管理 - KFENCE</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/内存管理/" rel="tag"># 内存管理</a>
+            
+              <a href="/tags/进程内存/" rel="tag"># 进程内存</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/7ccf1cb6.html" rel="next" title="MAC运行Virtual Box时"The support driver is not installed"解决">
+                  <i class="fa fa-chevron-left"></i> MAC运行Virtual Box时"The support driver is not installed"解决
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/8cc7cf15.html" rel="prev" title="Linux内核内存管理 - 文件mmap映射和反向映射">
+                  Linux内核内存管理 - 文件mmap映射和反向映射 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#架构"><span class="nav-number">2.</span> <span class="nav-text">架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据结构"><span class="nav-number">3.</span> <span class="nav-text">数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#进程创建时内存管理"><span class="nav-number">4.</span> <span class="nav-text">进程创建时内存管理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存分配"><span class="nav-number">5.</span> <span class="nav-text">内存分配</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#用户空间态"><span class="nav-number">5.1.</span> <span class="nav-text">用户空间态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内核空间态"><span class="nav-number">5.2.</span> <span class="nav-text">内核空间态</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#VMA"><span class="nav-number">6.</span> <span class="nav-text">VMA</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结语"><span class="nav-number">7.</span> <span class="nav-text">结语</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

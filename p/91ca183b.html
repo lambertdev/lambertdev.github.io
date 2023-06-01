@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="本文介绍Linux虚拟文件系统的初始化过程。如下图:+—–&amp;gt; start_kernel()||+—–&amp;gt; vfs_caches_init_early()||+—–&amp;gt; vfs_caches_init()|                        +—&amp;gt;new thread(kernel_init)|                        |       +|">
+<meta name="keywords" content="Linux,VFS,文件系统">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux虚拟文件系统（2）-- 初始化流程">
+<meta property="og:url" content="http://l2h.site/p/91ca183b.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="本文介绍Linux虚拟文件系统的初始化过程。如下图:+—–&amp;gt; start_kernel()||+—–&amp;gt; vfs_caches_init_early()||+—–&amp;gt; vfs_caches_init()|                        +—&amp;gt;new thread(kernel_init)|                        |       +|">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.515Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux虚拟文件系统（2）-- 初始化流程">
+<meta name="twitter:description" content="本文介绍Linux虚拟文件系统的初始化过程。如下图:+—–&amp;gt; start_kernel()||+—–&amp;gt; vfs_caches_init_early()||+—–&amp;gt; vfs_caches_init()|                        +—&amp;gt;new thread(kernel_init)|                        |       +|">
+  <link rel="canonical" href="http://l2h.site/p/91ca183b">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Linux虚拟文件系统（2）-- 初始化流程 | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/91ca183b.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Linux虚拟文件系统（2）-- 初始化流程
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2018-08-10 20:36:02" itemprop="dateCreated datePublished" datetime="2018-08-10T20:36:02+08:00">2018-08-10</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/Linux文件系统/" itemprop="url" rel="index"><span itemprop="name">Linux文件系统</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：2.3k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/91ca183b.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/91ca183b.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文介绍Linux虚拟文件系统的初始化过程。如下图:</p><p>+—–&gt; start_kernel()<br>|<br>|<br>+—–&gt; vfs_caches_init_early()<br>|<br>|<br>+—–&gt; vfs_caches_init()<br>|                        +—&gt;new thread(kernel_init)<br>|                        |       +<br>|                        |       |<br>+—–&gt; rest_init()+——       v<br>                           kernel_init_freeable<br>                                 +<br>                                 |<br>                                 v<br>                             do_basic_setup<br>                                 +<br>                                 |<br>                                 v<br>                           prepare_namespace</p><a id="more"></a>
+
+<p>在Linux kernel的入口函数start_kernel中，系统调用vfs_caches_init_early和vfs_caches_init进行必要的初始化。</p>
+<h1 id="vfs-caches-init-early"><a href="#vfs-caches-init-early" class="headerlink" title="vfs_caches_init_early"></a>vfs_caches_init_early</h1><p>Dentry和inode cache是linux为了加速对虚拟文件系统管理，在内存中分配的的hash Cache，用来存放最近访问的inode或dentry节点。 一般而言，最近访问的节点也是最容易被再次访问的。当要访问inode或dentry节点时，先到内存中的cache查找（Hash链表）。如果可以找到，便可以直接使用内存中的节点，否则才到文件系统中去找。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> __init <span class="title">dcache_init_early</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">unsigned</span> <span class="keyword">int</span> loop;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* If hashes are distributed across NUMA nodes, defer</span></span><br><span class="line"><span class="comment">   * hash allocation until vmalloc space is available.</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">  <span class="keyword">if</span> (hashdist)</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">  dentry_hashtable =</span><br><span class="line">    alloc_large_system_hash(<span class="string">"Dentry cache"</span>,</span><br><span class="line">          <span class="keyword">sizeof</span>(struct hlist_bl_head),</span><br><span class="line">          dhash_entries,</span><br><span class="line">          <span class="number">13</span>,</span><br><span class="line">          HASH_EARLY,</span><br><span class="line">          &amp;d_hash_shift,</span><br><span class="line">          &amp;d_hash_mask,</span><br><span class="line">          <span class="number">0</span>,</span><br><span class="line">          <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> (loop = <span class="number">0</span>; loop &lt; (<span class="number">1U</span> &lt;&lt; d_hash_shift); loop++)</span><br><span class="line">    INIT_HLIST_BL_HEAD(dentry_hashtable + loop);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> __init <span class="title">inode_init_early</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> loop;</span><br><span class="line">	<span class="keyword">if</span> (hashdist)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	inode_hashtable =</span><br><span class="line">		alloc_large_system_hash(<span class="string">"Inode-cache"</span>,</span><br><span class="line">					<span class="keyword">sizeof</span>(struct hlist_head),</span><br><span class="line">					ihash_entries,</span><br><span class="line">					<span class="number">14</span>,</span><br><span class="line">					HASH_EARLY,</span><br><span class="line">					&amp;i_hash_shift,</span><br><span class="line">					&amp;i_hash_mask,</span><br><span class="line">					<span class="number">0</span>,</span><br><span class="line">					<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (loop = <span class="number">0</span>; loop &lt; (<span class="number">1U</span> &lt;&lt; i_hash_shift); loop++)</span><br><span class="line">		INIT_HLIST_HEAD(&amp;inode_hashtable[loop]);</span><br><span class="line">&#125;</span><br><span class="line">```C</span><br><span class="line">上述代码可以看出，vfs_caches_init_early创建了inode和dentry cache的hash链表，但是这里并没有分配dentry和inode的cache（vfs_caches_init中才会创建）。Hash 链表的结构如下图所示。</span><br><span class="line"></span><br><span class="line">![Linux虚拟文件系统（<span class="number">2</span>）-- 初始化流程](http:<span class="comment">//pic.l2h.site/l2hsitehlist.png "Linux虚拟文件系统（2）-- 初始化流程")vfs_caches_init</span></span><br><span class="line">=========================================================================================================</span><br><span class="line"></span><br><span class="line">相较于vfs_caches_init_early, vfs_caches_init则会做更多的事情。如下代码</span><br><span class="line">```C</span><br><span class="line"><span class="keyword">void</span> __init vfs_caches_init(<span class="keyword">void</span>)</span><br><span class="line">&#123;</span><br><span class="line">  names_cachep = kmem_cache_create(<span class="string">"names_cache"</span>, PATH_MAX, <span class="number">0</span>,</span><br><span class="line">      SLAB_HWCACHE_ALIGN|SLAB_PANIC, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">  dcache_init();   <span class="comment">//初始化dentry cache，此时才会创建cache</span></span><br><span class="line">  inode_init();    <span class="comment">//类上</span></span><br><span class="line">  files_init();    <span class="comment">//初始化文件cache</span></span><br><span class="line">  files_maxfiles_init(); <span class="comment">//初始化系统最大文件数</span></span><br><span class="line">  mnt_init();      <span class="comment">// 初始化文件系统挂载相关资源并挂载特殊文件系统</span></span><br><span class="line">  bdev_cache_init(); <span class="comment">//初始化块设备管理伪文件系统</span></span><br><span class="line">  chrdev_init();   <span class="comment">//初始化字符设备相关</span></span><br><span class="line">&#125;</span><br><span class="line">```C</span><br><span class="line">_dcache_init/inode_init_: 初始化dentry和inode cache，如果没有创建对应的哈希链表，就创建之（前边vfs_caches_init_early已经创建） _files_init_: 根据当前系统内存计算最大文件数</span><br><span class="line"></span><br><span class="line">n = ((totalram_pages - memreserve) * (PAGE_SIZE / <span class="number">1024</span>)) / <span class="number">10</span>;</span><br><span class="line">files_stat.max_files = <span class="keyword">max_t</span>(<span class="keyword">unsigned</span> <span class="keyword">long</span>, n, NR_FILE);</span><br><span class="line"></span><br><span class="line">_mnt_init_：与文件系统mount相关的初始化。细节流程如下：</span><br></pre></td></tr></table></figure>
+
+<p>+———————-+<br>| Create MNT cache and |<br>| MNT cache Hash table |<br>+———–+———-+<br>            |<br>+———–v———-+    +———————+<br>| Create Mount Point   |    | init mount tree     |<br>| Hash Table           |    |                     |<br>+———–+———-+    +———-^———-+<br>            |                          |<br>+———–v———-+    +———-+———-+<br>| kernfs_init()        |    | init_rootfs()       |<br>|                      |    |                     |<br>+———–+———-+    +———-^———-+<br>            |                          |<br>+———–v———-+    +———-+———-+<br>| sysfs_init()         +–&gt; | Register FS folder  |<br>|                      |    | to sysfs            |<br>+———————-+    +———————+</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line">首先，创建struct mount cache及哈希链表，之后创建文件系统加载点（struct mountpoint）Cache Hash。 其中前者为系统中已经Mount的VFS相关信息（包含不同VFS Mount的相互关系），后者主要存放的是系统加载点Dentry。 _kernfs_init_：主要创建kernfs_node的cache。kernfs_node主要为创建kernfs结构的结构体。kernfs的作用引用wiki如下：</span><br><span class="line"></span><br><span class="line">&gt; In the Linux kernel, **kernfs** is a set of functions that contain the functionality required for creating pseudo file systems used internally by various kernel subsystems. The creation of kernfs resulted from splitting off part of the internal logic used by sysfs, which provides a set of virtual files by exporting information about hardware devices and associated device drivers from the kernel&apos;s device model to user space, into an independent and reusable functionality so other kernel subsystems can implement their own pseudo file systems more easily and consistently</span><br><span class="line"></span><br><span class="line">_sysfs_init_：初始化sysfs，并向系统中注册该文件系统。sysfs.txt(Documentation/zh_CN/filesystems/sysfs.txt)对sysfs的简介如下：</span><br><span class="line"></span><br><span class="line">&gt; sysfs 是一个最初基于 ramfs 且位于内存的文件系统。它提供导出内核 数据结构及其属性，以及它们之间的关联到用户空间的方法。sysfs 目录的安排显示了内核数据结构之间的关系。顶层 sysfs 目录如下: block/ bus/ class/ dev/ devices/ firmware/ net/ fs/</span><br><span class="line"></span><br><span class="line">紧接着注册fs目录到sysfs(fs_kobj = kobject_create_and_add(&quot;fs&quot;, NULL);)，即构成sysfs顶级目录的fs目录。 _init_rootfs()_: 主要向系统中注册rootfs与tmpfs文件系统，以及执行Mount</span><br><span class="line">```C</span><br><span class="line">static struct file_system_type rootfs_fs_type = &#123;</span><br><span class="line">  .name		= &quot;rootfs&quot;,</span><br><span class="line">  .mount		= rootfs_mount,</span><br><span class="line">  .kill_sb	= kill_litter_super,</span><br><span class="line">&#125;;</span><br><span class="line">int __init init_rootfs(void)</span><br><span class="line">&#123;</span><br><span class="line">  int err = register_filesystem(&amp;rootfs_fs_type);//注册rootfs到文件系统。注意如果kernel启动的cmd line如果传入了 &quot;root=xxx&quot;，此处便执行不到</span><br><span class="line">  if (err) return err;</span><br><span class="line">  if (IS_ENABLED(CONFIG_TMPFS) &amp;&amp; !saved_root_name[0] &amp;&amp;  //如果kernel config打开CONFIG_TMPFS</span><br><span class="line">    (!root_fs_names || strstr(root_fs_names, &quot;tmpfs&quot;))) &#123; // 如果cmd line没有传入rootfs的类型，便执行shmem 的初始化</span><br><span class="line">    err = shmem_init();      //执行shmem_init</span><br><span class="line">    is_tmpfs = true;</span><br><span class="line">  &#125; else &#123;</span><br><span class="line">    err = init_ramfs_fs();  //注册ramfs</span><br><span class="line">  &#125;</span><br><span class="line">  if (err) unregister_filesystem(&amp;rootfs_fs_type);</span><br><span class="line">  return err;</span><br><span class="line">&#125;</span><br><span class="line">static struct file_system_type shmem_fs_type = &#123;</span><br><span class="line">  .owner		= THIS_MODULE,</span><br><span class="line">  .name		= &quot;tmpfs&quot;,</span><br><span class="line">  .mount		= shmem_mount,  </span><br><span class="line">  .kill_sb	= kill_litter_super,</span><br><span class="line">  .fs_flags	= FS_USERNS_MOUNT,</span><br><span class="line">&#125;;</span><br><span class="line">int __init shmem_init(void)</span><br><span class="line">&#123;</span><br><span class="line">  int error;</span><br><span class="line">  /* If rootfs called this, don&apos;t re-init */</span><br><span class="line">  if (shmem_inode_cachep) return 0;</span><br><span class="line">  error = shmem_init_inodecache();  //初始化shmem的inode cache</span><br><span class="line">  if (error) goto out3;</span><br><span class="line"></span><br><span class="line">  error = register_filesystem(&amp;shmem_fs_type); //注册tmpfs文件系统</span><br><span class="line">  if (error) &#123;</span><br><span class="line">    printk(KERN_ERR &quot;Could not register tmpfs\\n&quot;);</span><br><span class="line">    goto out2;</span><br><span class="line">  &#125;</span><br><span class="line">  shm_mnt = kern_mount(&amp;shmem_fs_type);  //执行shmem的mount调用</span><br><span class="line">  if (IS_ERR(shm_mnt)) &#123;</span><br><span class="line">    error = PTR_ERR(shm_mnt);</span><br><span class="line">    printk(KERN_ERR &quot;Could not kern_mount tmpfs\\n&quot;);</span><br><span class="line">    goto out1;</span><br><span class="line">  &#125;</span><br><span class="line">  return 0;</span><br><span class="line">out1:</span><br><span class="line">  unregister_filesystem(&amp;shmem_fs_type);</span><br><span class="line">out2:</span><br><span class="line">  shmem_destroy_inodecache();</span><br><span class="line">out3:</span><br><span class="line">  shm_mnt = ERR_PTR(error);</span><br><span class="line">  return error;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>之后的文章会介绍shmem的mount，shmem_mount <em>init_mount_tree()</em>: 如其名，初始化文件系统挂载树。代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> __init <span class="title">init_mount_tree</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">vfsmount</span> *<span class="title">mnt</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">mnt_namespace</span> *<span class="title">ns</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">path</span> <span class="title">root</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">file_system_type</span> *<span class="title">type</span>;</span></span><br><span class="line"></span><br><span class="line">  type = get_fs_type(<span class="string">"rootfs"</span>); <span class="comment">//获取已注册到kernel中的rootfs</span></span><br><span class="line">  <span class="keyword">if</span> (!type)</span><br><span class="line">    panic(<span class="string">"Can't find rootfs type"</span>); <span class="comment">//前方init_rootfs已经向系统注册rootfs，若此处找不到，视为异常</span></span><br><span class="line">  mnt = vfs_kern_mount(type, <span class="number">0</span>, <span class="string">"rootfs"</span>, <span class="literal">NULL</span>); <span class="comment">//挂载rootfs，其中会执行对应rootfs的mount callback，具体下一篇文章介绍</span></span><br><span class="line">  put_filesystem(type);</span><br><span class="line">  <span class="keyword">if</span> (IS_ERR(mnt))</span><br><span class="line">    panic(<span class="string">"Can't create rootfs"</span>);</span><br><span class="line"></span><br><span class="line">  ns = create_mnt_ns(mnt);     <span class="comment">//创建mnt命名空间，并将rootfs加入到对应命名空间，作为命名空间的root</span></span><br><span class="line">  <span class="keyword">if</span> (IS_ERR(ns))</span><br><span class="line">    panic(<span class="string">"Can't allocate initial namespace"</span>);</span><br><span class="line"></span><br><span class="line">  init_task.nsproxy-&gt;mnt_ns = ns;</span><br><span class="line">  get_mnt_ns(ns);</span><br><span class="line">  root.mnt = mnt;</span><br><span class="line">  root.dentry = mnt-&gt;mnt_root;</span><br><span class="line">  mnt-&gt;mnt_flags |= MNT_LOCKED;</span><br><span class="line">  set_fs_pwd(current-&gt;fs, &amp;root);   <span class="comment">//设定init进程的当前目录为挂载点的主目录</span></span><br><span class="line">  set_fs_root(current-&gt;fs, &amp;root);  <span class="comment">//设定init进程的root为挂载点的主目录</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至此，vfs_caches_init初始化流程结束</p>
+<h1 id="do-basic-setup"><a href="#do-basic-setup" class="headerlink" title="do_basic_setup"></a>do_basic_setup</h1><p>在rest_init函数中，kernel创建kernel_init线程，该线程会执行do_basic_setup。其执行do_initcalls–&gt;rootfs_initcall(populate_rootfs);–&gt;rootfs_initcall( default_rootfs);    populate_rootfs主要是将打包在initramfs中的cpio档填充到rootfs，而default_rootfs主要创建/dev，/dev/console和/root</p>
+<h1 id="prepare-namespace"><a href="#prepare-namespace" class="headerlink" title="prepare_namespace"></a>prepare_namespace</h1><p>当/sbin/init 或者 init不存在时，便执行prepare_namespace。其主要作用也能够便是挂载MTD device或UBI device到root。这里引用<a href="https://www.ibm.com/developerworks/cn/linux/l-initrd.html" target="_blank" rel="noopener">IBM developworkers</a>的说明对prepare_namespace作介绍如下：</p>
+<blockquote>
+<p>在内核和 initrd 映像被解压并拷贝到内存中之后，内核就会被调用了。它会执行不同的初始化操作，最终您会发现自己到了 <code>init/main.c:init()</code>（subdir/file:function）函数中。这个函数执行了大量的子系统初始化操作。此处会执行一个对 <code>init/do_mounts.c:prepare_namespace()</code> 的调用，这个函数用来准备名称空间（挂载 dev 文件系统、RAID 或 md、设备以及最后的 initrd）。加载 initrd 是通过调用 <code>init/do_mounts_initrd.c:initrd_load()</code> 实现的。 <code>initrd_load()</code> 函数调用了 <code>init/do_mounts_rd.c:rd_load_image()</code>，它通过调用 <code>init/do_mounts_rd.c:identify_ramdisk_image()</code> 来确定要加载哪个 RAM 磁盘。这个函数会检查映像文件的 magic 号来确定它是 minux、etc2、romfs、cramfs 或 gzip 格式。在返回到 <code>initrd_load_image</code> 之前，它还会调用 <code>init/do_mounts_rd:crd_load()</code>。这个函数负责为 RAM 磁盘分配空间，并计算循环冗余校验码（CRC），然后对 RAM 磁盘映像进行解压，并将其加载到内存中。现在，我们在一个适合挂载的块设备中就有了这个 initrd 映像。 现在使用一个 <code>init/do_mounts.c:mount_root()</code> 调用将这个块设备挂载到根文件系统上。它会创建根设备，并调用 <code>init/do_mounts.c:mount_block_root()</code>。在这里调用 <code>init/do_mounts.c:do_mount_root()</code>，后者又会调用 <code>fs/namespace.c:sys_mount()</code> 来真正挂载根文件系统，然后 <code>chdir</code> 到这个文件系统中。这就是我们在清单 6 中所看到的熟悉消息 <code>VFS: Mounted root (ext2 file system).</code> 的地方。 最后，返回到 <code>init</code> 函数中，并调用 <code>init/main.c:run_init_process</code>。这会导致调用 <code>execve</code> 来启动 init 进程（在本例中是 <code>/linuxrc</code>）。linuxrc 可以是一个可执行程序，也可以是一个脚本（条件是它有脚本解释器可用）。这些函数的调用层次结构如下边清单所示。尽管此处并没有列出拷贝和挂载初始 RAM 磁盘所涉及的所有函数，但是这足以为我们提供一个整体流程的粗略框架</p>
+<p>init/main.c:init()<br>  init/do_mounts.c:prepare_namespace()<br>    init/do_mounts_initrd.c:initrd_load()<br>      init/do_mounts_rd.c:rd_load_image()<br>        init/do_mounts_rd.c:identify_ramdisk_image()<br>        init/do_mounts_rd.c:crd_load()<br>          lib/inflate.c:gunzip()<br>    init/do_mounts.c:mount_root()<br>      init/do_mounts.c:mount_block_root()<br>         init/do_mounts.c:do_mount_root()<br>           fs/namespace.c:sys_mount()<br>  init/main.c:run_init_process()<br>    execve</p>
+</blockquote>
+<p>引用Kernel中的README The kernel has currently 3 ways to mount the root filesystem: a) all required device and filesystem drivers compiled into the kernel, no initrd. init/main.c:init() will call prepare_namespace() to mount the final root filesystem, based on the root= option and optional init= to run some other init binary than listed at the end of init/main.c:init(). b) some device and filesystem drivers built as modules and stored in an initrd. The initrd must contain a binary ‘/linuxrc’ which is supposed to load these driver modules. It is also possible to mount the final root filesystem via linuxrc and use the pivot_root syscall. The initrd is mounted and executed via prepare_namespace(). c) using initramfs. The call to prepare_namespace() must be skipped. This means that a binary must do all the work. Said binary can be stored into initramfs either via modifying usr/gen_init_cpio.c or via the new initrd format, an cpio archive. It must be called “/init”. This binary is responsible to do all the things prepare_namespace() would do. To maintain backwards compatibility, the /init binary will only run if it comes via an initramfs cpio archive. If this is not the case, init/main.c:init() will run prepare_namespace() to mount the final root and exec one of the predefined init binaries.</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">Related Posts</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/d3c4cc3d.html" rel="bookmark">Linux虚拟文件系统（1）</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/49330c35.html" rel="bookmark">Linux虚拟文件系统（3）-- VFS系统调用之Mount</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/90e06139.html" rel="bookmark">Linux虚拟文件系统（4）-- 路径名查找</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/47957ed6.html" rel="bookmark">Yaffs文件系统(1)-- 概述</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/2dea932a.html" rel="bookmark">Yaffs文件系统(2)--块及Chunk管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/9d617ede.html" rel="bookmark">Yaffs文件系统(3)-- 检查点(Checkpoint)机制</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/254f2d7d.html" rel="bookmark">YAFFS文件系统(4)– 垃圾回收(GC)机制</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/1dc6adc2.html" rel="bookmark">Linux内核内存管理 - 数据结构</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/8f5117c5.html" rel="bookmark">Linux内核内存管理 - 从内核启动过程透视内存管理</a></div>
+      
+    </li>
+  
+    <li class="popular-posts-item">
+      
+      
+      <div class="popular-posts-title"><a href="/p/94b22c5d.html" rel="bookmark">Linux内核内存管理 - 初始化C代码中的内存处理概览</a></div>
+      
+    </li>
+  
+  </ul>
+
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+            
+              <a href="/tags/VFS/" rel="tag"># VFS</a>
+            
+              <a href="/tags/文件系统/" rel="tag"># 文件系统</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/d3c4cc3d.html" rel="next" title="Linux虚拟文件系统（1）">
+                  <i class="fa fa-chevron-left"></i> Linux虚拟文件系统（1）
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/256b71dc.html" rel="prev" title="假打">
+                  假打 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#vfs-caches-init-early"><span class="nav-number">1.</span> <span class="nav-text">vfs_caches_init_early</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#do-basic-setup"><span class="nav-number">2.</span> <span class="nav-text">do_basic_setup</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#prepare-namespace"><span class="nav-number">3.</span> <span class="nav-text">prepare_namespace</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>

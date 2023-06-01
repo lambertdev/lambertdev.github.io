@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.ico?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="L&H SITE" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"right","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: true,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: 'Copy',
+      copy_success: 'Copied',
+      copy_failure: 'Copy failed'
+    },
+    sidebarPadding: 40
+  };
+</script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7222090566954360"
+     crossorigin="anonymous"></script>
+
+  <meta name="description" content="本文介绍和Zephyr线程的数据结构，及相应的API。  数据结构Zephyr数据结构使用k_thread定义，如下所示：123456789101112131415161718192021222324252627282930313233343536373839struct k_thread &amp;#123;	struct _thread_base base;	struct _callee_saved">
+<meta name="keywords" content="L&amp;H, L&amp;H Site, Site, L2H, L2H Site, Linux, Wordpress, Interrupt">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Zephyr线程管理 - 数据结构与API">
+<meta property="og:url" content="http://l2h.site/p/5b9388b6.html">
+<meta property="og:site_name" content="L&amp;H SITE">
+<meta property="og:description" content="本文介绍和Zephyr线程的数据结构，及相应的API。  数据结构Zephyr数据结构使用k_thread定义，如下所示：123456789101112131415161718192021222324252627282930313233343536373839struct k_thread &amp;#123;	struct _thread_base base;	struct _callee_saved">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://pic.l2h.site/QQMail_0.png">
+<meta property="og:image" content="http://pic.l2h.site/PendSV.png">
+<meta property="og:updated_time" content="2023-06-01T13:14:04.477Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Zephyr线程管理 - 数据结构与API">
+<meta name="twitter:description" content="本文介绍和Zephyr线程的数据结构，及相应的API。  数据结构Zephyr数据结构使用k_thread定义，如下所示：123456789101112131415161718192021222324252627282930313233343536373839struct k_thread &amp;#123;	struct _thread_base base;	struct _callee_saved">
+<meta name="twitter:image" content="http://pic.l2h.site/QQMail_0.png">
+  <link rel="canonical" href="http://l2h.site/p/5b9388b6">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Zephyr线程管理 - 数据结构与API | L&H SITE</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?d8b880a7a50fe4f306c58655c0c8db8a";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">L&H SITE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">两个背包旅行者的网络自留地。分享旅行日记，Linux技术，机器学习，建站技巧</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-about">
+      
+    
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>About</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-tags">
+      
+    
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>Tags</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>Categories</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-works">
+      
+    
+
+    <a href="/works/" rel="section"><i class="fa fa-fw fa-th"></i>Works</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-sitemap">
+      
+    
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a href="javascript:;" class="popup-trigger">
+        
+          <i class="fa fa-search fa-fw"></i>Search</a>
+      </li>
+    
+  </ul>
+
+    
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="Searching..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/lambertdev" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://l2h.site/p/5b9388b6.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Lambert">
+      <meta itemprop="description" content="旅行日记，Linux技术，机器学习，建站技巧">
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="L&H SITE">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Zephyr线程管理 - 数据结构与API
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              
+                
+              
+
+              <time title="Created: 2019-11-16 22:16:35" itemprop="dateCreated datePublished" datetime="2019-11-16T22:16:35+08:00">2019-11-16</time>
+            </span>
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RTOS/" itemprop="url" rel="index"><span itemprop="name">RTOS</span></a></span>
+
+                
+                
+              
+            </span>
+          
+   <span class="post-meta-item"><span class="post-count">总字数：2.2k</span>         </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+        
+      
+      <span class="post-meta-item-text">Valine: </span>
+    
+    <a title="valine" href="/p/5b9388b6.html#comments" itemprop="discussionUrl"><span class="post-comments-count valine-comment-count" data-xid="/p/5b9388b6.html" itemprop="commentCount"></span></a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文介绍和Zephyr线程的数据结构，及相应的API。  </p><h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>Zephyr数据结构使用k_thread定义，如下所示：</p><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">k_thread</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">thread_base</span> <span class="title">base</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">callee_saved</span> <span class="title">callee_saved</span>;</span></span><br><span class="line">	<span class="keyword">void</span> *init_data;</span><br><span class="line">	<span class="keyword">void</span> (*fn_abort)(<span class="keyword">void</span>);</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_THREAD_MONITOR)</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> __<span class="title">thread_entry</span> <span class="title">entry</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">k_thread</span> *<span class="title">next_thread</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_THREAD_NAME)</span></span><br><span class="line">	<span class="keyword">char</span> name[CONFIG_THREAD_MAX_NAME_LEN];</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_THREAD_CUSTOM_DATA</span></span><br><span class="line">	<span class="keyword">void</span> *custom_data;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_THREAD_USERSPACE_LOCAL_DATA</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">thread_userspace_local_data</span> *<span class="title">userspace_local_data</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_ERRNO</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CONFIG_USERSPACE</span></span><br><span class="line">	<span class="keyword">int</span> errno_var;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_THREAD_STACK_INFO)</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">thread_stack_info</span> <span class="title">stack_info</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_THREAD_STACK_INFO */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_USERSPACE)</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">mem_domain_info</span> <span class="title">mem_domain_info</span>;</span></span><br><span class="line">	<span class="keyword">k_thread_stack_t</span> *stack_obj;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_USERSPACE */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_USE_SWITCH)</span></span><br><span class="line">	<span class="keyword">int</span> swap_retval;</span><br><span class="line">	<span class="keyword">void</span> *switch_handle;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">k_mem_pool</span> *<span class="title">resource_pool</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">thread_arch</span> <span class="title">arch</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><a id="more"></a>
+
+
+
+<p>参数说明：</p>
+<ul>
+<li><strong>base</strong>： 存储Thread的基础调度信息结构体。具体如下：<ul>
+<li><strong>qnode_dlist/qnode_rb</strong>: 指向线程在等待/就绪队列的位置</li>
+<li><strong>pended_on</strong>:指向线程所在的等待队列（仅对红黑树等待队列有效）</li>
+<li><strong>user_options</strong>:线程参数</li>
+<li><strong>thread_state</strong>:线程状态</li>
+<li><strong>union(prio/sched_locked/preemt)</strong>: 线程的抢占优先级相关参数</li>
+<li><strong>order_key</strong>:被调度器使用来比对优先级</li>
+<li>SMP相关参数先忽略</li>
+<li><strong>timeout</strong>:指向超时队列中该线程的位置</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">thread_base</span> &#123;</span></span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="keyword">sys_dnode_t</span> qnode_dlist;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rbnode</span> <span class="title">qnode_rb</span>;</span></span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="keyword">_wait_q_t</span> *pended_on;</span><br><span class="line">	<span class="keyword">u8_t</span> user_options;</span><br><span class="line">	<span class="keyword">u8_t</span> thread_state;</span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__</span></span><br><span class="line">			<span class="keyword">u8_t</span> sched_locked;</span><br><span class="line">			<span class="keyword">s8_t</span> prio;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span> <span class="comment">/* LITTLE and PDP */</span></span></span><br><span class="line">			<span class="keyword">s8_t</span> prio;</span><br><span class="line">			<span class="keyword">u8_t</span> sched_locked;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">		&#125;;</span><br><span class="line">		<span class="keyword">u16_t</span> preempt;</span><br><span class="line">	&#125;;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_SCHED_DEADLINE</span></span><br><span class="line">	<span class="keyword">int</span> prio_deadline;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	<span class="keyword">u32_t</span> order_key;</span><br><span class="line"><span class="comment">/*SMP 相关*/</span></span><br><span class="line">	<span class="keyword">void</span> *swap_data;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_SYS_CLOCK_EXISTS</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">timeout</span> <span class="title">timeout</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>_callee_saved</strong>: 与平台相关的一些参数，主要保存一些线程相关寄存器信息。</li>
+<li><strong>init_data</strong>: 线程静态初始化数据</li>
+<li><strong>fn_abort</strong>: 线程取消回调函数</li>
+<li><strong>entry</strong>:Thread入口函数</li>
+<li><strong>next_thread</strong>: Thread链表中下一个线程指针</li>
+<li><strong>name</strong>: Thread名称</li>
+<li><strong>custom_data</strong>: Thread自定义数据</li>
+<li><strong>userspace_local_data</strong>:用户空间态数据</li>
+<li><strong>errno_var</strong>: 错误编号（类似Linux的Errno）</li>
+<li><strong>stack_info</strong>: 栈信息，主要记录栈的开始地址与大小</li>
+<li><strong>mem_domain_info</strong>: 线程内存域信息（用户空间态线程使用）</li>
+<li><strong>stack_obj</strong>: 线程栈地址</li>
+<li><strong>swap_retval</strong>: TBD</li>
+<li><strong>switch_handle</strong>: TBD</li>
+<li><strong>resource_pool</strong>:线程所占用的资源池</li>
+<li><strong>arch</strong>: 体系结构相关的线程数据。因为体系结构不同，所占大小也不相同，为保证其他参数的位置相同，Zephyr将此参数置于线程末尾</li>
+</ul>
+<h2 id="API"><a href="#API" class="headerlink" title="API"></a>API</h2><p>Zephyr定义了一系列的API来使用线程：</p>
+<h3 id="线程创建"><a href="#线程创建" class="headerlink" title="线程创建"></a>线程创建</h3><p>线程创建的函数定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">K_THREAD_DEFINE(my_tid, MY_STACK_SIZE, my_entry_point, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>, MY_PRIORITY, <span class="number">0</span>, K_NO_WAIT);</span><br><span class="line"><span class="function"><span class="keyword">k_tid_t</span> <span class="title">k_thread_create</span><span class="params">(structk_thread *new_thread, <span class="keyword">k_thread_stack_t</span> *<span class="built_in">stack</span>, <span class="keyword">size_t</span> stack_size, <span class="keyword">k_thread_entry_t</span> entry, <span class="keyword">void</span> *p1, <span class="keyword">void</span> *p2, <span class="keyword">void</span> *p3, <span class="keyword">int</span> prio, <span class="keyword">u32_t</span> options, <span class="keyword">s32_t</span> <span class="built_in">delay</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>前者主要用于静态定义线程，而后者主要用于运行时创建线程。线程的静态定义主要就是定义如下结构体（参数明确，不做一一解释）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">static_thread_data</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">k_thread</span> *<span class="title">init_thread</span>;</span></span><br><span class="line">	<span class="keyword">k_thread_stack_t</span> *init_stack;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> init_stack_size;</span><br><span class="line">	<span class="keyword">k_thread_entry_t</span> init_entry;</span><br><span class="line">	<span class="keyword">void</span> *init_p1;</span><br><span class="line">	<span class="keyword">void</span> *init_p2;</span><br><span class="line">	<span class="keyword">void</span> *init_p3;</span><br><span class="line">	<span class="keyword">int</span> init_prio;</span><br><span class="line">	<span class="keyword">u32_t</span> init_options;</span><br><span class="line">	<span class="keyword">s32_t</span> init_delay;</span><br><span class="line">	<span class="keyword">void</span> (*init_abort)(<span class="keyword">void</span>);</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">char</span> *init_name;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>k_thread_create的源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">k_tid_t</span> <span class="title">z_impl_k_thread_create</span><span class="params">(struct k_thread *new_thread,      <span class="comment">//代码注解1</span></span></span></span><br><span class="line"><span class="function"><span class="params">			      <span class="keyword">k_thread_stack_t</span> *<span class="built_in">stack</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">			      <span class="keyword">size_t</span> stack_size, <span class="keyword">k_thread_entry_t</span> entry,</span></span></span><br><span class="line"><span class="function"><span class="params">			      <span class="keyword">void</span> *p1, <span class="keyword">void</span> *p2, <span class="keyword">void</span> *p3,</span></span></span><br><span class="line"><span class="function"><span class="params">			      <span class="keyword">int</span> prio, <span class="keyword">u32_t</span> options, <span class="keyword">s32_t</span> <span class="built_in">delay</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	__ASSERT(!z_arch_is_in_isr(), <span class="string">"Threads may not be created in ISRs"</span>); <span class="comment">//代码注解2</span></span><br><span class="line"></span><br><span class="line">	z_setup_new_thread(new_thread, <span class="built_in">stack</span>, stack_size, entry, p1, p2, p3, prio, options, <span class="literal">NULL</span>); <span class="comment">//代码注解3</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">delay</span> != K_FOREVER) &#123;</span><br><span class="line">		schedule_new_thread(new_thread, <span class="built_in">delay</span>);  <span class="comment">//代码注解4</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> new_thread;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li><strong>代码注解1</strong>： 这里函数名为何是z_impl_k_thread_create而不是k_thread_create。因为Zephyr在编译时使用了脚本来生成系统中API调用。所以在搜索源码时大部分时间只能搜索到z_impl_xxx形式的系统函数定义。不过编译连接前，是可以看得到不带<em>z_impl_</em>形式的API，最终调用的即是z_impl_k_thread_create</li>
+<li><strong>代码注解2</strong>：中断上下文不能创建线程，因为创建线程会需要申请系统资源，也会引起重新调度，带来不可预料的后果</li>
+<li><strong>代码注解3</strong>：创建新线程</li>
+<li><strong>代码注解4</strong>：将线程加入调度</li>
+</ul>
+<p>z_setup_new_thread定义如下(为方便分析，代码做一定简化)：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_setup_new_thread</span><span class="params">(struct k_thread *new_thread, <span class="keyword">k_thread_stack_t</span> *<span class="built_in">stack</span>, <span class="keyword">size_t</span> stack_size, <span class="keyword">k_thread_entry_t</span> entry, <span class="keyword">void</span> *p1, <span class="keyword">void</span> *p2, <span class="keyword">void</span> *p3, <span class="keyword">int</span> prio, <span class="keyword">u32_t</span> options, <span class="keyword">const</span> <span class="keyword">char</span> *name)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	stack_size = adjust_stack_size(stack_size); <span class="comment">//代码注解1</span></span><br><span class="line"></span><br><span class="line">	z_arch_new_thread(new_thread, <span class="built_in">stack</span>, stack_size, entry, p1, p2, p3, prio, options); <span class="comment">//代码注解2</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_THREAD_MONITOR</span></span><br><span class="line">	new_thread-&gt;entry.pEntry = entry;</span><br><span class="line">	new_thread-&gt;entry.parameter1 = p1;</span><br><span class="line">	new_thread-&gt;entry.parameter2 = p2;</span><br><span class="line">	new_thread-&gt;entry.parameter3 = p3;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">k_spinlock_key_t</span> key = k_spin_lock(&amp;lock);</span><br><span class="line"></span><br><span class="line">	new_thread-&gt;next_thread = _kernel.threads;</span><br><span class="line">	_kernel.threads = new_thread;</span><br><span class="line">	k_spin_unlock(&amp;lock, key); <span class="comment">//代码注解3</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_THREAD_NAME</span></span><br><span class="line">	<span class="keyword">if</span> (name != <span class="literal">NULL</span>) &#123;</span><br><span class="line">		<span class="built_in">strncpy</span>(new_thread-&gt;name, name,</span><br><span class="line">			CONFIG_THREAD_MAX_NAME_LEN - <span class="number">1</span>);</span><br><span class="line">		new_thread-&gt;name[CONFIG_THREAD_MAX_NAME_LEN - <span class="number">1</span>] = <span class="string">'\0'</span>; <span class="comment">//代码注解4</span></span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_ARCH_HAS_CUSTOM_SWAP_TO_MAIN</span></span><br><span class="line">	<span class="keyword">if</span> (!_current) &#123;</span><br><span class="line">		new_thread-&gt;resource_pool = <span class="literal">NULL</span>;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	new_thread-&gt;resource_pool = _current-&gt;resource_pool; <span class="comment">//代码注解5</span></span><br><span class="line">	sys_trace_thread_create(new_thread);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>代码注解1</strong>: 修正栈大小，主要为线程栈地址随机化功能使用（算是简单的地址随机化方案，感兴趣大家可以搜索一下ASLR相关资料），目的为的是防止破解攻击</li>
+<li><strong>代码注解2</strong>: 执行体系结构相关的线程创建过程（本文接下来以ARM Cortex-M为例介绍）</li>
+<li><strong>代码注解3/代码注解4</strong>: 线程一些公共参数的初始化，用于系统监视器监视线程状态。</li>
+<li><strong>代码注解5</strong>: 继承父线程的资源池。</li>
+</ul>
+<p>其中z_arch_new_thread代码如下(省去部分代码)：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_arch_new_thread</span><span class="params">(struct k_thread *thread, <span class="keyword">k_thread_stack_t</span> *<span class="built_in">stack</span>,  <span class="keyword">size_t</span> stackSize, <span class="keyword">k_thread_entry_t</span> pEntry,  <span class="keyword">void</span> *parameter1, <span class="keyword">void</span> *parameter2, <span class="keyword">void</span> *parameter3, <span class="keyword">int</span> priority, <span class="keyword">unsigned</span> <span class="keyword">int</span> options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">char</span> *pStackMem = Z_THREAD_STACK_BUFFER(<span class="built_in">stack</span>);</span><br><span class="line">	<span class="keyword">char</span> *stackEnd;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">u32_t</span> top_of_stack_offset = <span class="number">0U</span>;</span><br><span class="line"></span><br><span class="line">	Z_ASSERT_VALID_PRIO(priority, pEntry);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT) \</span></span><br><span class="line">	&amp;&amp; defined(CONFIG_USERSPACE)</span><br><span class="line">	stackSize -= MPU_GUARD_ALIGN_AND_SIZE;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_FLOAT) &amp;&amp; defined(CONFIG_FP_SHARING) \</span></span><br><span class="line">	&amp;&amp; defined(CONFIG_MPU_STACK_GUARD)</span><br><span class="line">	<span class="keyword">if</span> ((options &amp; K_FP_REGS) != <span class="number">0</span>) &#123;</span><br><span class="line">		pStackMem += MPU_GUARD_ALIGN_AND_SIZE_FLOAT</span><br><span class="line">			- MPU_GUARD_ALIGN_AND_SIZE;</span><br><span class="line">		stackSize -= MPU_GUARD_ALIGN_AND_SIZE_FLOAT</span><br><span class="line">			- MPU_GUARD_ALIGN_AND_SIZE;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	stackEnd = pStackMem + stackSize;</span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> __<span class="title">esf</span> *<span class="title">pInitCtx</span>;</span></span><br><span class="line"></span><br><span class="line">	z_new_thread_init(thread, pStackMem, stackSize, priority,  options);</span><br><span class="line"></span><br><span class="line">	pInitCtx = (struct __esf *)(STACK_ROUND_DOWN(stackEnd -</span><br><span class="line">		(<span class="keyword">char</span> *)top_of_stack_offset - <span class="keyword">sizeof</span>(struct __basic_sf)));</span><br><span class="line">        </span><br><span class="line">	pInitCtx-&gt;basic.pc = (<span class="keyword">u32_t</span>)z_thread_entry;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_CPU_CORTEX_M)</span></span><br><span class="line">	pInitCtx-&gt;basic.pc &amp;= <span class="number">0xfffffffe</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	pInitCtx-&gt;basic.a1 = (<span class="keyword">u32_t</span>)pEntry;</span><br><span class="line">	pInitCtx-&gt;basic.a2 = (<span class="keyword">u32_t</span>)parameter1;</span><br><span class="line">	pInitCtx-&gt;basic.a3 = (<span class="keyword">u32_t</span>)parameter2;</span><br><span class="line">	pInitCtx-&gt;basic.a4 = (<span class="keyword">u32_t</span>)parameter3;</span><br><span class="line">	pInitCtx-&gt;basic.xpsr = <span class="number">0x01000000</span>UL; </span><br><span class="line"></span><br><span class="line">	thread-&gt;callee_saved.psp = (<span class="keyword">u32_t</span>)pInitCtx;</span><br><span class="line">	thread-&gt;arch.basepri = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_USERSPACE) || defined(CONFIG_FP_SHARING)</span></span><br><span class="line">	thread-&gt;arch.mode = <span class="number">0</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> ALWAYS_INLINE <span class="keyword">void</span> <span class="title">z_new_thread_init</span><span class="params">(struct k_thread *thread, <span class="keyword">char</span> *pStack, <span class="keyword">size_t</span> stackSize, <span class="keyword">int</span> prio, <span class="keyword">unsigned</span> <span class="keyword">int</span> options)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_INIT_STACKS</span></span><br><span class="line">	<span class="built_in">memset</span>(pStack, <span class="number">0xaa</span>, stackSize);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_STACK_SENTINEL</span></span><br><span class="line">	*((<span class="keyword">u32_t</span> *)pStack) = STACK_SENTINEL;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_STACK_SENTINEL */</span></span></span><br><span class="line">	z_init_thread_base(&amp;thread-&gt;base, prio, _THREAD_PRESTART, options);</span><br><span class="line">	thread-&gt;init_data = <span class="literal">NULL</span>;</span><br><span class="line">	thread-&gt;fn_abort = <span class="literal">NULL</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_THREAD_CUSTOM_DATA</span></span><br><span class="line">	thread-&gt;custom_data = <span class="literal">NULL</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_THREAD_NAME</span></span><br><span class="line">	thread-&gt;name[<span class="number">0</span>] = <span class="string">'\0'</span>;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(CONFIG_THREAD_STACK_INFO)</span></span><br><span class="line">	thread-&gt;stack_info.start = (<span class="keyword">uintptr_t</span>)pStack;</span><br><span class="line">	thread-&gt;stack_info.<span class="built_in">size</span> = (<span class="keyword">u32_t</span>)stackSize;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* CONFIG_THREAD_STACK_INFO */</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上初始化过程执行后，线程的栈空间如图所示：</p>
+<p><img src="http://pic.l2h.site/QQMail_0.png" alt="http://pic.l2h.site/QQMail_0.png"></p>
+<p>以上为线程的初始化过程</p>
+<h3 id="线程执行"><a href="#线程执行" class="headerlink" title="线程执行"></a>线程执行</h3><p>线程开始执行调用<em>z_impl_k_thread_start</em>函数。该函数也会被k_thread_create–&gt;schedule_new_thread间接调用，其源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_impl_k_thread_start</span><span class="params">(struct k_thread *thread)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">k_spinlock_key_t</span> key = k_spin_lock(&amp;lock); </span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (z_has_thread_started(thread)) &#123;</span><br><span class="line">		k_spin_unlock(&amp;lock, key);</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	z_mark_thread_as_started(thread); <span class="comment">//代码注解1</span></span><br><span class="line">	z_ready_thread(thread);  <span class="comment">//代码注解2</span></span><br><span class="line">	z_reschedule(&amp;lock, key); <span class="comment">//代码注解3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>代码注解1</strong>：仅仅将thread_state标记上_THREAD_PRESTART  </li>
+<li><strong>代码注解2</strong>：将Thread加入调度的ready Q，关于线程调度之后文章进行介绍</li>
+<li><strong>代码注解3</strong>：调用系统的reschedule函数触发系统调度。对Cortex-M3来讲，将会调用系统的PENDSV系统指令，悬起系统切换异常。下图为引用自《Cortex-M3权威指南》的一张PendSV使用的示例：</li>
+</ul>
+<p><img src="http://pic.l2h.site/PendSV.png" alt="PendSV"></p>
+<h3 id="线程挂起"><a href="#线程挂起" class="headerlink" title="线程挂起"></a>线程挂起</h3><p>线程挂起使用<em>z_impl_k_thread_suspend</em>，代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_impl_k_thread_suspend</span><span class="params">(struct k_thread *thread)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">k_spinlock_key_t</span> key = k_spin_lock(&amp;lock);</span><br><span class="line">	z_thread_single_suspend(thread);</span><br><span class="line">	sys_trace_thread_suspend(thread);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (thread == _current) &#123;</span><br><span class="line">		z_reschedule(&amp;lock, key); <span class="comment">//代码注解3</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		k_spin_unlock(&amp;lock, key);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_thread_single_suspend</span><span class="params">(struct k_thread *thread)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (z_is_thread_ready(thread)) &#123;</span><br><span class="line">		z_remove_thread_from_ready_q(thread); <span class="comment">//代码注解1</span></span><br><span class="line">	&#125;</span><br><span class="line">	z_mark_thread_as_suspended(thread); <span class="comment">//代码注解2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>代码注解3</strong>：若该线程正在运行，调用reschedule重新调度</li>
+<li><strong>代码注解1</strong>：将Thread从调度的ready Q移除</li>
+<li><strong>代码注解2</strong>：对线程状态做挂起标记</li>
+</ul>
+<h3 id="线程继续（resume）"><a href="#线程继续（resume）" class="headerlink" title="线程继续（resume）"></a>线程继续（resume）</h3><p>线程Resume仅做线程的标记，不再进行分析</p>
+<h3 id="线程取消（Abort）"><a href="#线程取消（Abort）" class="headerlink" title="线程取消（Abort）"></a>线程取消（Abort）</h3><p>线程取消使用API <em>z_impl_k_thread_abort</em>,代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_impl_k_thread_abort</span><span class="params">(<span class="keyword">k_tid_t</span> thread)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> key;</span><br><span class="line"></span><br><span class="line">	key = irq_lock();</span><br><span class="line">	__ASSERT(!(thread-&gt;base.user_options &amp; K_ESSENTIAL),</span><br><span class="line">		 <span class="string">"essential thread aborted"</span>);</span><br><span class="line"></span><br><span class="line">	z_thread_single_abort(thread);</span><br><span class="line">	z_thread_monitor_exit(thread);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (_current == thread) &#123;</span><br><span class="line">		<span class="keyword">if</span> ((SCB-&gt;ICSR &amp; SCB_ICSR_VECTACTIVE_Msk) == <span class="number">0</span>) &#123;</span><br><span class="line">			(<span class="keyword">void</span>)z_swap_irqlock(key);</span><br><span class="line">			CODE_UNREACHABLE;   <span class="comment">//代码注解7</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			SCB-&gt;ICSR |= SCB_ICSR_PENDSVSET_Msk; <span class="comment">//代码注解7</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	z_reschedule_irqlock(key);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">z_thread_single_abort</span><span class="params">(struct k_thread *thread)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (thread-&gt;fn_abort != <span class="literal">NULL</span>) &#123;</span><br><span class="line">		thread-&gt;fn_abort();     <span class="comment">//代码注解1</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (IS_ENABLED(CONFIG_SMP)) &#123;</span><br><span class="line">		z_sched_abort(thread);  <span class="comment">//代码注解2</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (z_is_thread_ready(thread)) &#123;</span><br><span class="line">		z_remove_thread_from_ready_q(thread); <span class="comment">//代码注解3</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (z_is_thread_pending(thread)) &#123;</span><br><span class="line">			z_unpend_thread_no_timeout(thread); <span class="comment">//代码注解4</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (z_is_thread_timeout_active(thread)) &#123;</span><br><span class="line">			(<span class="keyword">void</span>)z_abort_thread_timeout(thread); <span class="comment">//代码注解5</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	thread-&gt;base.thread_state |= _THREAD_DEAD; <span class="comment">//代码注解6</span></span><br><span class="line">	sys_trace_thread_abort(thread);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>代码注解1</strong>：先执行该线程的退出回调函数（供应用程序做特殊处理）</li>
+<li><strong>代码注解2</strong>：SMP相关通知，此处不做深入分析</li>
+<li><strong>代码注解3</strong>：将Thread从调度的ready Q移除</li>
+<li><strong>代码注解4</strong>：将Thread从Pending Q也移除</li>
+<li><strong>代码注解5</strong>：若Thread正在等待一定超时后调度，也将其从超时列表中移除</li>
+<li><strong>代码注解6</strong>：对线程状态做死亡（Dead）标记</li>
+<li><strong>代码注解7</strong>：待添加</li>
+<li><strong>代码注解8</strong>：置起PendSV，进行重新调度</li>
+</ul>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>以上为线程使用相关结构体、API及对应的分析。可以看出，线程相关函数的实现足够简洁明了，这也正应了Zephyr的设计思想。有任何问题，欢迎留言讨论。</p>
+
+    </div>
+
+    
+    
+    
+      
+
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/p/42e2c2a3.html" rel="next" title="Zephyr线程管理 - 概念">
+                  <i class="fa fa-chevron-left"></i> Zephyr线程管理 - 概念
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/p/2639ab6d.html" rel="prev" title="小米手表使用ADB安装应用">
+                  小米手表使用ADB安装应用 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+    
+    <div class="comments" id="comments"></div>
+  
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#数据结构"><span class="nav-number">1.</span> <span class="nav-text">数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#API"><span class="nav-number">2.</span> <span class="nav-text">API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#线程创建"><span class="nav-number">2.1.</span> <span class="nav-text">线程创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程执行"><span class="nav-number">2.2.</span> <span class="nav-text">线程执行</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程挂起"><span class="nav-number">2.3.</span> <span class="nav-text">线程挂起</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程继续（resume）"><span class="nav-number">2.4.</span> <span class="nav-text">线程继续（resume）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程取消（Abort）"><span class="nav-number">2.5.</span> <span class="nav-text">线程取消（Abort）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结语"><span class="nav-number">3.</span> <span class="nav-text">结语</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image"
+      src="/images/avatar.jpg"
+      alt="Lambert">
+  <p class="site-author-name" itemprop="name">Lambert</p>
+  <div class="site-description" itemprop="description">旅行日记，Linux技术，机器学习，建站技巧</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">142</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">categories</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+          
+            <a href="/tags/">
+          
+        
+        <span class="site-state-item-count">125</span>
+        <span class="site-state-item-name">tags</span>
+        </a>
+      </div>
+    
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="https://github.com/lambertdev" title="GitHub &rarr; https://github.com/lambertdev" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+    
+      <span class="links-of-author-item">
+      
+      
+        
+      
+      
+        
+      
+        <a href="mailto:lambert.q.wang@gmail.com" title="E-Mail &rarr; mailto:lambert.q.wang@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+    
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://mlldxe.cn/" title="http://mlldxe.cn/" rel="noopener" target="_blank">Mlldxe’s Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://oldpan.me/" title="https://oldpan.me/" rel="noopener" target="_blank">Oldpan的个人博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.moerats.com/" title="https://www.moerats.com/" rel="noopener" target="_blank">Rat's Blog</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.sharexbar.com/" title="http://www.sharexbar.com/" rel="noopener" target="_blank">分享巴中</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://blog.isoyu.com/" title="https://blog.isoyu.com/" rel="noopener" target="_blank">姬长信</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://masuit.com/" title="https://masuit.com/" rel="noopener" target="_blank">懒得勤快博客</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://www.zahuiw.com/" title="http://www.zahuiw.com/" rel="noopener" target="_blank">杂烩网</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.yanshisan.cn/" title="https://www.yanshisan.cn/" rel="noopener" target="_blank">燕十三</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://daohang.lusongsong.com/" title="http://daohang.lusongsong.com/" rel="noopener" target="_blank">博客大全</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://neuralnetworksanddeeplearning.com/" title="http://neuralnetworksanddeeplearning.com/" rel="noopener" target="_blank">神经网络深度学习</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="http://asciiflow.com/" title="http://asciiflow.com/" rel="noopener" target="_blank">在线ASCii绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://plantuml.com/zh/" title="https://plantuml.com/zh/" rel="noopener" target="_blank">PlantUML</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://kroki.io/#install" title="https://kroki.io/#install" rel="noopener" target="_blank">Kroki绘图</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://elixir.bootlin.com/linux/latest/source" title="https://elixir.bootlin.com/linux/latest/source" rel="noopener" target="_blank">Linux在线源码</a>
+        </li>
+      
+        <li class="links-of-blogroll-item">
+          <a href="https://www.kernel.org/doc/html/latest/" title="https://www.kernel.org/doc/html/latest/" rel="noopener" target="_blank">Linux文档</a>
+        </li>
+      
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright"><a href="http://beian.miit.gov.cn" rel="noopener" target="_blank">蜀ICP备17001636号-1 </a>
+  <a href="http://beian.gov.cn/portal/registerSystemInfo?recordcode=" rel="noopener" target="_blank"> </a>&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lambert</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a></div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">Theme – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a></div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+  <script src="/js/local-search.js?v=7.4.0"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+
+<script>
+NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+  var GUEST = ['nick', 'mail', 'link'];
+  var guest = 'nick,mail,link';
+  guest = guest.split(',').filter(item => {
+    return GUEST.includes(item);
+  });
+  new Valine({
+    el: '#comments',
+    verify: false,
+    notify: false,
+    appId: '5WWufhOezioBluY5alVKWnl5-gzGzoHsz',
+    appKey: 'GKTKyEDBcLJKqo7IKlRX51Jk',
+    placeholder: '说点啥都可以...',
+    avatar: 'mm',
+    meta: guest,
+    pageSize: '10' || 10,
+    visitor: false,
+    lang: '' || 'zh-cn',
+    path: location.pathname
+  });
+}, window.Valine);
+</script>
+
+</body>
+</html>
